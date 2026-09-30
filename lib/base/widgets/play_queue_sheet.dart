@@ -1,0 +1,254 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sylvakru/base/audio_handler.dart';
+import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/asset_images.dart';
+import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/widgets/buttons.dart';
+import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/my_sheet.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/base/utils/metadata_utils.dart';
+
+class PlayQueueSheet extends StatefulWidget {
+  const PlayQueueSheet({super.key});
+
+  @override
+  State<StatefulWidget> createState() => PlayQueueSheetState();
+}
+
+class PlayQueueSheetState extends State<PlayQueueSheet> {
+  final scrollController = ScrollController();
+
+  void jumpToCurrentSong() {
+    final position = scrollController.position;
+    final maxScrollExtent = position.maxScrollExtent;
+    final minScrollExtent = position.minScrollExtent;
+    scrollController.jumpTo(
+      (54.0 * audioHandler.currentIndex).clamp(
+        minScrollExtent,
+        maxScrollExtent,
+      ),
+    );
+  }
+
+  void updateQueue() {
+    jumpToCurrentSong();
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      jumpToCurrentSong();
+    });
+    playModeNotifier.addListener(updateQueue);
+  }
+
+  @override
+  void dispose() {
+    playModeNotifier.removeListener(updateQueue);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return ValueListenableBuilder(
+      valueListenable: currentSongNotifier,
+      builder: (context, value, child) {
+        final specificTextColor = colorManager.getSpecificTextColor();
+        final specificIconColor = colorManager.getSpecificIconColor();
+        final specificHighlightText = colorManager
+            .getSpecificHighlightTextColor();
+        return MySheet(
+          Column(
+            children: [
+              // Optional drag handle
+              Container(
+                margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                width: 50,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: specificIconColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              SizedBox(
+                child: Row(
+                  children: [
+                    SizedBox(width: 15),
+                    Text(
+                      l10n.playQueue,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: specificTextColor,
+                      ),
+                    ),
+                    Spacer(),
+
+                    IconButton(
+                      color: specificIconColor,
+                      onPressed: () {
+                        audioHandler.reversePlayQueue();
+                        updateQueue();
+                      },
+                      icon: ImageIcon(reverseImage),
+                    ),
+
+                    playModeButton(null, iconColor: specificIconColor),
+
+                    IconButton(
+                      color: specificIconColor,
+                      onPressed: () {
+                        final position = scrollController.position;
+                        final maxScrollExtent = position.maxScrollExtent;
+                        final minScrollExtent = position.minScrollExtent;
+                        scrollController.animateTo(
+                          (54.0 * audioHandler.currentIndex).clamp(
+                            minScrollExtent,
+                            maxScrollExtent,
+                          ),
+                          duration: Duration(milliseconds: 300),
+                          curve: Curves.linear,
+                        );
+                      },
+                      icon: ImageIcon(locationImage),
+                    ),
+                    IconButton(
+                      color: specificIconColor,
+                      onPressed: () async {
+                        if (await showConfirmDialog(context, l10n.clear)) {
+                          await audioHandler.clear();
+
+                          while (context.mounted && Navigator.canPop(context)) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          }
+                        }
+                      },
+                      icon: const ImageIcon(deleteImage),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ReorderableListView.builder(
+                  scrollController: scrollController,
+                  itemExtent: 54,
+                  onReorderItem: (oldIndex, newIndex) {
+                    if (oldIndex == audioHandler.currentIndex) {
+                      audioHandler.currentIndex = newIndex;
+                    } else if (oldIndex < audioHandler.currentIndex &&
+                        newIndex >= audioHandler.currentIndex) {
+                      audioHandler.currentIndex -= 1;
+                    } else if (oldIndex > audioHandler.currentIndex &&
+                        newIndex <= audioHandler.currentIndex) {
+                      audioHandler.currentIndex += 1;
+                    }
+                    final item = playQueue.removeAt(oldIndex);
+                    playQueue.insert(newIndex, item);
+                    audioHandler.saveAllStates();
+                  },
+                  onReorderStart: (_) {
+                    tryVibrate();
+                  },
+                  onReorderEnd: (_) {
+                    tryVibrate();
+                  },
+                  proxyDecorator:
+                      (Widget child, int index, Animation<double> animation) {
+                        return Material(
+                          color: Colors.transparent,
+                          child: child,
+                        );
+                      },
+                  itemCount: playQueue.length,
+                  itemBuilder: (_, index) {
+                    final song = playQueue[index];
+
+                    return MediaQuery.removePadding(
+                      key: ValueKey(song),
+                      context: context,
+                      removeLeft: true, // for mobile
+                      removeRight: true,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.fromLTRB(15, 0, 0, 0),
+                        leading: CoverArtWidget(
+                          size: 40,
+                          borderRadius: 4,
+                          picture: song.picture,
+                        ),
+                        title: ValueListenableBuilder(
+                          valueListenable: currentSongNotifier,
+                          builder: (_, currentSong, _) {
+                            return Text(
+                              getTitle(song),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: song == currentSong
+                                    ? FontWeight.bold
+                                    : null,
+                                color: song == currentSong
+                                    ? specificHighlightText
+                                    : specificTextColor,
+                              ),
+                            );
+                          },
+                        ),
+                        subtitle: Text(
+                          "${getArtist(song)} - ${getAlbum(song)}",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: specificTextColor,
+                          ),
+                        ),
+                        visualDensity: VisualDensity(vertical: -4),
+                        onTap: () async {
+                          audioHandler.currentIndex = index;
+                          await audioHandler.load();
+                          audioHandler.play();
+                        },
+
+                        trailing: IconButton(
+                          color: specificIconColor,
+
+                          onPressed: () async {
+                            audioHandler.delete(index);
+                            setState(() {});
+                            if (index < audioHandler.currentIndex) {
+                              audioHandler.currentIndex -= 1;
+                            } else if (index == audioHandler.currentIndex) {
+                              if (playQueue.isEmpty) {
+                                while (Navigator.canPop(context)) {
+                                  Navigator.pop(context);
+                                }
+                                await audioHandler.clear();
+                              } else {
+                                if (index == playQueue.length) {
+                                  audioHandler.currentIndex = 0;
+                                }
+                                await audioHandler.load();
+                              }
+                            }
+                            audioHandler.saveAllStates();
+                          },
+                          icon: Icon(Icons.clear_rounded, size: 20),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

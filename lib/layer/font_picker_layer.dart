@@ -1,0 +1,196 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
+import 'package:just_font_scan/just_font_scan.dart';
+import 'package:smooth_corner/smooth_corner.dart';
+import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/asset_images.dart';
+import 'package:sylvakru/base/data/font_manager.dart';
+import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/utils/media_query.dart';
+import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/my_scaffold.dart';
+import 'package:sylvakru/base/widgets/my_sheet.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/landscape_view/title_bar.dart';
+import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:sylvakru/layer/settings_layer.dart';
+import 'package:sylvakru/portrait_view/my_search_field.dart';
+
+part '../portrait_view/pages/font_picker_page.dart';
+part '../landscape_view/panels/font_picker_panel.dart';
+
+class FontPickerLayer extends StatefulWidget {
+  const FontPickerLayer({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _FontPickerLayerState();
+}
+
+class _FontPickerLayerState extends State<FontPickerLayer> {
+  final ValueNotifier<bool> isSearchNotifier = ValueNotifier(false);
+  final ScrollController scrollController = ScrollController();
+
+  final textController = TextEditingController();
+  final ValueNotifier<List<String>> fontsNotifier = ValueNotifier([]);
+  List<String> allFonts = [];
+
+  final previewText = "Music 音乐 123";
+
+  @override
+  void initState() {
+    super.initState();
+    reloadAllFonts();
+    textController.addListener(update);
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
+
+  void reloadAllFonts() {
+    allFonts.clear();
+    allFonts.addAll(importedFonts);
+    if (Platform.isWindows || Platform.isMacOS) {
+      allFonts.addAll(JustFontScan.scan().map((e) => e.name).toList());
+    }
+    update();
+  }
+
+  void update() {
+    fontsNotifier.value = allFonts.where((font) {
+      return font.toLowerCase().contains(textController.text.toLowerCase());
+    }).toList();
+  }
+
+  void restoreDefaultAction() async {
+    final l10n = AppLocalizations.of(context);
+
+    if (await showConfirmDialog(context, l10n.restoreDefault)) {
+      await Future.delayed(Duration(milliseconds: 250));
+      fontFamilyNotifier.value = null;
+      setting.save();
+      setState(() {});
+    }
+  }
+
+  void addFontAction(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+
+    final fileResult = await FilePicker.pickFiles(
+      type: .custom,
+      allowedExtensions: ['ttf', 'otf', 'ttc'],
+    );
+    if (fileResult.isEmpty) {
+      return;
+    }
+    if (context.mounted) {
+      final result = await getInputTextDialog(context, l10n.setFontName);
+      if (result == '') {
+        return;
+      }
+      if (Platform.isMacOS || Platform.isWindows) {
+        for (final font in JustFontScan.scan().map((e) => e.name).toList()) {
+          if (font == result) {
+            if (context.mounted) {
+              showCenterMessage('Conflict name with system font');
+            }
+            return;
+          }
+        }
+      }
+      final loader = FontLoader(result);
+
+      for (final file in fileResult) {
+        final bytes = await File(file.path!).readAsBytes();
+        loader.addFont(Future.value(ByteData.view(bytes.buffer)));
+      }
+
+      await loader.load();
+
+      await fontManager.addFonts(
+        result,
+        fileResult.map((e) => e.path!).toList(),
+      );
+
+      if (importedFonts.contains(result)) {
+        setState(() {});
+      } else {
+        importedFonts.add(result);
+        allFonts.clear();
+        reloadAllFonts();
+      }
+    }
+  }
+
+  void deleteFontAction(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+
+    await showAnimationDialog(
+      context: context,
+      child: SizedBox(
+        width: 300,
+        height: 350,
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: StatefulBuilder(
+            builder: (context, thisSetState) {
+              return ListView.builder(
+                itemCount: importedFonts.length,
+                itemBuilder: (context, index) {
+                  final font = importedFonts[index];
+                  return ListTile(
+                    title: Text(font),
+                    onTap: () async {
+                      if (await showConfirmDialog(context, l10n.deleteFont)) {
+                        await fontManager.deleteFonts(font);
+
+                        if (importedFonts.isEmpty && context.mounted) {
+                          Navigator.pop(context);
+                          await Future.delayed(Duration(milliseconds: 250));
+                        } else {
+                          thisSetState(() {});
+                        }
+
+                        if (font == fontFamilyNotifier.value) {
+                          fontFamilyNotifier.value = null;
+                          setting.save();
+                        }
+
+                        reloadAllFonts();
+                      }
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void rebuild() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isTooNarrow(context)) {
+      return pageView(context);
+    }
+
+    return ValueListenableBuilder(
+      valueListenable: settingsVisibleNotifier,
+      builder: (context, value, child) {
+        return Opacity(opacity: value ? 0 : 1, child: panelView(context));
+      },
+    );
+  }
+}
