@@ -171,7 +171,7 @@ class Library {
     if (sourceType == .local || song.cacheExist) {
       return;
     }
-    final savePath = song.cachePath!;
+    final savePath = "${song.cachePath!}.part";
     late bool success;
     // delay download to prevent it from running at the same time as audio loading
     await Future.delayed(Duration(seconds: 3));
@@ -189,6 +189,7 @@ class Library {
     final tmp = File(savePath);
     if (await tmp.exists()) {
       if (success) {
+        await tmp.rename(song.cachePath!);
         song.cacheExist = true;
         cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
       } else {
