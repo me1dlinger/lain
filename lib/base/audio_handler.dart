@@ -625,12 +625,13 @@ class MyAudioHandler extends BaseAudioHandler {
       if (_playLastSyncTime != null) {
         _playedDuration += DateTime.now().difference(_playLastSyncTime!);
       }
-
-      double times =
-          _playedDuration.inSeconds / _player.state.duration.inSeconds;
-      if (times > 0.5) {
-        library.tryAddCache(currentSongNotifier.value!);
-        history.addSongTimes(currentSongNotifier.value!, times.round());
+      if (_player.state.duration.inSeconds > 0) {
+        double times =
+            _playedDuration.inSeconds / _player.state.duration.inSeconds;
+        if (times > 0.5) {
+          library.tryAddCache(currentSongNotifier.value!);
+          history.addSongTimes(currentSongNotifier.value!, times.round());
+        }
       }
     }
     _playLastSyncTime = null;
