@@ -160,7 +160,7 @@ class Library {
     }
     int total = 0;
     await for (final file in cacheDir.list()) {
-      if (file is File) {
+      if (file is File && !file.path.endsWith('.part')) {
         total += await file.length();
       }
     }
@@ -189,9 +189,9 @@ class Library {
     final tmp = File(savePath);
     if (await tmp.exists()) {
       if (success) {
+        cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
         await tmp.rename(song.cachePath!);
         song.cacheExist = true;
-        cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
       } else {
         await tmp.delete();
       }
