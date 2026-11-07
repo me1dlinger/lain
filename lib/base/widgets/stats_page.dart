@@ -3,6 +3,7 @@ import 'package:sylvakru/base/data/stats.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/layer/layers_manager.dart';
 
 /// Local listening report: a yearly heatmap, the day's ranking, the year's
 /// totals and the top songs / artists / albums. Everything comes from
@@ -33,11 +34,18 @@ class _StatsPageState extends State<StatsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // The panel colour is translucent by design (it sits over the app's
+    // cover-art background); on a pushed page that would show the dark
+    // navigator underneath, so composite it into an opaque colour instead.
     return ValueListenableBuilder(
-      valueListenable: panelColor.valueNotifier,
-      builder: (context, background, child) {
+      valueListenable: Listenable.merge([
+        layersManager.backgroundChangeNotifier,
+        panelColor.valueNotifier,
+        pageBackgroundColor.valueNotifier,
+      ]),
+      builder: (context, _, child) {
         return Scaffold(
-          backgroundColor: background,
+          backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
             child: FutureBuilder(
               // The store loads lazily on first use.

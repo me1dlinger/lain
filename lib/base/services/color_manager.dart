@@ -373,6 +373,16 @@ class ColorManager {
         : panelColor.value;
   }
 
+  /// Opaque background for a page that is pushed on top of the app (the report,
+  /// the server list). Panel colours are translucent on purpose - they are meant
+  /// to sit over the cover-art background of the running app - so painting one
+  /// straight onto a pushed route would show the dark navigator behind it and
+  /// look much darker than every other page. Compositing the panel colour onto
+  /// the base colour it would normally be drawn over gives the same brightness.
+  Color getSpecificOpaqueBgColor() {
+    return Color.alphaBlend(getSpecificBgColor(), getSpecificBgBaseColor());
+  }
+
   Color getSpecificTextColor() {
     return viewModeNotifier.value == .mini
         ? miniViewForegroundColor.value

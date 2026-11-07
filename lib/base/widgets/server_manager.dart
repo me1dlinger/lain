@@ -29,11 +29,18 @@ class _ServerListPageState extends State<ServerListPage> {
     final l10n = AppLocalizations.of(context);
     final textColor = colorManager.getSpecificTextColor();
 
+    // The panel colour is translucent by design (it sits over the app's
+    // cover-art background); on a pushed page that would show the dark
+    // navigator underneath, so composite it into an opaque colour instead.
     return ValueListenableBuilder(
-      valueListenable: panelColor.valueNotifier,
-      builder: (context, background, child) {
+      valueListenable: Listenable.merge([
+        layersManager.backgroundChangeNotifier,
+        panelColor.valueNotifier,
+        pageBackgroundColor.valueNotifier,
+      ]),
+      builder: (context, _, child) {
         return Scaffold(
-          backgroundColor: background,
+          backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
             child: Column(
               children: [
@@ -296,11 +303,18 @@ class _ServerEditPageState extends State<ServerEditPage> {
     final l10n = AppLocalizations.of(context);
     final textColor = colorManager.getSpecificTextColor();
 
+    // The panel colour is translucent by design (it sits over the app's
+    // cover-art background); on a pushed page that would show the dark
+    // navigator underneath, so composite it into an opaque colour instead.
     return ValueListenableBuilder(
-      valueListenable: panelColor.valueNotifier,
-      builder: (context, background, child) {
+      valueListenable: Listenable.merge([
+        layersManager.backgroundChangeNotifier,
+        panelColor.valueNotifier,
+        pageBackgroundColor.valueNotifier,
+      ]),
+      builder: (context, _, child) {
         return Scaffold(
-          backgroundColor: background,
+          backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
             child: Column(
               children: [
