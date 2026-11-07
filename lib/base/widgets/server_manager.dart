@@ -381,21 +381,25 @@ class _ServerEditPageState extends State<ServerEditPage> {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 30),
                 children: [
-                  AppleFormSection(
-                    title: l10n.serverType,
-                    children: [
-                      appleSegmented<SourceType>(
-                        kinds,
-                        (value) => getSourceTypeDisplayName(l10n, value),
-                        type,
-                        (value) => setState(() {
-                          type = value;
-                          publicEditor.type = value;
-                          lanEditor.type = value;
-                        }),
-                      ),
-                    ],
-                  ),
+                  // A server's kind is part of its identity (and its database),
+                  // so it is chosen when the server is created and not changed
+                  // afterwards.
+                  if (widget.server == null)
+                    AppleFormSection(
+                      title: l10n.serverType,
+                      children: [
+                        appleSegmented<SourceType>(
+                          kinds,
+                          (value) => getSourceTypeDisplayName(l10n, value),
+                          type,
+                          (value) => setState(() {
+                            type = value;
+                            publicEditor.type = value;
+                            lanEditor.type = value;
+                          }),
+                        ),
+                      ],
+                    ),
                   AppleFormSection(
                     title: l10n.servers,
                     children: [
@@ -484,7 +488,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
       title: title,
       children: [
         appleSegmented<String>(
-          const ['https', 'http'],
+          const ['http', 'https'],
           (value) => value,
           editor.scheme,
           (value) => setState(() => editor.scheme = value),
@@ -554,7 +558,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
 /// One address, edited as scheme + host + port (plus a path for WebDAV) or, for
 /// Feiniu, as whatever the user typed - its client normalises a bare id.
 class _AddressEditor {
-  String scheme = 'https';
+  String scheme = 'http';
   final TextEditingController hostTmp = TextEditingController();
   final TextEditingController portTmp = TextEditingController();
   final TextEditingController pathTmp = TextEditingController();
