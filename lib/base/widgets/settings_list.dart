@@ -24,6 +24,7 @@ import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/connect_client_widget.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/stats_page.dart';
 import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -131,6 +132,10 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(
           paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
+        ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, listeningReportListTile(context, l10n)),
         ),
 
         if (isStreamSource) ...[
@@ -634,6 +639,19 @@ class _SettingsListState extends State<SettingsList> {
           return Text('${value.display}  ');
         },
       ),
+    );
+  }
+
+  Widget listeningReportListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(frequentlyImage, size: iconSize),
+      title: Text(l10n.listeningReport),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        globalNavigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (context) => const StatsPage()),
+        );
+      },
     );
   }
 

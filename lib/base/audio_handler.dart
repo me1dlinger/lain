@@ -26,6 +26,7 @@ import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/data/history.dart';
+import 'package:sylvakru/base/data/stats.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/utils/contrast_color_generator.dart';
 import 'package:sylvakru/base/data/library.dart';
@@ -767,6 +768,11 @@ class MyAudioHandler extends BaseAudioHandler {
         if (times > 0.5) {
           library.tryAddCache(currentSongNotifier.value!);
           history.addSongTimes(currentSongNotifier.value!, times.round());
+          // Local listening report: one entry per mostly-finished listen,
+          // aggregated across every source (see ListeningStats).
+          unawaited(
+            stats.recordPlay(currentSongNotifier.value!, _playedDuration),
+          );
         }
       }
     }
