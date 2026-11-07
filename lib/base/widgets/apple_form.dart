@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/my_switch.dart';
 
 /// Grouped form pieces in the app's own style.
 ///
@@ -79,6 +80,27 @@ Widget appleFormRow(String label, Widget child) {
         ),
         const SizedBox(width: 12),
         Expanded(child: child),
+      ],
+    ),
+  );
+}
+
+/// One label/switch line, with the switch pushed against the right edge so
+/// that it lines up with the values of the rows above it.
+Widget appleSwitchRow(String label, ValueNotifier<bool> valueNotifier) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+    child: Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            color: colorManager.getSpecificTextColor(),
+          ),
+        ),
+        const Spacer(),
+        MySwitch(valueNotifier: valueNotifier),
       ],
     ),
   );

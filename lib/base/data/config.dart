@@ -126,7 +126,7 @@ class Config {
         sourceType == .feiniu;
     isNotStreamSource = !isStreamSource;
 
-    ignoreServerCert = active?.ignoreCert ?? false;
+    ignoreServerCert = active?.ignoresCert ?? false;
 
     if (active != null && active.isUsable) {
       // Connect without probing, so a launch stays fast; a failing request
@@ -272,7 +272,7 @@ class Config {
   /// connects when one of them answers.
   Future<bool> activateServer(MusicServer server) async {
     // Set before probing, so the probe itself accepts the certificate too.
-    ignoreServerCert = server.ignoreCert;
+    ignoreServerCert = server.ignoresCert;
 
     String? reachable;
     for (final address in server.addresses) {
@@ -303,6 +303,7 @@ class Config {
 
   /// Switches to a local library: no server, folders are scanned instead.
   Future<void> activateLocal() async {
+    ignoreServerCert = false;
     activeServerId = null;
     sourceType = .local;
     isStreamSource = false;
@@ -348,6 +349,7 @@ class Config {
       if (!sameKind && sourceType == server.type) {
         streamClient = null;
         webdavClient = null;
+        ignoreServerCert = false;
         sourceType = .local;
         isStreamSource = false;
         isNotStreamSource = true;

@@ -22,9 +22,12 @@ class MusicServer {
   /// again, so a launch is not delayed by two timeouts.
   String? lastGoodUrl;
 
-  /// Accept this server's TLS certificate without validating it (a NAS on the
-  /// LAN usually has a self-signed one).
-  bool ignoreCert;
+  /// Accept this server's certificate without validating it (a NAS on the LAN
+  /// usually serves a self-signed one). Kept per address, since only one of
+  /// them is usually reached over such a certificate.
+  bool ignorePublicCert;
+
+  bool ignoreLanCert;
 
   MusicServer({
     required this.id,
@@ -35,7 +38,8 @@ class MusicServer {
     this.username = '',
     this.password = '',
     this.lastGoodUrl,
-    this.ignoreCert = false,
+    this.ignorePublicCert = false,
+    this.ignoreLanCert = false,
   });
 
   /// Addresses to try, LAN first: it is the cheaper and faster route when both
@@ -54,6 +58,11 @@ class MusicServer {
     add(lastGoodUrl);
     return result;
   }
+
+  /// Whether any of this server's addresses must have its certificate accepted
+  /// without validation. Either address turns it on for the whole server, so
+  /// that a failover to the other one keeps working.
+  bool get ignoresCert => ignorePublicCert || ignoreLanCert;
 
   bool get hasLan => lanUrl.trim().isNotEmpty;
 
@@ -82,7 +91,8 @@ class MusicServer {
     'lanUrl': lanUrl,
     'username': username,
     'lastGoodUrl': lastGoodUrl,
-    'ignoreCert': ignoreCert,
+    'ignorePublicCert': ignorePublicCert,
+    'ignoreLanCert': ignoreLanCert,
   };
 
   static MusicServer? fromJson(Object? raw) {
@@ -101,7 +111,10 @@ class MusicServer {
       lanUrl: '${raw['lanUrl'] ?? ''}',
       username: '${raw['username'] ?? ''}',
       lastGoodUrl: raw['lastGoodUrl'] == null ? null : '${raw['lastGoodUrl']}',
-      ignoreCert: raw['ignoreCert'] == true,
+      // `ignoreCert` was a single flag before it became per address.
+      ignorePublicCert:
+          raw['ignorePublicCert'] as bool? ?? raw['ignoreCert'] == true,
+      ignoreLanCert: raw['ignoreLanCert'] as bool? ?? raw['ignoreCert'] == true,
     );
   }
 

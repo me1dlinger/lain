@@ -12,7 +12,6 @@ import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/apple_form.dart';
 import 'package:sylvakru/base/widgets/custom_text_field.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 
@@ -315,17 +314,16 @@ class _ServerEditPageState extends State<ServerEditPage> {
     initial: widget.server?.publicUrl ?? '',
     type: type,
     isPublic: true,
+    ignoreCert: widget.server?.ignorePublicCert ?? false,
   );
   late final _AddressEditor lanEditor = _AddressEditor(
     initial: widget.server?.lanUrl ?? '',
     type: type,
+    ignoreCert: widget.server?.ignoreLanCert ?? false,
   );
 
   bool saving = false;
   bool obscure = true;
-  late final ignoreCertNotifier = ValueNotifier<bool>(
-    widget.server?.ignoreCert ?? false,
-  );
 
   @override
   void dispose() {
@@ -334,7 +332,6 @@ class _ServerEditPageState extends State<ServerEditPage> {
     passwordTmp.dispose();
     publicEditor.dispose();
     lanEditor.dispose();
-    ignoreCertNotifier.dispose();
     super.dispose();
   }
 
@@ -415,13 +412,6 @@ class _ServerEditPageState extends State<ServerEditPage> {
                       ),
                       appleTextFieldRow(l10n.username, usernameTmp),
                       appleFormRow(
-                        l10n.ignoreCert,
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: MySwitch(valueNotifier: ignoreCertNotifier),
-                        ),
-                      ),
-                      appleFormRow(
                         l10n.password,
                         Row(
                           children: [
@@ -492,6 +482,8 @@ class _ServerEditPageState extends State<ServerEditPage> {
             'FN ID',
             appleTextField(editor.hostTmp, placeholder: 'xxxxxxxx'),
           ),
+          if (editor.isSecure)
+            appleSwitchRow(l10n.ignoreCert, editor.ignoreCertNotifier),
         ],
       );
     }
@@ -509,6 +501,9 @@ class _ServerEditPageState extends State<ServerEditPage> {
         appleTextFieldRow(l10n.serverPort, editor.portTmp, number: true),
         if (type == .webdav)
           appleTextFieldRow(l10n.serverPath, editor.pathTmp),
+        // A plain http address has no certificate to skip.
+        if (editor.isSecure)
+          appleSwitchRow(l10n.ignoreCert, editor.ignoreCertNotifier),
       ],
     );
   }
@@ -538,7 +533,8 @@ class _ServerEditPageState extends State<ServerEditPage> {
     server.lanUrl = lanEditor.url;
     server.username = usernameTmp.text.trim();
     server.password = passwordTmp.text;
-    server.ignoreCert = ignoreCertNotifier.value;
+    server.ignorePublicCert = publicEditor.ignoreCertNotifier.value;
+    server.ignoreLanCert = lanEditor.ignoreCertNotifier.value;
 
     if (!server.isUsable) {
       showCenterMessage(l10n.unreachable);
@@ -584,7 +580,9 @@ class _AddressEditor {
     required String initial,
     required this.type,
     this.isPublic = false,
+    bool ignoreCert = false,
   }) {
+    ignoreCertNotifier.value = ignoreCert;
     if (initial.isNotEmpty) {
       load(initial);
     }
@@ -595,10 +593,17 @@ class _AddressEditor {
   /// address is a normal host, and the client appends the API path either way.
   bool get usesFnId => type == .feiniu && isPublic;
 
+  /// Only an address reached over https can have a certificate to skip, and the
+  /// device-id form is always https.
+  bool get isSecure => usesFnId || scheme == 'https';
+
+  final ignoreCertNotifier = ValueNotifier<bool>(false);
+
   void dispose() {
     hostTmp.dispose();
     portTmp.dispose();
     pathTmp.dispose();
+    ignoreCertNotifier.dispose();
   }
 
   void load(String url) {
