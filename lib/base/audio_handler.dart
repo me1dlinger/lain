@@ -888,6 +888,12 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     if (currentSongNotifier.value?.id == song.id) {
       updateServiceMediaItem(song, lyric: _currentLyricText());
+      // The widget was published while the cover was still missing; republish it
+      // now that the artwork is on disk, otherwise the widget would keep the
+      // placeholder until the next track.
+      if (isMobile) {
+        unawaited(HomeWidgetService.updateNowPlayingWidget());
+      }
     }
   }
 

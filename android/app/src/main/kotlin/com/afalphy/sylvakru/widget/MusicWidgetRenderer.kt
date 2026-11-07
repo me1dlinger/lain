@@ -90,7 +90,7 @@ object MusicWidgetRenderer {
 
         views.setImageViewResource(
             R.id.widget_toggle,
-            if (state.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play,
+            if (state.isPlaying) R.drawable.ic_widget_pause_filled else R.drawable.ic_widget_play_filled,
         )
         views.setContentDescription(
             R.id.widget_toggle,
@@ -151,10 +151,16 @@ object MusicWidgetRenderer {
     /** Rounded, centre-cropped cover, or null when there is nothing to show. */
     private fun coverBitmap(context: Context, path: String?): Bitmap? {
         if (path.isNullOrEmpty()) return null
-        coverCache.get(path)?.let { return it }
 
         val file = File(path)
         if (!file.isFile) return null
+
+        // The key has to include the file's identity, not just its path:
+        // home_widget overwrites the *same* cover file on every track change, so a
+        // path-only key would keep serving the previous track's artwork (which is
+        // exactly why the cover only refreshed after restarting the app).
+        val cacheKey = "$path|${file.length()}|${file.lastModified()}"
+        coverCache.get(cacheKey)?.let { return it }
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(path, bounds)
@@ -167,7 +173,7 @@ object MusicWidgetRenderer {
 
         val radius = COVER_RADIUS_DP * context.resources.displayMetrics.density
         val rounded = rounded(decoded, radius)
-        coverCache.put(path, rounded)
+        coverCache.put(cacheKey, rounded)
         return rounded
     }
 

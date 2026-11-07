@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filled disc behind play/pause, as in the reference design. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#1A8E8E93">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/widget_button_fill" />
+        </shape>
+    </item>
+</ripple>

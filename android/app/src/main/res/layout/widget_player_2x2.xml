@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  2x2 player: cover on top, title/artist below, three controls at the bottom.
-  Kept deliberately flat - one solid fill, rounded corners, monochrome text and
-  icons - and sized so the content still fits the smallest 2x2 cell (110dp).
+  2x2 player, following the reference design: cover on the left, title and
+  artist on the right, and a centred control row underneath with a filled disc
+  behind play/pause. Deliberately flat and monochrome - one solid rounded panel,
+  no gradients, no accent colours - and sized so the content still fits the
+  smallest 2x2 cell (110dp).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
@@ -11,78 +13,94 @@
     android:background="@drawable/widget_background"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="8dp">
+    android:padding="6dp">
 
-    <ImageView
-        android:id="@+id/widget_cover"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="@drawable/widget_cover_background"
-        android:contentDescription="@string/widget_cover"
-        android:scaleType="centerCrop" />
-
-    <TextView
-        android:id="@+id/widget_title"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:ellipsize="end"
-        android:fontFamily="sans-serif"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:singleLine="true"
-        android:text="@string/widget_empty_title"
-        android:textColor="@color/widget_text_primary"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/widget_artist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
-        android:ellipsize="end"
-        android:fontFamily="sans-serif"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:singleLine="true"
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="10sp" />
+        <ImageView
+            android:id="@+id/widget_cover"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/widget_cover_background"
+            android:contentDescription="@string/widget_cover"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="@string/widget_empty_title"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="4dp"
         android:gravity="center"
         android:orientation="horizontal">
 
         <ImageButton
             android:id="@+id/widget_prev"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/widget_button_background"
             android:contentDescription="@string/widget_action_previous"
-            android:padding="4dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_skip_previous" />
 
         <ImageButton
             android:id="@+id/widget_toggle"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/widget_button_background"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_play_button_background"
             android:contentDescription="@string/widget_action_play"
-            android:padding="5dp"
+            android:padding="9dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_widget_play" />
+            android:src="@drawable/ic_widget_play_filled" />
 
         <ImageButton
             android:id="@+id/widget_next"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/widget_button_background"
             android:contentDescription="@string/widget_action_next"
-            android:padding="4dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_widget_skip_next" />
     </LinearLayout>
