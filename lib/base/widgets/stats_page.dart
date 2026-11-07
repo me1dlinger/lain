@@ -19,6 +19,20 @@ class StatsPage extends StatefulWidget {
 class _StatsPageState extends State<StatsPage> {
   String? selectedYear;
 
+  /// Drives the heatmap's horizontal position: the page opens on the month in
+  /// progress rather than on January.
+  final _heatController = ScrollController();
+
+  /// Year the grid was last lined up for, so that a rebuild (a theme change,
+  /// say) does not drag the view back to it.
+  int? _heatAnchoredFor;
+
+  @override
+  void dispose() {
+    _heatController.dispose();
+    super.dispose();
+  }
+
   static const _cell = 13.0;
   static const _cellGap = 3.0;
   static const _monthsZh = [
@@ -296,10 +310,29 @@ class _StatsPageState extends State<StatsPage> {
       index += span;
     }
 
+    // Opening the report in November used to show January, leaving the recent
+    // weeks a swipe away. Line the grid up on the month in progress: its first
+    // column ends up leftmost, and the days around today stay in view.
+    if (year != _heatAnchoredFor) {
+      _heatAnchoredFor = year;
+      final now = DateTime.now();
+      final anchor = year == now.year ? columnMonth.indexOf(now.month) : -1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_heatController.hasClients) return;
+        final target = anchor <= 0 ? 0.0 : anchor * pitch;
+        _heatController.jumpTo(
+          target
+              .clamp(0.0, _heatController.position.maxScrollExtent)
+              .toDouble(),
+        );
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SingleChildScrollView(
+          controller: _heatController,
           scrollDirection: Axis.horizontal,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
