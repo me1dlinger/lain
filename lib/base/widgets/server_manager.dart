@@ -228,8 +228,7 @@ class _ServerListPageState extends State<ServerListPage> {
     if (!ok) {
       // Say which addresses were tried, so a failure is actionable.
       showCenterMessage(
-        '${server.name}' + \n + '${l10n.connectionFailed}' + \n +
-            '${server.addresses.join(' + \n + ')}',
+        '${server.name}\n${l10n.connectionFailed}\n${server.addresses.join('\n')}',
         duration: 5000,
       );
       if (mounted) {
@@ -239,14 +238,14 @@ class _ServerListPageState extends State<ServerListPage> {
     }
     await _reloadLibrary();
     showCenterMessage(
-      '${server.name}' + \n + '${l10n.connectSuccess} · '
-          '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
+      '${server.name}\n${l10n.connectSuccess} · ${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
       duration: 3000,
     );
     if (mounted) {
       setState(() {});
     }
   }
+
 
 
   Future<void> _delete(MusicServer server) async {
