@@ -84,6 +84,15 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData('is_playing', isPlayingNotifier.value);
 
       await HomeWidget.saveWidgetData(
+        'positionMs',
+        audioHandler.getPosition().inMilliseconds,
+      );
+      await HomeWidget.saveWidgetData(
+        'durationMs',
+        audioHandler.getCurrentDuration().inMilliseconds,
+      );
+
+      await HomeWidget.saveWidgetData(
         'is_favorite',
         song?.isFavoriteNotifier.value,
       );
@@ -113,6 +122,24 @@ class HomeWidgetService {
       logger.output("widget save error: $error");
     }
 
+    await reloadNowPlayingWidget();
+  }
+
+  /// Pushes just the playback position. Called on a timer while playing so the
+  /// widgets' progress bar follows along without rewriting the cover.
+  static Future<void> updateProgress() async {
+    try {
+      await HomeWidget.saveWidgetData(
+        'positionMs',
+        audioHandler.getPosition().inMilliseconds,
+      );
+      await HomeWidget.saveWidgetData(
+        'durationMs',
+        audioHandler.getCurrentDuration().inMilliseconds,
+      );
+    } catch (error) {
+      logger.output("widget save error: $error");
+    }
     await reloadNowPlayingWidget();
   }
 

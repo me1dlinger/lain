@@ -35,6 +35,24 @@ object MusicWidgetRenderer {
     private const val COVER_BOUND = 256
     private const val COVER_RADIUS_DP = 10f
 
+    /// The 4x2 widget's progress bar is covered by this many invisible segments;
+    /// a widget click cannot report a tap position, so each segment seeks to its
+    /// share of the track.
+    const val SEEK_SEGMENTS = 10
+
+    private val seekIds = intArrayOf(
+        R.id.widget_seek_1,
+        R.id.widget_seek_2,
+        R.id.widget_seek_3,
+        R.id.widget_seek_4,
+        R.id.widget_seek_5,
+        R.id.widget_seek_6,
+        R.id.widget_seek_7,
+        R.id.widget_seek_8,
+        R.id.widget_seek_9,
+        R.id.widget_seek_10,
+    )
+
     private val coverCache = LruCache<String, Bitmap>(4)
     private var transparentCover: Bitmap? = null
 
@@ -48,11 +66,11 @@ object MusicWidgetRenderer {
         manager: AppWidgetManager,
         ids: IntArray,
         data: SharedPreferences,
-        withLyrics: Boolean,
+        detailed: Boolean,
     ) {
         val state = MusicWidgetStore.read(data)
         for (id in ids) {
-            manager.updateAppWidget(id, build(context, id, state, withLyrics))
+            manager.updateAppWidget(id, build(context, id, state, detailed))
         }
     }
 
@@ -60,9 +78,9 @@ object MusicWidgetRenderer {
         context: Context,
         widgetId: Int,
         state: MusicWidgetState,
-        withLyrics: Boolean,
+        detailed: Boolean,
     ): RemoteViews {
-        val layout = if (withLyrics) R.layout.widget_player_4x2 else R.layout.widget_player_2x2
+        val layout = if (detailed) R.layout.widget_player_4x2 else R.layout.widget_player_2x2
         val views = RemoteViews(context.packageName, layout)
 
         val title = if (state.hasSong) {
@@ -75,11 +93,25 @@ object MusicWidgetRenderer {
             R.id.widget_artist,
             MusicWidgetStore.ellipsize(state.artist, MAX_ARTIST),
         )
-        if (withLyrics) {
+        if (detailed) {
             views.setTextViewText(
                 R.id.widget_lyric,
                 MusicWidgetStore.ellipsize(state.lyric, MAX_LYRIC),
             )
+            views.setTextViewText(R.id.widget_position, clock(state.positionMillis))
+            views.setTextViewText(R.id.widget_duration, clock(state.durationMillis))
+            views.setProgressBar(
+                R.id.widget_progress,
+                PROGRESS_STEPS,
+                progressOf(state),
+                false,
+            )
+            for (segment in 1..SEEK_SEGMENTS) {
+                views.setOnClickPendingIntent(
+                    seekIds[segment - 1],
+                    seek(context, widgetId, segment),
+                )
+            }
         }
 
         val cover = coverBitmap(context, state.coverPath)
@@ -113,6 +145,45 @@ object MusicWidgetRenderer {
         )
         views.setOnClickPendingIntent(R.id.widget_root, openApp(context, widgetId))
         return views
+    }
+
+    private const val PROGRESS_STEPS = 1000
+
+    private fun progressOf(state: MusicWidgetState): Int {
+        if (state.durationMillis <= 0) {
+            return 0
+        }
+        val ratio = state.positionMillis.toLong() * PROGRESS_STEPS /
+            state.durationMillis
+        return ratio.toInt().coerceIn(0, PROGRESS_STEPS)
+    }
+
+    private fun clock(millis: Int): String {
+        if (millis <= 0) {
+            return "--:--"
+        }
+        val seconds = millis / 1000
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val rest = seconds % 60
+        return if (hours > 0) {
+            "%d:%02d:%02d".format(hours, minutes, rest)
+        } else {
+            "%02d:%02d".format(minutes, rest)
+        }
+    }
+
+    private fun seek(context: Context, widgetId: Int, segment: Int): PendingIntent {
+        val intent = Intent(context, MusicWidgetActionReceiver::class.java).apply {
+            action = MusicWidgetActionReceiver.ACTION_SEEK
+            putExtra(MusicWidgetActionReceiver.EXTRA_SEGMENT, segment)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            widgetId * 100 + segment,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     private fun action(

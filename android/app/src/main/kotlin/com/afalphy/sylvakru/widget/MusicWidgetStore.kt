@@ -9,6 +9,8 @@ data class MusicWidgetState(
     val lyric: String?,
     val coverPath: String?,
     val isPlaying: Boolean,
+    val positionMillis: Int,
+    val durationMillis: Int,
 ) {
     val hasSong: Boolean get() = !title.isNullOrBlank()
 }
@@ -21,6 +23,10 @@ object MusicWidgetStore {
     private const val KEY_IS_PLAYING = "is_playing"
     private const val KEY_COVER_PATH = "coverPath"
 
+    // Read by the action receiver as well, to turn a seek tap into a position.
+    const val KEY_POSITION = "positionMs"
+    const val KEY_DURATION = "durationMs"
+
     // `home_widget` joins a lyric line's translations to the original text with
     // U+001F; the widget only shows the original line.
     private const val TRANSLATION_SEPARATOR = '\u001F'
@@ -31,6 +37,8 @@ object MusicWidgetStore {
         lyric = currentLyricLine(data),
         coverPath = data.getString(KEY_COVER_PATH, null),
         isPlaying = data.getBoolean(KEY_IS_PLAYING, false),
+        positionMillis = data.getInt(KEY_POSITION, 0),
+        durationMillis = data.getInt(KEY_DURATION, 0),
     )
 
     private fun currentLyricLine(data: SharedPreferences): String? {

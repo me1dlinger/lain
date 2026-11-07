@@ -18,7 +18,7 @@ class PlayerWidget2x2Provider : HomeWidgetProvider() {
             appWidgetManager,
             appWidgetIds,
             widgetData,
-            withLyrics = false,
+            detailed = false,
         )
     }
 }
