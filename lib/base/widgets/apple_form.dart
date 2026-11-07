@@ -240,7 +240,9 @@ Widget appleTextButton(
 /// other page.
 Route<T> applePageRoute<T>(Widget Function() builder) {
   return PageRouteBuilder<T>(
-    opaque: false,
+    // Opaque: these pages paint the app's opaque page colour, so letting the
+    // page below stay visible only made their own text overlap with it.
+    opaque: true,
     barrierColor: Colors.transparent,
     pageBuilder: (context, animation, secondaryAnimation) => builder(),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {

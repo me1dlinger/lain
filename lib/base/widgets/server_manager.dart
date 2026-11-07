@@ -43,7 +43,7 @@ class _ServerListPageState extends State<ServerListPage> {
       ]),
       builder: (context, child) {
         return Scaffold(
-          backgroundColor: colorManager.getSpecificBgColor(),
+          backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
             child: Column(
               children: [
@@ -346,7 +346,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
     final kinds = serverTypes;
 
     return Scaffold(
-      backgroundColor: colorManager.getSpecificBgColor(),
+      backgroundColor: colorManager.getSpecificOpaqueBgColor(),
       body: SafeArea(
         child: Column(
           children: [
