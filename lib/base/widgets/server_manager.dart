@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
@@ -262,6 +263,11 @@ class _ServerListPageState extends State<ServerListPage> {
 
 /// Add or edit one server: kind, name, the public and LAN addresses, and the
 /// credentials. Saving probes both addresses and only keeps the reachable one.
+/// Add or edit a server, as an iOS-style grouped form.
+///
+/// The field set follows the kind: Navidrome, Emby and WebDAV are addressed by
+/// scheme + host + port (WebDAV also by a path), while Feiniu is addressed by its
+/// device id - or a plain address - and therefore gets a single field.
 class ServerEditPage extends StatefulWidget {
   final MusicServer? server;
 
@@ -273,178 +279,299 @@ class ServerEditPage extends StatefulWidget {
 
 class _ServerEditPageState extends State<ServerEditPage> {
   late SourceType type = widget.server?.type ?? .navidrome;
-  late final nameTmp = TextEditingController(
+  late final TextEditingController nameTmp = TextEditingController(
     text: widget.server?.name ?? '',
   );
-  late final usernameTmp = TextEditingController(
+  late final TextEditingController usernameTmp = TextEditingController(
     text: widget.server?.username ?? '',
   );
-  late final passwordTmp = TextEditingController(
+  late final TextEditingController passwordTmp = TextEditingController(
     text: widget.server?.password ?? '',
   );
-
-  late final publicEditor = _AddressEditor(
+  late final _AddressEditor publicEditor = _AddressEditor(
     initial: widget.server?.publicUrl ?? '',
+    type: type,
   );
-  late final lanEditor = _AddressEditor(initial: widget.server?.lanUrl ?? '');
+  late final _AddressEditor lanEditor = _AddressEditor(
+    initial: widget.server?.lanUrl ?? '',
+    type: type,
+  );
 
   bool saving = false;
+  bool obscure = true;
 
   @override
   void dispose() {
     nameTmp.dispose();
     usernameTmp.dispose();
     passwordTmp.dispose();
+    publicEditor.dispose();
+    lanEditor.dispose();
     super.dispose();
   }
+
+  bool get isFeiniu => type == .feiniu;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textColor = colorManager.getSpecificTextColor();
 
-    // The panel colour is translucent by design (it sits over the app's
-    // cover-art background); on a pushed page that would show the dark
-    // navigator underneath, so composite it into an opaque colour instead.
-    return ValueListenableBuilder(
-      valueListenable: Listenable.merge([
-        layersManager.backgroundChangeNotifier,
-        panelColor.valueNotifier,
-        pageBackgroundColor.valueNotifier,
-      ]),
-      builder: (context, _, child) {
-        return Scaffold(
-          backgroundColor: colorManager.getSpecificOpaqueBgColor(),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.arrow_back_ios_new_rounded,
+    return Scaffold(
+      backgroundColor: colorManager.getSpecificOpaqueBgColor(),
+      body: SafeArea(
+        // Cupertino follows the platform brightness by default; this app has its
+        // own light/dark setting, so hand it over, and use the app's text colour
+        // as the tint so the filled button stays monochrome.
+        child: CupertinoTheme(
+          data: CupertinoThemeData(
+            brightness: mainPageThemeNotifier.value == .dark
+                ? Brightness.dark
+                : Brightness.light,
+            primaryColor: textColor,
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: textColor,
+                      ),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        widget.server == null ? l10n.addServer : l10n.edit,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           color: textColor,
                         ),
-                        onPressed: () => Navigator.of(context).maybePop(),
                       ),
-                      Expanded(
-                        child: Text(
-                          widget.server == null ? l10n.addServer : l10n.edit,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  children: [
+                    CupertinoFormSection.insetGrouped(
+                      header: Text(l10n.serverType),
+                      children: [
+                        CupertinoFormRow(
+                          child: CupertinoSlidingSegmentedControl<SourceType>(
+                            groupValue: type,
+                            children: {
+                              for (final value in SourceType.values)
+                                if (value != .local)
+                                  value: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    child: Text(
+                                      getSourceTypeDisplayName(l10n, value),
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                            },
+                            onValueChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+                              setState(() {
+                                type = value;
+                                publicEditor.type = value;
+                                lanEditor.type = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    CupertinoFormSection.insetGrouped(
+                      header: Text(l10n.servers),
+                      children: [
+                        _textRow(
+                          l10n.serverName,
+                          nameTmp,
+                          placeholder: getSourceTypeDisplayName(l10n, type),
+                        ),
+                        _textRow(l10n.username, usernameTmp),
+                        _passwordRow(l10n),
+                      ],
+                    ),
+                    _addressSection(l10n.publicAddress, publicEditor),
+                    _addressSection(l10n.lanAddress, lanEditor),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: CupertinoButton.filled(
+                        borderRadius: BorderRadius.circular(14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        onPressed: saving ? null : _save,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (saving)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 8),
+                                child: CupertinoActivityIndicator(radius: 8),
+                              ),
+                            Text(l10n.testAndSave),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (widget.server != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: CupertinoButton(
+                          onPressed: saving ? null : _delete,
+                          child: Text(
+                            l10n.delete,
+                            style: const TextStyle(
+                              color: CupertinoColors.destructiveRed,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
+                  ],
                 ),
-                if (saving) const LinearProgressIndicator(),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
-                    children: [
-                      CustomDropdownField<SourceType>(
-                        l10n.serverType,
-                        type,
-                        [
-                          for (final value in SourceType.values)
-                            if (value != .local) value,
-                        ],
-                        (value) => getSourceTypeDisplayName(l10n, value),
-                        (value) => setState(() {
-                          type = value;
-                          publicEditor.type = value;
-                          lanEditor.type = value;
-                        }),
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(l10n.serverName, nameTmp, compact: false),
-                      const SizedBox(height: 16),
-                      _addressSection(l10n.publicAddress, publicEditor, textColor),
-                      const SizedBox(height: 16),
-                      _addressSection(l10n.lanAddress, lanEditor, textColor),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        l10n.username,
-                        usernameTmp,
-                        compact: false,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        l10n.password,
-                        passwordTmp,
-                        needObscure: true,
-                        compact: false,
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          if (widget.server != null)
-                            TextButton(
-                              onPressed: saving
-                                  ? null
-                                  : () async {
-                                      if (!await showConfirmDialog(
-                                        context,
-                                        l10n.delete,
-                                      )) {
-                                        return;
-                                      }
-                                      setState(() => saving = true);
-                                      await config.deleteServer(widget.server!);
-                                      if (context.mounted) {
-                                        Navigator.pop(context, true);
-                                      }
-                                    },
-                              child: Text(l10n.delete),
-                            ),
-                          const Spacer(),
-                          FilledButton(
-                            onPressed: saving ? null : _save,
-                            child: Text(l10n.testAndSave),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _addressSection(String title, _AddressEditor editor, Color textColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _textRow(
+    String label,
+    TextEditingController controller, {
+    String? placeholder,
+    bool number = false,
+  }) {
+    return CupertinoFormRow(
+      prefix: Text(label, style: const TextStyle(fontSize: 15)),
+      child: CupertinoTextField(
+        controller: controller,
+        placeholder: placeholder,
+        keyboardType: number ? TextInputType.number : null,
+        textAlign: TextAlign.right,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: const BoxDecoration(),
+        style: const TextStyle(fontSize: 15),
+      ),
+    );
+  }
+
+  Widget _passwordRow(AppLocalizations l10n) {
+    return CupertinoFormRow(
+      prefix: Text(l10n.password, style: const TextStyle(fontSize: 15)),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoTextField(
+              controller: passwordTmp,
+              obscureText: obscure,
+              textAlign: TextAlign.right,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: const BoxDecoration(),
+              style: const TextStyle(fontSize: 15),
+            ),
+          ),
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+            icon: Icon(
+              obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              size: 18,
+            ),
+            onPressed: () => setState(() => obscure = !obscure),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addressSection(String header, _AddressEditor editor) {
+    final l10n = AppLocalizations.of(context);
+
+    if (isFeiniu) {
+      // Feiniu takes the device id (the client turns a bare id into
+      // https://<id>.fnos.net) or a full address.
+      return CupertinoFormSection.insetGrouped(
+        header: Text(header),
+        children: [
+          CupertinoFormRow(
+            prefix: const Text('FN ID', style: TextStyle(fontSize: 15)),
+            child: CupertinoTextField(
+              controller: editor.hostTmp,
+              placeholder: 'xxxxxxxx',
+              textAlign: TextAlign.right,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: const BoxDecoration(),
+              style: const TextStyle(fontSize: 15),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return CupertinoFormSection.insetGrouped(
+      header: Text(header),
       children: [
-        Text(
-          '$title:',
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+        CupertinoFormRow(
+          prefix: Text(l10n.serverScheme, style: const TextStyle(fontSize: 15)),
+          child: CupertinoSlidingSegmentedControl<String>(
+            groupValue: editor.scheme,
+            children: const {
+              'https': Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: Text('https', style: TextStyle(fontSize: 12)),
+              ),
+              'http': Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: Text('http', style: TextStyle(fontSize: 12)),
+              ),
+            },
+            onValueChanged: (value) {
+              if (value != null) {
+                setState(() => editor.scheme = value);
+              }
+            },
+          ),
         ),
-        const SizedBox(height: 6),
-        editor.build(context),
+        _textRow(l10n.serverHost, editor.hostTmp),
+        _textRow(l10n.serverPort, editor.portTmp, number: true),
+        if (type == .webdav) _textRow(l10n.serverPath, editor.pathTmp),
       ],
     );
+  }
+
+  Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context);
+    if (!await showConfirmDialog(context, l10n.delete)) {
+      return;
+    }
+    setState(() => saving = true);
+    await config.deleteServer(widget.server!);
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
     final server =
         widget.server ??
-        MusicServer(
-          id: MusicServer.newId(),
-          type: type,
-          name: '',
-        );
+        MusicServer(id: MusicServer.newId(), type: type, name: '');
     server.type = type;
     server.name = nameTmp.text.trim().isEmpty
         ? getSourceTypeDisplayName(l10n, type)
@@ -460,8 +587,8 @@ class _ServerEditPageState extends State<ServerEditPage> {
     }
 
     setState(() => saving = true);
-    // activateServer probes both addresses (LAN first) and remembers the one
-    // that answered; it also persists the server.
+    // activateServer probes both addresses (LAN first) and only keeps the one
+    // that answered; it persists the server as well.
     final reachable = await config.activateServer(server);
     setState(() => saving = false);
 
@@ -475,21 +602,33 @@ class _ServerEditPageState extends State<ServerEditPage> {
   }
 }
 
-/// Scheme + host + port (and a path for WebDAV) as one compact row.
+/// One address, edited as scheme + host + port (plus a path for WebDAV) or, for
+/// Feiniu, as whatever the user typed - the client normalises a bare id itself.
 class _AddressEditor {
   String scheme = 'https';
-  final hostTmp = TextEditingController();
-  final portTmp = TextEditingController();
-  final pathTmp = TextEditingController();
-  SourceType type = .navidrome;
+  final TextEditingController hostTmp = TextEditingController();
+  final TextEditingController portTmp = TextEditingController();
+  final TextEditingController pathTmp = TextEditingController();
+  SourceType type;
 
-  _AddressEditor({required String initial}) {
+  _AddressEditor({required String initial, required this.type}) {
     if (initial.isNotEmpty) {
       load(initial);
     }
   }
 
+  void dispose() {
+    hostTmp.dispose();
+    portTmp.dispose();
+    pathTmp.dispose();
+  }
+
   void load(String url) {
+    if (type == .feiniu) {
+      hostTmp.text = url.trim();
+      return;
+    }
+
     var text = url.trim();
     if (!text.contains('://')) {
       text = 'https://$text';
@@ -517,6 +656,9 @@ class _AddressEditor {
     if (host.isEmpty) {
       return '';
     }
+    if (type == .feiniu) {
+      return host;
+    }
     final buffer = StringBuffer('$scheme://$host');
     final port = portTmp.text.trim();
     if (port.isNotEmpty) {
@@ -529,45 +671,5 @@ class _AddressEditor {
       }
     }
     return buffer.toString();
-  }
-
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 92,
-              child: CustomDropdownField<String>(
-                null,
-                scheme,
-                const ['https', 'http'],
-                (item) => item,
-                (picked) => scheme = picked,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: CustomTextField('Host', hostTmp, compact: false),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 76,
-              child: CustomTextField(
-                'Port',
-                portTmp,
-                compact: false,
-                onlyNumber: true,
-              ),
-            ),
-          ],
-        ),
-        if (type == .webdav) ...[
-          const SizedBox(height: 8),
-          CustomTextField('Path', pathTmp, compact: false),
-        ],
-      ],
-    );
   }
 }
