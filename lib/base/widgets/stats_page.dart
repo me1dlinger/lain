@@ -255,8 +255,8 @@ class _StatsPageState extends State<StatsPage> {
       [l10n.listeningTime, _duration(data.millis)],
       [l10n.playTimes, '${data.plays}'],
       [l10n.listeningDays, '$days'],
-      [l10n.songCount, '${data.songs.length}'],
-      [l10n.albumCount, '${data.albums.length}'],
+      [l10n.songsTotal, '${data.songs.length}'],
+      [l10n.albumsTotal, '${data.albums.length}'],
     ];
 
     return Wrap(

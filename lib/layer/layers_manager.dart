@@ -12,10 +12,6 @@ import 'package:sylvakru/base/utils/dynamic_detail_route.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/history.dart';
-/// Label of the layer currently shown as a root page. The sidebar that used to
-/// highlight it is gone; the value still drives "back" (detail pop) handling.
-final ValueNotifier<String> currentRootLabel = ValueNotifier('');
-
 import 'package:sylvakru/layer/about_layer.dart';
 import 'package:sylvakru/layer/albums_layer.dart';
 import 'package:sylvakru/layer/artists_layer.dart';
@@ -36,6 +32,10 @@ import 'package:sylvakru/layer/songs_layer.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+
+/// Label of the layer currently shown as a root page. The sidebar that used to
+/// highlight it is gone; the value still drives "back" (detail pop) handling.
+final ValueNotifier<String> currentRootLabel = ValueNotifier('');
 
 final layersManager = LayersManager();
 

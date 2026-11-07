@@ -480,6 +480,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addedTimeAscending => '添加时间升序';
+
   @override
   String get streamQuality => '在线音质';
 
@@ -509,9 +510,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverPort => '端口';
+
   @override
   String get serverPath => '路径';
-
 
   @override
   String get serverAddress => '服务器地址';
@@ -562,10 +563,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get listeningDays => '听歌天数';
 
   @override
-  String get songCount => '歌曲数';
+  String get songsTotal => '歌曲数';
 
   @override
-  String get albumCount => '专辑数';
+  String get albumsTotal => '专辑数';
 
   @override
   String get heatLess => '少';
@@ -575,7 +576,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get allSources => '全部音源';
-
 
   @override
   String get addedTimeDescending => '添加时间降序';

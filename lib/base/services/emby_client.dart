@@ -437,8 +437,8 @@ class EmbyClient extends StreamClient {
     // `static=true` asks Emby for the untouched file; when a quality is chosen
     // the server has to transcode instead, so request a bitrate cap and codec.
     final query = <String, String>{
-      'UserId': userId,
-      'api_key': accessToken,
+      'UserId': userId ?? '',
+      'api_key': accessToken ?? '',
       'static': (maxBitRate == null).toString(),
       if (maxBitRate != null) ...{
         'MaxStreamingBitrate': '${maxBitRate * 1000}',

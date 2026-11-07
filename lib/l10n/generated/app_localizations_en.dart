@@ -480,6 +480,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addedTimeAscending => 'Added Time Ascending';
+
   @override
   String get streamQuality => 'Streaming Quality';
 
@@ -509,9 +510,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverPort => 'Port';
+
   @override
   String get serverPath => 'Path';
-
 
   @override
   String get serverAddress => 'Server Address';
@@ -562,10 +563,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get listeningDays => 'Active Days';
 
   @override
-  String get songCount => 'Songs';
+  String get songsTotal => 'Songs';
 
   @override
-  String get albumCount => 'Albums';
+  String get albumsTotal => 'Albums';
 
   @override
   String get heatLess => 'Less';
@@ -575,7 +576,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allSources => 'All Sources';
-
 
   @override
   String get addedTimeDescending => 'Added Time Descending';

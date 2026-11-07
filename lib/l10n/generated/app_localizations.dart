@@ -1015,6 +1015,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added Time Ascending'**
   String get addedTimeAscending;
+
   /// No description provided for @streamQuality.
   ///
   /// In en, this message translates to:
@@ -1074,12 +1075,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Port'**
   String get serverPort;
+
   /// No description provided for @serverPath.
   ///
   /// In en, this message translates to:
   /// **'Path'**
   String get serverPath;
-
 
   /// No description provided for @serverAddress.
   ///
@@ -1177,17 +1178,17 @@ abstract class AppLocalizations {
   /// **'Active Days'**
   String get listeningDays;
 
-  /// No description provided for @songCount.
+  /// No description provided for @songsTotal.
   ///
   /// In en, this message translates to:
   /// **'Songs'**
-  String get songCount;
+  String get songsTotal;
 
-  /// No description provided for @albumCount.
+  /// No description provided for @albumsTotal.
   ///
   /// In en, this message translates to:
   /// **'Albums'**
-  String get albumCount;
+  String get albumsTotal;
 
   /// No description provided for @heatLess.
   ///
@@ -1206,7 +1207,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All Sources'**
   String get allSources;
-
 
   /// No description provided for @addedTimeDescending.
   ///
