@@ -168,6 +168,8 @@
   "popularSongs": "热门歌曲",
   "popularAlbums": "热门专辑",
   "timesUnit": "次",
+  "connectSuccess": "连接成功",
+  "connectionFailed": "连接失败",
   "trackAscending": "音轨号升序",
   "trackDescending": "音轨号降序",
   "servers": "服务器",

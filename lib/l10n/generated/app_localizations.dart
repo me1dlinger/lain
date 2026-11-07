@@ -1110,6 +1110,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @connectSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get connectSuccess;
+
+  /// No description provided for @connectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get connectionFailed;
+
   /// No description provided for @trackAscending.
   ///
   /// In en, this message translates to:

@@ -528,6 +528,12 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get connectSuccess => '连接成功';
+
+  @override
+  String get connectionFailed => '连接失败';
+
+  @override
   String get trackAscending => '音轨号升序';
 
   @override

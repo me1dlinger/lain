@@ -109,7 +109,9 @@ extension _SongListPage on _SongListState {
               );
             },
           ),
-          if (!isFrequently && !isRecently)
+          // The artist view is grouped by album in track order, so a sort order
+          // would have nothing to act on and is not offered there.
+          if (!isFrequently && !isRecently && artist == null)
             ListTile(
               leading: ImageIcon(sequenceImage),
               title: Text(

@@ -226,13 +226,27 @@ class _ServerListPageState extends State<ServerListPage> {
     setState(() => busy = false);
 
     if (!ok) {
+      // Say which addresses were tried, so a failure is actionable.
+      showCenterMessage(
+        '${server.name}
+${l10n.connectionFailed}
+'
+        '${server.addresses.join('
+')}',
+        duration: 5000,
+      );
       if (mounted) {
-        showCenterMessage('${server.name}: ${l10n.unreachable}');
         setState(() {});
       }
       return;
     }
     await _reloadLibrary();
+    showCenterMessage(
+      '${server.name}
+${l10n.connectSuccess} · '
+      '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
+      duration: 3000,
+    );
     if (mounted) {
       setState(() {});
     }
@@ -593,9 +607,22 @@ class _ServerEditPageState extends State<ServerEditPage> {
     setState(() => saving = false);
 
     if (!reachable) {
-      showCenterMessage('${server.name}: ${l10n.unreachable}');
+      showCenterMessage(
+        '${server.name}
+${l10n.connectionFailed}
+'
+        '${server.addresses.join('
+')}',
+        duration: 5000,
+      );
       return;
     }
+    showCenterMessage(
+      '${server.name}
+${l10n.connectSuccess} · '
+      '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
+      duration: 3000,
+    );
     if (mounted) {
       Navigator.pop(context, true);
     }

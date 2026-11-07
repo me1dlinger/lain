@@ -528,6 +528,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get connectSuccess => 'Connected';
+
+  @override
+  String get connectionFailed => 'Connection failed';
+
+  @override
   String get trackAscending => 'Track Ascending';
 
   @override
