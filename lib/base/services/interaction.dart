@@ -777,6 +777,17 @@ Widget _optionItem({
   );
 }
 
+/// Queues [song] to play right after the current one. An empty queue has
+/// nothing to follow, so the song simply starts.
+void playSongNext(MyAudioMetadata song) {
+  if (playQueue.isEmpty) {
+    audioHandler.singlePlay(song);
+  } else {
+    audioHandler.insert2Next(song);
+  }
+  audioHandler.saveAllStates();
+}
+
 void showSongOptions({
   required BuildContext context,
   required MyAudioMetadata song,
@@ -844,12 +855,7 @@ void showSongOptions({
                   text: l10n.playNext,
                   onTap: () {
                     Navigator.pop(context);
-                    if (playQueue.isEmpty) {
-                      audioHandler.singlePlay(song);
-                    } else {
-                      audioHandler.insert2Next(song);
-                    }
-                    audioHandler.saveAllStates();
+                    playSongNext(song);
                   },
                 ),
 

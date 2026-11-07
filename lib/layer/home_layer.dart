@@ -18,6 +18,7 @@ import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/base/widgets/my_scaffold.dart';
+import 'package:sylvakru/base/widgets/play_next_button.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -573,6 +574,7 @@ class HomeLayerState extends State<HomeLayer> {
                               ],
                             ),
                           ),
+                          playNextButton(song),
                           IconButton(
                             onPressed: () {
                               showSongOptions(

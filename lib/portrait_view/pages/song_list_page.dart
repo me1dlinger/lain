@@ -530,19 +530,24 @@ extension _SongListPage on _SongListState {
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () =>
               audioHandler.setPlayQueue(currentSongList, 0, targetIndex: index),
-          trailing: isFrequently && sourceType != .emby
-              ? SizedBox(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isFrequently && sourceType != .emby)
+                SizedBox(
                   width: 100,
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Spacer(),
                       ImageIcon(playOutlinedImage, size: 15),
                       Text(song.playCount.toString()),
-                      songOptionsButton(index, song),
                     ],
                   ),
-                )
-              : songOptionsButton(index, song),
+                ),
+              playNextButton(song),
+              songOptionsButton(index, song),
+            ],
+          ),
         );
       },
     );
