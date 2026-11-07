@@ -86,6 +86,7 @@ extension _CollectionListPanel on CollectionListState {
                             falseText: l10n.normal,
                             valueNotifier: randomizeNotifier!,
                             onToggleCallBack: () {
+                              setting.save();
                               updateCurrentList();
                             },
                           ),

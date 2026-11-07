@@ -127,6 +127,7 @@ extension _CollectionListPage on CollectionListState {
                       falseText: l10n.normal,
                       valueNotifier: randomizeNotifier!,
                       onToggleCallBack: () {
+                        setting.save();
                         updateCurrentList();
                       },
                     ),

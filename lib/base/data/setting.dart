@@ -64,8 +64,14 @@ class Setting {
         json['artistsUseLargePicture'] as bool? ??
         artistsUseLargePictureNotifier.value;
 
+    artistsRandomizeNotifier.value =
+        json['artistsRandomize'] as bool? ?? artistsRandomizeNotifier.value;
+
     albumsIsAscendingNotifier.value =
         json['albumsIsAscend'] as bool? ?? albumsIsAscendingNotifier.value;
+
+    albumsRandomizeNotifier.value =
+        json['albumsRandomize'] as bool? ?? albumsRandomizeNotifier.value;
 
     albumsUseLargePictureNotifier.value =
         json['albumsUseLargePicture'] as bool? ??
@@ -161,8 +167,10 @@ class Setting {
         'artistsIsList': artistsIsListViewNotifier.value,
         'artistsIsAscend': artistsIsAscendingNotifier.value,
         'artistsUseLargePicture': artistsUseLargePictureNotifier.value,
+        'artistsRandomize': artistsRandomizeNotifier.value,
 
         'albumsIsAscend': albumsIsAscendingNotifier.value,
+        'albumsRandomize': albumsRandomizeNotifier.value,
         'albumsUseLargePicture': albumsUseLargePictureNotifier.value,
 
         'playlistsUseLargePicture': playlistsUseLargePictureNotifier.value,
