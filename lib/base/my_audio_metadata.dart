@@ -170,6 +170,9 @@ class MyAudioMetadata {
           id: song['guid'],
           coverId: song['coverId'],
           path: audioSpec['path'],
+          // fnOS reports createdAt, which is what "added time" means for this
+          // source; it is what the server sorts by with sort=createdAt,desc.
+          created: _epochToDate(song['createdAt']),
         );
       });
     }
@@ -238,4 +241,19 @@ class MyAudioMetadata {
         "playCount:$playCount\n"
         "lastPlayed:$lastPlayed";
   }
+}
+
+/// fnOS reports epoch milliseconds for createdAt / updatedAt, but seconds are
+/// tolerated as well (they are three orders of magnitude apart).
+DateTime? _epochToDate(Object? value) {
+  if (value is! num) {
+    return null;
+  }
+  final millis = value.toInt();
+  if (millis <= 0) {
+    return null;
+  }
+  return DateTime.fromMillisecondsSinceEpoch(
+    millis < 100000000000 ? millis * 1000 : millis,
+  );
 }
