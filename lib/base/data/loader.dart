@@ -66,6 +66,16 @@ class Loader {
 
     await library.load();
 
+    if (isNotStreamSource &&
+        library.songList.isEmpty &&
+        library.folderList.isNotEmpty) {
+      // Nothing is indexed, yet folders are configured: the previous scan was
+      // interrupted (the app was closed while it ran), so build the library now
+      // instead of leaving an empty page behind.
+      await firstSync();
+      return;
+    }
+
     audioHandler.loadStates();
 
     artistAlbumManager.classify();

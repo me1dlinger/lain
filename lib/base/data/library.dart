@@ -540,7 +540,9 @@ class Library {
           pathAndCreated.addAll(folder.pathAndCreated);
         }
 
-        final pool = Pool(6);
+        // Reading tags is per file and both I/O and CPU bound; a fixed six
+        // workers left most cores idle during a first local scan.
+        final pool = Pool(Platform.numberOfProcessors.clamp(4, 12));
 
         final tasks = <Future>[];
 
