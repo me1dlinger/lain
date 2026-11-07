@@ -28,35 +28,106 @@ class ConnectClientWidget extends StatefulWidget {
 }
 
 class _ConnectClientWidgetState extends State<ConnectClientWidget> {
-  final baseUrlTmp = TextEditingController();
+  // The address is edited as scheme + host + port (+ path for WebDAV) instead
+  // of one opaque URL string.
+  final hostTmp = TextEditingController();
+  final portTmp = TextEditingController();
+  final pathTmp = TextEditingController();
   final usernameTmp = TextEditingController();
   final passwordTmp = TextEditingController();
+
+  static const _schemes = ['https', 'http'];
+
+  String scheme = 'https';
+
+  bool get editsHost => widget.sourceType != .feiniu;
+
+  /// Feiniu accepts a bare device id, so it keeps a single field.
+  bool get editsPath => widget.sourceType == .webdav;
 
   @override
   void initState() {
     super.initState();
     if (widget.sourceType == .webdav) {
-      baseUrlTmp.text = webdavClient?.baseUrl ?? '';
+      loadUrl(webdavClient?.baseUrl ?? '');
       usernameTmp.text = webdavClient?.username ?? '';
       passwordTmp.text = webdavClient?.password ?? '';
     } else if (widget.sourceType == .navidrome) {
-      baseUrlTmp.text = config.navidromeBaseUrl ?? '';
+      loadUrl(config.navidromeBaseUrl ?? '');
       usernameTmp.text = config.navidromeUsername ?? '';
       passwordTmp.text = config.navidromePassword ?? '';
     } else if (widget.sourceType == .emby) {
-      baseUrlTmp.text = config.embyBaseUrl ?? '';
+      loadUrl(config.embyBaseUrl ?? '');
       usernameTmp.text = config.embyUsername ?? '';
       passwordTmp.text = config.embyPassword ?? '';
     } else if (widget.sourceType == .feiniu) {
-      baseUrlTmp.text = config.feiniuBaseUrl ?? '';
+      loadUrl(config.feiniuBaseUrl ?? '');
       usernameTmp.text = config.feiniuUsername ?? '';
       passwordTmp.text = config.feiniuPassword ?? '';
     }
   }
 
+  /// The URL that is handed to the client constructors.
+  String composeUrl() {
+    if (widget.sourceType == .feiniu) {
+      return hostTmp.text.trim();
+    }
+    final host = hostTmp.text.trim();
+    if (host.isEmpty) {
+      return '';
+    }
+    final buffer = StringBuffer('$scheme://$host');
+    final port = portTmp.text.trim();
+    if (port.isNotEmpty) {
+      buffer.write(':$port');
+    }
+    if (editsPath) {
+      final path = pathTmp.text.trim().replaceFirst(RegExp(r'^/+'), '');
+      if (path.isNotEmpty) {
+        buffer.write('/$path');
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Splits a stored URL back into its parts, keeping anything that cannot be
+  /// parsed (a bare Feiniu id, a malformed value) in the host field.
+  void loadUrl(String url) {
+    if (url.isEmpty) {
+      return;
+    }
+    if (widget.sourceType == .feiniu) {
+      hostTmp.text = url;
+      return;
+    }
+
+    var text = url.trim();
+    if (!text.contains('://')) {
+      text = 'https://$text';
+    }
+    final uri = Uri.tryParse(text);
+    if (uri == null || uri.host.isEmpty) {
+      hostTmp.text = url.trim();
+      return;
+    }
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      scheme = uri.scheme;
+    }
+    hostTmp.text = uri.host;
+    if (uri.hasPort) {
+      portTmp.text = '${uri.port}';
+    }
+    final path = uri.path.replaceFirst(RegExp(r'^/+'), '');
+    if (path.isNotEmpty) {
+      pathTmp.text = path;
+    }
+  }
+
   @override
   void dispose() {
-    baseUrlTmp.dispose();
+    hostTmp.dispose();
+    portTmp.dispose();
+    pathTmp.dispose();
     usernameTmp.dispose();
     passwordTmp.dispose();
     super.dispose();
@@ -83,16 +154,65 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
               ),
 
             SizedBox(height: 10),
-            isTV
-                ? fakeTextField(
-                    widget.sourceType == .feiniu ? 'Url/FN ID' : 'Url',
-                    baseUrlTmp,
-                  )
-                : CustomTextField(
-                    widget.sourceType == .feiniu ? 'Url/FN ID' : 'Url',
-                    baseUrlTmp,
-                    compact: false,
+            if (editsHost) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 92,
+                    child: isTV
+                        ? fakeTextField(l10n.serverScheme, null, scheme)
+                        : CustomDropdownField<String>(
+                            l10n.serverScheme,
+                            scheme,
+                            _schemes,
+                            (item) => item,
+                            (picked) => setState(() => scheme = picked),
+                          ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: isTV
+                        ? fakeTextField(l10n.serverHost, hostTmp)
+                        : CustomTextField(
+                            l10n.serverHost,
+                            hostTmp,
+                            compact: false,
+                          ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(width: 100),
+                  Expanded(
+                    child: isTV
+                        ? fakeTextField(l10n.serverPort, portTmp)
+                        : CustomTextField(
+                            l10n.serverPort,
+                            portTmp,
+                            compact: false,
+                            onlyNumber: true,
+                          ),
+                  ),
+                ],
+              ),
+              if (editsPath) ...[
+                SizedBox(height: 10),
+                isTV
+                    ? fakeTextField(l10n.serverPath, pathTmp)
+                    : CustomTextField(
+                        l10n.serverPath,
+                        pathTmp,
+                        compact: false,
+                      ),
+              ],
+            ] else
+              isTV
+              ? fakeTextField('FN ID', hostTmp)
+              : CustomTextField('FN ID', hostTmp, compact: false),
 
             SizedBox(height: 10),
             isTV
@@ -118,7 +238,11 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
     );
   }
 
-  Widget fakeTextField(String title, TextEditingController textController) {
+  Widget fakeTextField(
+    String title,
+    TextEditingController? textController, [
+    String? fixedValue,
+  ]) {
     return Column(
       children: [
         Align(
@@ -126,14 +250,16 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
           child: Text('$title:', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
         InkWell(
-          onTap: () async {
-            textController.text = await getInputTextDialog(
-              context,
-              title,
-              needConfirm: false,
-            );
-            setState(() {});
-          },
+          onTap: textController == null
+              ? null
+              : () async {
+                  textController.text = await getInputTextDialog(
+                    context,
+                    title,
+                    needConfirm: false,
+                  );
+                  setState(() {});
+                },
           child: Container(
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -141,7 +267,10 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
             decoration: BoxDecoration(
               border: Border.all(color: textColor.value),
             ),
-            child: Text(textController.text, overflow: TextOverflow.ellipsis),
+            child: Text(
+              fixedValue ?? textController?.text ?? '',
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
       ],
@@ -252,7 +381,7 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
       if (widget.sourceType == .webdav) {
         final tmp = webdavClient;
         webdavClient = WebDavClient(
-          baseUrl: baseUrlTmp.text,
+          baseUrl: composeUrl(),
           username: usernameTmp.text,
           password: passwordTmp.text,
         );
@@ -264,7 +393,7 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
       } else if (widget.sourceType == .navidrome) {
         final tmp = streamClient;
         final navidromeClient = NavidromeClient(
-          baseUrl: baseUrlTmp.text,
+          baseUrl: composeUrl(),
           username: usernameTmp.text,
           password: passwordTmp.text,
         );
@@ -276,13 +405,13 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
         if (widget.sourceType == sourceType) {
           streamClient = navidromeClient;
         }
-        config.navidromeBaseUrl = baseUrlTmp.text;
+        config.navidromeBaseUrl = composeUrl();
         config.navidromeUsername = usernameTmp.text;
         config.navidromePassword = passwordTmp.text;
       } else if (widget.sourceType == .emby) {
         final tmp = streamClient;
         final embyClient = EmbyClient(
-          baseUrl: baseUrlTmp.text,
+          baseUrl: composeUrl(),
           username: usernameTmp.text,
           password: passwordTmp.text,
         );
@@ -295,12 +424,12 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
         if (widget.sourceType == sourceType) {
           streamClient = embyClient;
         }
-        config.embyBaseUrl = baseUrlTmp.text;
+        config.embyBaseUrl = composeUrl();
         config.embyUsername = usernameTmp.text;
         config.embyPassword = passwordTmp.text;
       } else if (widget.sourceType == .feiniu) {
         final feiniuClient = FeiniuClient(
-          baseUrl: baseUrlTmp.text,
+          baseUrl: composeUrl(),
           username: usernameTmp.text,
           password: passwordTmp.text,
         );
@@ -311,7 +440,7 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
         if (widget.sourceType == sourceType) {
           streamClient = feiniuClient;
         }
-        config.feiniuBaseUrl = baseUrlTmp.text;
+        config.feiniuBaseUrl = composeUrl();
         config.feiniuUsername = usernameTmp.text;
         config.feiniuPassword = passwordTmp.text;
       }

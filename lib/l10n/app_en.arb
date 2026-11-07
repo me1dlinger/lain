@@ -211,6 +211,7 @@
   "serverScheme": "Scheme",
   "serverHost": "Host",
   "serverPort": "Port",
+  "serverPath": "Path",
   "serverAddress": "Server Address",
   "cacheDetails": "Cache Details",
   "cacheSongs": "Cached Songs",

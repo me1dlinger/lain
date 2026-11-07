@@ -509,6 +509,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverPort => 'Port';
+  @override
+  String get serverPath => 'Path';
+
 
   @override
   String get serverAddress => 'Server Address';

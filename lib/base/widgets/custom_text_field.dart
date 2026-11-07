@@ -112,3 +112,70 @@ class _CustomTextFieldState extends State<CustomTextField> {
     );
   }
 }
+
+/// Dropdown styled to match [CustomTextField]: same bold label and outline, so
+/// it can sit in a row next to a text field without looking out of place.
+class CustomDropdownField<T> extends StatelessWidget {
+  final String? name;
+  final T value;
+  final List<T> items;
+  final String Function(T) labelOf;
+  final ValueChanged<T> onChanged;
+
+  const CustomDropdownField(
+    this.name,
+    this.value,
+    this.items,
+    this.labelOf,
+    this.onChanged, {
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final specificTextcolor = colorManager.getSpecificTextColor();
+
+    return Column(
+      children: [
+        if (name != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '$name:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: specificTextcolor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: DropdownButton<T>(
+            value: value,
+            isExpanded: true,
+            isDense: true,
+            underline: const SizedBox.shrink(),
+            icon: Icon(Icons.arrow_drop_down, color: specificTextcolor),
+            style: TextStyle(fontSize: 14, color: specificTextcolor),
+            items: [
+              for (final item in items)
+                DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(
+                    labelOf(item),
+                    style: TextStyle(fontSize: 14, color: specificTextcolor),
+                  ),
+                ),
+            ],
+            onChanged: (picked) {
+              if (picked != null) {
+                onChanged(picked);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1074,6 +1074,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Port'**
   String get serverPort;
+  /// No description provided for @serverPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Path'**
+  String get serverPath;
+
 
   /// No description provided for @serverAddress.
   ///

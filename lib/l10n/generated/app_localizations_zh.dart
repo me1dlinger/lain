@@ -509,6 +509,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverPort => '端口';
+  @override
+  String get serverPath => '路径';
+
 
   @override
   String get serverAddress => '服务器地址';
