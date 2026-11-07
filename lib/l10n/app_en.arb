@@ -217,6 +217,7 @@
   "popularSongs": "Top Songs",
   "popularAlbums": "Top Albums",
   "timesUnit": "times",
+  "recentlyAdded": "Recently Added",
   "connectSuccess": "Connected",
   "connectionFailed": "Connection failed",
   "trackAscending": "Track Ascending",

@@ -8,6 +8,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/history.dart';
+import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
@@ -39,16 +40,19 @@ class HomeLayerState extends State<HomeLayer> {
   final albumsSC = ScrollController();
   final frequentlySC = ScrollController();
   final recentlySC = ScrollController();
+  final recentlyAddedSC = ScrollController();
   final playlistsSC = ScrollController();
 
   final albumsDisplayIconNotifier = ValueNotifier(false);
   final frequentlyDisplayIconNotifier = ValueNotifier(false);
   final recentlyDisplayIconNotifier = ValueNotifier(false);
+  final recentlyAddedDisplayIconNotifier = ValueNotifier(false);
   final playlistsDisplayIconNotifier = ValueNotifier(false);
 
   final albumsChangeNotifier = ValueNotifier(0);
   final frequentlyChangeNotifier = ValueNotifier(0);
   final recentlyChangeNotifier = ValueNotifier(0);
+  final recentlyAddedChangeNotifier = ValueNotifier(0);
   final playlistsChangeNotifier = ValueNotifier(0);
 
   final textController = TextEditingController();
@@ -281,6 +285,39 @@ class HomeLayerState extends State<HomeLayer> {
           mainAxisSize: .min,
           children: [
             SizedBox(width: 20),
+            Text(
+              l10n.recentlyAdded,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+
+        mouseRegionForScroll(
+          child: ListenableBuilder(
+            listenable: Listenable.merge([
+              library.changeNotifier,
+              searchChangeNotifier,
+            ]),
+            builder: (context, child) {
+              return songListView(
+                filterSongList(recentlyAddedSongList, searchValue),
+                recentlyAddedSC,
+              );
+            },
+          ),
+          scrollController: recentlyAddedSC,
+          displayIconNotifier: recentlyAddedDisplayIconNotifier,
+          changeNotifier: recentlyAddedChangeNotifier,
+          iconTop: 67,
+        ),
+
+        SizedBox(height: 15),
+
+        Row(
+          mainAxisSize: .min,
+          children: [
+            SizedBox(width: 20),
             GestureDetector(
               onTap: () {
                 layersManager.switchRootLayer('recently');
@@ -434,6 +471,18 @@ class HomeLayerState extends State<HomeLayer> {
         if (isTooNarrow(context)) SizedBox(height: 60),
       ],
     );
+  }
+
+  /// Newest songs first, by the creation time of a local file or the `created`
+  /// value a server reported.
+  List<MyAudioMetadata> get recentlyAddedSongList {
+    final songs = List<MyAudioMetadata>.from(library.songList);
+    songs.sort((a, b) {
+      final aTime = a.created ?? a.modified ?? DateTime(1970);
+      final bTime = b.created ?? b.modified ?? DateTime(1970);
+      return bTime.compareTo(aTime);
+    });
+    return songs.take(30).toList();
   }
 
   Widget songListView(

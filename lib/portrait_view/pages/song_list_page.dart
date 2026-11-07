@@ -290,7 +290,11 @@ extension _SongListPage on _SongListState {
             scrollController: scrollController,
             listIsScrollingNotifier: listIsScrollingNotifier,
             currentSongListNotifier: currentSongListNotifier,
-            offset: 300 - MediaQuery.heightOf(context) / 2,
+            // Land the row in the middle of the screen rather than near the top.
+            offset: -(MediaQuery.heightOf(context) - 60) / 2,
+            offsetOf: artist == null
+                ? null
+                : (song) => artistRowOffsetOf(song, currentSongListNotifier.value),
           ),
         ),
       ],

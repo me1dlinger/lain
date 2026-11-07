@@ -194,6 +194,27 @@ class _SongListState extends State<SongList> {
     return [for (final entry in groups.entries) (entry.key, entry.value)];
   }
 
+  /// Top of [song]'s row in the artist view, or -1 when it is not shown: the
+  /// album strip and one heading per album come before the songs, and each
+  /// group is ordered by track number.
+  double artistRowOffsetOf(MyAudioMetadata song, List<MyAudioMetadata> songs) {
+    const stripHeight = 148.0;
+    const headerHeight = 62.0;
+    const rowHeight = 60.0;
+
+    var offset = stripHeight;
+    for (final group in artistSongGroups(songs)) {
+      offset += headerHeight;
+      for (final item in group.$2) {
+        if (item == song) {
+          return offset;
+        }
+        offset += rowHeight;
+      }
+    }
+    return -1;
+  }
+
   /// Opens an album of the artist: the albums layer owns album detail pages.
   Future<void> openArtistAlbum(Album album) async {
     layersManager.switchRootLayer('albums');

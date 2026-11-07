@@ -528,6 +528,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get recentlyAdded => '最近添加';
+
+  @override
   String get connectSuccess => '连接成功';
 
   @override
