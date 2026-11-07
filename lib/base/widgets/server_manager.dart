@@ -313,6 +313,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
   late final _AddressEditor publicEditor = _AddressEditor(
     initial: widget.server?.publicUrl ?? '',
     type: type,
+    isPublic: true,
   );
   late final _AddressEditor lanEditor = _AddressEditor(
     initial: widget.server?.lanUrl ?? '',
@@ -466,9 +467,8 @@ class _ServerEditPageState extends State<ServerEditPage> {
   Widget _addressSection(String title, _AddressEditor editor) {
     final l10n = AppLocalizations.of(context);
 
-    if (isFeiniu) {
-      // Feiniu takes the device id (its client turns a bare id into
-      // https://<id>.fnos.net) or a full address.
+    if (editor.usesFnId) {
+      // Only a Feiniu server's public address is a device id.
       return AppleFormSection(
         title: title,
         children: [
@@ -560,11 +560,23 @@ class _AddressEditor {
   final TextEditingController pathTmp = TextEditingController();
   SourceType type;
 
-  _AddressEditor({required String initial, required this.type}) {
+  /// Whether this is the server's public address.
+  final bool isPublic;
+
+  _AddressEditor({
+    required String initial,
+    required this.type,
+    this.isPublic = false,
+  }) {
     if (initial.isNotEmpty) {
       load(initial);
     }
   }
+
+  /// Feiniu is the odd one out: its public address is the device id (the client
+  /// expands a bare id to https://<id>.fnos.net/music/api/v1), while its LAN
+  /// address is a normal host, and the client appends the API path either way.
+  bool get usesFnId => type == .feiniu && isPublic;
 
   void dispose() {
     hostTmp.dispose();
@@ -573,7 +585,7 @@ class _AddressEditor {
   }
 
   void load(String url) {
-    if (type == .feiniu) {
+    if (usesFnId) {
       hostTmp.text = url.trim();
       return;
     }
@@ -605,7 +617,7 @@ class _AddressEditor {
     if (host.isEmpty) {
       return '';
     }
-    if (type == .feiniu) {
+    if (usesFnId) {
       return host;
     }
     final buffer = StringBuffer('$scheme://$host');
