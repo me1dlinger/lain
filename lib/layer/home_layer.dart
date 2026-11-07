@@ -117,16 +117,20 @@ class HomeLayerState extends State<HomeLayer> {
         // sidebar is gone, so every list is one tap away from here.
         SizedBox(
           height: 84,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              homeNavButton(l10n.artists, Icons.person_outline_rounded, 'artists'),
-              homeNavButton(l10n.albums, Icons.album_outlined, 'albums'),
-              homeNavButton(l10n.songs, Icons.music_note_outlined, 'songs'),
-              homeNavButton(l10n.playlists, Icons.queue_music_rounded, 'playlists'),
-              homeNavButton(l10n.favorites, Icons.favorite_outline_rounded, '_Favorite'),
-            ],
+          child: Padding(
+            // Same left margin as the section headings below, so the first
+            // button lines up with them instead of starting further in.
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                homeNavButton(l10n.artists, Icons.person_outline_rounded, 'artists'),
+                homeNavButton(l10n.albums, Icons.album_outlined, 'albums'),
+                homeNavButton(l10n.songs, Icons.music_note_outlined, 'songs'),
+                homeNavButton(l10n.playlists, Icons.queue_music_rounded, 'playlists'),
+                homeNavButton(l10n.favorites, Icons.favorite_outline_rounded, '_Favorite'),
+              ],
+            ),
           ),
         ),
         Row(
@@ -674,27 +678,25 @@ class HomeLayerState extends State<HomeLayer> {
 /// Icon + label tile used by the home hub row.
 Widget homeNavButton(String label, IconData icon, String layer) {
   final textColor = colorManager.getSpecificTextColor();
+  // Sized to its own content (no fixed slot), left aligned so the icon and its
+  // label share the left edge of the row.
   return MouseRegion(
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       onTap: () => layersManager.switchRootLayer(layer),
-      child: Container(
-        width: 76,
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 26, color: textColor),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: textColor),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 26, color: textColor),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: textColor),
+          ),
+        ],
       ),
     ),
   );
