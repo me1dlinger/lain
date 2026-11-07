@@ -9,10 +9,12 @@ import android.os.Handler
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.flame_engine.gamepads_android.GamepadsCompatibleActivity
+import java.io.File
 
 class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
     var keyListener: ((KeyEvent) -> Boolean)? = null
@@ -28,6 +30,33 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.afalphy.system_proxy").setMethodCallHandler { call, result ->
             when (call.method) {
                 "getProxy" -> result.success(getSystemProxy())
+                else -> result.notImplemented()
+            }
+        }
+
+        // Turns an app-private cover file into a content:// URI (media_provider
+        // FileProvider) so the media session metadata can carry artwork that
+        // car head units are able to fetch. Returns null when the file is not
+        // covered by the provider's configured paths.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.afalphy.media").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getContentUri" -> {
+                    val path = call.argument<String>("path")
+                    if (path.isNullOrEmpty()) {
+                        result.success(null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val uri = FileProvider.getUriForFile(
+                            this,
+                            "$packageName.media_provider",
+                            File(path)
+                        )
+                        result.success(uri.toString())
+                    } catch (e: Exception) {
+                        result.success(null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

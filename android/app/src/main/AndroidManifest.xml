@@ -51,6 +51,19 @@
             android:exported="true">
         </service>
 
+        <!-- Exposes cached cover art as content:// URIs. The media session
+             metadata carries such a URI because car head units (and other
+             consumers) cannot read an app-private file:// path. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.media_provider"
+            android:exported="true"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/cover_file_paths" />
+        </provider>
+
     </application>
 
     <queries>

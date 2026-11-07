@@ -348,6 +348,16 @@ class NavidromeClient extends StreamClient {
     );
   }
 
+  // Subsonic-style auth travels in the query string, so this URL can be fetched
+  // by anything that can reach the server (no request headers needed).
+  @override
+  String getPictureUrl(String id) {
+    return Uri.parse(baseUrl)
+        .resolve('rest/getCoverArt.view')
+        .replace(queryParameters: params({'id': id}))
+        .toString();
+  }
+
   @override
   Future<String> getLyricsById(String songId) async {
     final response = await safeRequest(

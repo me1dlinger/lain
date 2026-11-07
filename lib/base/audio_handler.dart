@@ -56,6 +56,18 @@ final controlCenterLyricsNotifier = ValueNotifier(false);
 
 bool loadingSong = false;
 
+// Android side helper that turns an app-private cover file into a
+// content:// URI (see MainActivity.kt / the media_provider FileProvider), so
+// the media session can expose artwork that other processes can read.
+const _mediaChannel = MethodChannel('com.afalphy.media');
+
+// cover file path -> content:// URI, so a track's media item can be published
+// synchronously once the conversion has been done once.
+final Map<String, String> _coverContentUriCache = {};
+
+// Paths the provider could not expose; do not keep retrying them.
+final Set<String> _coverContentUriFailed = {};
+
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
   audioHandler = await AudioService.init(
@@ -124,6 +136,10 @@ class MyAudioHandler extends BaseAudioHandler {
   late File _positionState;
 
   Timer? _positionTimer;
+
+  // Last lyric line pushed to the system media session, so the notification is
+  // only refreshed when the displayed line actually changes.
+  String? _publishedLyric;
 
   // iOS background-execution grace for the current load (see _beginLoadGrace).
   StreamSubscription<bool>? _loadGraceSub;
@@ -241,8 +257,15 @@ class MyAudioHandler extends BaseAudioHandler {
     if (current != currentLyricsIndexNotifier.value) {
       currentLyricsIndexNotifier.value = current;
 
-      if (controlCenterLyricsNotifier.value) {
-        updateServiceMediaItem(currentSong, lyric: lines[current].text);
+      // Publish the current lyric line to the system media session: the Android
+      // media notification and Bluetooth (AVRCP) head units read the now
+      // playing metadata from there, so the lyric has to be written into the
+      // media item itself.
+      final lineText = (current >= 0 && current < lines.length)
+          ? lines[current].text
+          : null;
+      if (lineText != _publishedLyric) {
+        updateServiceMediaItem(currentSong, lyric: lineText);
         updatePlaybackState();
       }
 
@@ -762,6 +785,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentSongNotifier.value = currentSong;
 
     currentLyricsIndexNotifier.value = -1;
+    _publishedLyric = null;
 
     if (Platform.isIOS) {
       await HomeWidgetService.updateNowPlayingWidget();
@@ -842,21 +866,151 @@ class MyAudioHandler extends BaseAudioHandler {
     loadingSong = false;
   }
 
-  void updateServiceMediaItem(MyAudioMetadata currentSong, {String? lyric}) {
-    Uri? artUri;
+  /// Current lyric line, or null when the song has no synced lyrics / the
+  /// playback position is outside the lyrics timeline.
+  String? _currentLyricText() {
+    final lines = currentSongNotifier.value?.parsedLyrics?.lines;
+    final index = currentLyricsIndexNotifier.value;
+    if (lines == null || index < 0 || index >= lines.length) {
+      return null;
+    }
+    return lines[index].text;
+  }
 
+  /// Re-publishes the media item once the artwork has finished downloading, so
+  /// the notification and the car do not keep an empty artwork for the whole
+  /// track when the cover was not cached yet.
+  Future<void> _publishMediaItemWhenCoverReady(MyAudioMetadata song) async {
+    try {
+      await loadPictureSafe(song.picture);
+    } catch (_) {
+      return;
+    }
+    if (currentSongNotifier.value?.id == song.id) {
+      updateServiceMediaItem(song, lyric: _currentLyricText());
+    }
+  }
+
+  /// Refreshes the system media session with the current song and lyric line.
+  void refreshServiceMediaItem() {
+    final song = currentSongNotifier.value;
+    if (song != null) {
+      updateServiceMediaItem(song, lyric: _currentLyricText());
+    }
+  }
+
+  /// A URI for the current cover that the system / a connected head unit can
+  /// fetch itself, or null when none is known yet.
+  ///
+  /// The album art bitmap that `artUri` produces is enough for notifications
+  /// and Android Auto, but car UIs that read the metadata's
+  /// `DISPLAY_ICON_URI` / `ALBUM_ART_URI` cannot read an app-private `file://`
+  /// path, so a fetchable URI has to be published as well.
+  String? _fetchableCoverUri(MyAudioMetadata song) {
+    // Servers that authenticate via the query string can hand out a plain URL.
+    final remote = streamClient?.getPictureUrl(song.picture.id);
+    if (remote != null && remote.isNotEmpty) {
+      return remote;
+    }
+
+    if (!Platform.isAndroid || !song.picture.isExist) {
+      return null;
+    }
+
+    final cached = _coverContentUriCache[song.picture.path];
+    if (cached != null) {
+      return cached;
+    }
+    if (_coverContentUriFailed.contains(song.picture.path)) {
+      return null;
+    }
+
+    // First time only: convert to content://, then re-publish.
+    unawaited(_publishMediaItemWhenCoverUriReady(song));
+    return null;
+  }
+
+  Future<void> _publishMediaItemWhenCoverUriReady(MyAudioMetadata song) async {
+    final path = song.picture.path;
+    try {
+      final uri = await _mediaChannel.invokeMethod<String>(
+        'getContentUri',
+        {'path': path},
+      );
+      if (uri == null || uri.isEmpty) {
+        _coverContentUriFailed.add(path);
+        return;
+      }
+      _coverContentUriCache[path] = uri;
+    } catch (_) {
+      _coverContentUriFailed.add(path);
+      return;
+    }
+    if (currentSongNotifier.value?.id == song.id) {
+      updateServiceMediaItem(song, lyric: _currentLyricText());
+    }
+  }
+
+  /// Publishes the current track to the system media session.
+  ///
+  /// The Android media notification and Bluetooth (AVRCP) head units read the
+  /// now-playing information from here. audio_service maps the fields as
+  /// follows: [MediaItem.title]/[MediaItem.artist]/[MediaItem.album] become the
+  /// track metadata, [MediaItem.displayTitle]/[MediaItem.displaySubtitle]/
+  /// [MediaItem.displayDescription] become the notification's
+  /// title/subtitle/description, [MediaItem.extras] is merged verbatim into the
+  /// MediaMetadata bundle, and [MediaItem.artUri] is the source of both the
+  /// notification's large icon and the album art served to the car.
+  ///
+  /// Anything not set here never reaches the notification or the head unit, so
+  /// the artwork and the current lyric line both have to be published
+  /// explicitly.
+  void updateServiceMediaItem(MyAudioMetadata currentSong, {String? lyric}) {
+    final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
+    _publishedLyric = line;
+
+    Uri? artUri;
     if (currentSong.picture.isExist) {
       artUri = File(currentSong.picture.path).uri;
+    } else if (!currentSong.picture.isLoaded) {
+      // Artwork still downloading: publish the rest now and refresh afterwards.
+      unawaited(_publishMediaItemWhenCoverReady(currentSong));
     }
+
+    final songTitle = getTitle(currentSong);
+    final artist = getArtist(currentSong);
+    final album = getAlbum(currentSong);
+
+    // "Control Center Lyrics" keeps the historical behaviour of putting the
+    // lyric line in the primary line; when it is off the lyric goes to the
+    // notification's second line instead. Either way the lyric is published, so
+    // a connected head unit can display it.
+    final lyricInTitle = controlCenterLyricsNotifier.value && line != null;
+
+    // A URI the car can fetch by itself (remote cover URL or content://).
+    final coverUri = _fetchableCoverUri(currentSong);
 
     mediaItem.add(
       MediaItem(
         id: currentSong.id,
-        title: lyric ?? getTitle(currentSong),
-        artist: getArtist(currentSong),
-        album: getAlbum(currentSong),
+        title: lyricInTitle ? line : songTitle,
+        artist: artist,
+        album: album,
         artUri: artUri, // file:// URI
         duration: currentSong.duration,
+        displayTitle: lyricInTitle ? line : songTitle,
+        displaySubtitle: (!lyricInTitle && line != null) ? line : artist,
+        displayDescription: album,
+        extras: <String, dynamic>{
+          if (line != null) ...{
+            'android.media.metadata.LYRIC': line,
+            'android.media.metadata.LYRICS': line,
+          },
+          if (coverUri != null) ...{
+            'android.media.metadata.DISPLAY_ICON_URI': coverUri,
+            'android.media.metadata.ALBUM_ART_URI': coverUri,
+          },
+        },
       ),
     );
   }

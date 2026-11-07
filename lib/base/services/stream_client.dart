@@ -57,6 +57,12 @@ abstract class StreamClient {
 
   Future<Uint8List?> getPictureBytes(String songId);
 
+  /// A URL anyone on the network can fetch to get the cover art, or null when
+  /// the source cannot expose one (local files, header-authenticated servers).
+  /// System media UIs and car head units read this from the media session
+  /// metadata, so it must not require request headers.
+  String? getPictureUrl(String songId) => null;
+
   Future<String> getLyricsById(String songId);
 
   Future<bool> downloadSong(String songId, String savePath);

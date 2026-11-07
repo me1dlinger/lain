@@ -601,10 +601,7 @@ class _SettingsListState extends State<SettingsList> {
           valueNotifier: controlCenterLyricsNotifier,
           onToggleCallBack: () {
             setting.save();
-            if (!controlCenterLyricsNotifier.value &&
-                currentSongNotifier.value != null) {
-              audioHandler.updateServiceMediaItem(currentSongNotifier.value!);
-            }
+            audioHandler.refreshServiceMediaItem();
           },
         ),
       ),

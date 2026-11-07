@@ -448,6 +448,14 @@ class EmbyClient extends StreamClient {
     );
   }
 
+  // Emby also accepts the token as an `api_key` query parameter, which makes the
+  // URL fetchable without headers.
+  @override
+  String getPictureUrl(String id) {
+    return '${dio.options.baseUrl}/Items/$id/Images/Primary'
+        '?api_key=$accessToken';
+  }
+
   @override
   Future<String> getLyricsById(String songId) async {
     return '';
