@@ -1003,11 +1003,13 @@ class MyAudioHandler extends BaseAudioHandler {
     final artist = getArtist(currentSong);
     final album = getAlbum(currentSong);
 
-    // "Control Center Lyrics" keeps the historical behaviour of putting the
-    // lyric line in the primary line; when it is off the lyric goes to the
-    // notification's second line instead. Either way the lyric is published, so
-    // a connected head unit can display it.
+    // The lyric line has to reach the media session metadata: that is the only
+    // thing a car head unit reads. "Control Center Lyrics" decides which line
+    // carries it - on = the primary line (historical behaviour, used by the iOS
+    // control center), off = the secondary line, which is the one head units
+    // normally render as "artist" and which notifications show as contentText.
     final lyricInTitle = controlCenterLyricsNotifier.value && line != null;
+    final secondaryLine = lyricInTitle ? artist : (line ?? artist);
 
     // A URI the car can fetch by itself (remote cover URL or content://).
     final coverUri = _fetchableCoverUri(currentSong);
@@ -1016,12 +1018,12 @@ class MyAudioHandler extends BaseAudioHandler {
       MediaItem(
         id: currentSong.id,
         title: lyricInTitle ? line : songTitle,
-        artist: artist,
+        artist: secondaryLine,
         album: album,
         artUri: artUri, // file:// URI
         duration: currentSong.duration,
         displayTitle: lyricInTitle ? line : songTitle,
-        displaySubtitle: (!lyricInTitle && line != null) ? line : artist,
+        displaySubtitle: secondaryLine,
         displayDescription: album,
         extras: <String, dynamic>{
           if (line != null) ...{
