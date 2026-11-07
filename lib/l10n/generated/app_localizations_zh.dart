@@ -480,6 +480,99 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addedTimeAscending => '添加时间升序';
+  @override
+  String get streamQuality => '在线音质';
+
+  @override
+  String get streamQualityStandard => '标准品质（最高 128kbps）';
+
+  @override
+  String get streamQualityHigh => '高品质（最高 192kbps）';
+
+  @override
+  String get streamQualityHq => 'HQ 高品质（256kbps）';
+
+  @override
+  String get streamQualitySq => 'SQ 品质（320kbps）';
+
+  @override
+  String get streamQualityOriginal => '原品质（不转换）';
+
+  @override
+  String get streamFormat => '转码格式';
+
+  @override
+  String get serverScheme => '协议';
+
+  @override
+  String get serverHost => '主机';
+
+  @override
+  String get serverPort => '端口';
+
+  @override
+  String get serverAddress => '服务器地址';
+
+  @override
+  String get cacheDetails => '缓存详情';
+
+  @override
+  String get cacheSongs => '已缓存歌曲';
+
+  @override
+  String get cacheCovers => '已缓存封面';
+
+  @override
+  String get cacheLyrics => '已缓存歌词';
+
+  @override
+  String get cacheTotal => '合计';
+
+  @override
+  String get cacheEmpty => '暂无缓存';
+
+  @override
+  String get removeCache => '删除缓存';
+
+  @override
+  String get listeningReport => '听歌报告';
+
+  @override
+  String get yearlyActivity => '年度热力图';
+
+  @override
+  String get playRanking => '播放排行';
+
+  @override
+  String get yearlyStats => '年度统计';
+
+  @override
+  String get topArtists => '热门艺术家';
+
+  @override
+  String get listeningTime => '听歌时长';
+
+  @override
+  String get playTimes => '听歌次数';
+
+  @override
+  String get listeningDays => '听歌天数';
+
+  @override
+  String get songCount => '歌曲数';
+
+  @override
+  String get albumCount => '专辑数';
+
+  @override
+  String get heatLess => '少';
+
+  @override
+  String get heatMore => '多';
+
+  @override
+  String get allSources => '全部音源';
+
 
   @override
   String get addedTimeDescending => '添加时间降序';

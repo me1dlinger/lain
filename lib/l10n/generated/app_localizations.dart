@@ -1015,6 +1015,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added Time Ascending'**
   String get addedTimeAscending;
+  /// No description provided for @streamQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming Quality'**
+  String get streamQuality;
+
+  /// No description provided for @streamQualityStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard (up to 128kbps)'**
+  String get streamQualityStandard;
+
+  /// No description provided for @streamQualityHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High (up to 192kbps)'**
+  String get streamQualityHigh;
+
+  /// No description provided for @streamQualityHq.
+  ///
+  /// In en, this message translates to:
+  /// **'HQ (256kbps)'**
+  String get streamQualityHq;
+
+  /// No description provided for @streamQualitySq.
+  ///
+  /// In en, this message translates to:
+  /// **'SQ (320kbps)'**
+  String get streamQualitySq;
+
+  /// No description provided for @streamQualityOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original (no transcoding)'**
+  String get streamQualityOriginal;
+
+  /// No description provided for @streamFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcode Format'**
+  String get streamFormat;
+
+  /// No description provided for @serverScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheme'**
+  String get serverScheme;
+
+  /// No description provided for @serverHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Host'**
+  String get serverHost;
+
+  /// No description provided for @serverPort.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get serverPort;
+
+  /// No description provided for @serverAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Server Address'**
+  String get serverAddress;
+
+  /// No description provided for @cacheDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache Details'**
+  String get cacheDetails;
+
+  /// No description provided for @cacheSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached Songs'**
+  String get cacheSongs;
+
+  /// No description provided for @cacheCovers.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached Covers'**
+  String get cacheCovers;
+
+  /// No description provided for @cacheLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached Lyrics'**
+  String get cacheLyrics;
+
+  /// No description provided for @cacheTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get cacheTotal;
+
+  /// No description provided for @cacheEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing cached yet'**
+  String get cacheEmpty;
+
+  /// No description provided for @removeCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from cache'**
+  String get removeCache;
+
+  /// No description provided for @listeningReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening Report'**
+  String get listeningReport;
+
+  /// No description provided for @yearlyActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly Activity'**
+  String get yearlyActivity;
+
+  /// No description provided for @playRanking.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Played'**
+  String get playRanking;
+
+  /// No description provided for @yearlyStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get yearlyStats;
+
+  /// No description provided for @topArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Artists'**
+  String get topArtists;
+
+  /// No description provided for @listeningTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening Time'**
+  String get listeningTime;
+
+  /// No description provided for @playTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays'**
+  String get playTimes;
+
+  /// No description provided for @listeningDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Days'**
+  String get listeningDays;
+
+  /// No description provided for @songCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs'**
+  String get songCount;
+
+  /// No description provided for @albumCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Albums'**
+  String get albumCount;
+
+  /// No description provided for @heatLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get heatLess;
+
+  /// No description provided for @heatMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get heatMore;
+
+  /// No description provided for @allSources.
+  ///
+  /// In en, this message translates to:
+  /// **'All Sources'**
+  String get allSources;
+
 
   /// No description provided for @addedTimeDescending.
   ///

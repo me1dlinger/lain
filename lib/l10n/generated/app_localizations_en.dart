@@ -480,6 +480,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addedTimeAscending => 'Added Time Ascending';
+  @override
+  String get streamQuality => 'Streaming Quality';
+
+  @override
+  String get streamQualityStandard => 'Standard (up to 128kbps)';
+
+  @override
+  String get streamQualityHigh => 'High (up to 192kbps)';
+
+  @override
+  String get streamQualityHq => 'HQ (256kbps)';
+
+  @override
+  String get streamQualitySq => 'SQ (320kbps)';
+
+  @override
+  String get streamQualityOriginal => 'Original (no transcoding)';
+
+  @override
+  String get streamFormat => 'Transcode Format';
+
+  @override
+  String get serverScheme => 'Scheme';
+
+  @override
+  String get serverHost => 'Host';
+
+  @override
+  String get serverPort => 'Port';
+
+  @override
+  String get serverAddress => 'Server Address';
+
+  @override
+  String get cacheDetails => 'Cache Details';
+
+  @override
+  String get cacheSongs => 'Cached Songs';
+
+  @override
+  String get cacheCovers => 'Cached Covers';
+
+  @override
+  String get cacheLyrics => 'Cached Lyrics';
+
+  @override
+  String get cacheTotal => 'Total';
+
+  @override
+  String get cacheEmpty => 'Nothing cached yet';
+
+  @override
+  String get removeCache => 'Remove from cache';
+
+  @override
+  String get listeningReport => 'Listening Report';
+
+  @override
+  String get yearlyActivity => 'Yearly Activity';
+
+  @override
+  String get playRanking => 'Most Played';
+
+  @override
+  String get yearlyStats => 'Statistics';
+
+  @override
+  String get topArtists => 'Top Artists';
+
+  @override
+  String get listeningTime => 'Listening Time';
+
+  @override
+  String get playTimes => 'Plays';
+
+  @override
+  String get listeningDays => 'Active Days';
+
+  @override
+  String get songCount => 'Songs';
+
+  @override
+  String get albumCount => 'Albums';
+
+  @override
+  String get heatLess => 'Less';
+
+  @override
+  String get heatMore => 'More';
+
+  @override
+  String get allSources => 'All Sources';
+
 
   @override
   String get addedTimeDescending => 'Added Time Descending';

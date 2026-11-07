@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
@@ -333,9 +334,16 @@ class NavidromeClient extends StreamClient {
 
   @override
   String getStreamUrl(String id) {
+    final query = <String, dynamic>{'id': id};
+    final maxBitRate = streamQualityNotifier.value.maxBitRate;
+    if (maxBitRate != null) {
+      // Subsonic transcodes on request: cap the bitrate and pick the container.
+      query['maxBitRate'] = maxBitRate;
+      query['format'] = streamFormatNotifier.value.subsonicValue;
+    }
     return Uri.parse(baseUrl)
         .resolve('rest/stream.view')
-        .replace(queryParameters: params({'id': id}))
+        .replace(queryParameters: params(query))
         .toString();
   }
 

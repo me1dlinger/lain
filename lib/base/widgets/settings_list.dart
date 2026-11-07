@@ -24,6 +24,7 @@ import 'package:sylvakru/base/widgets/connect_client_widget.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/base/data/library.dart';
@@ -130,6 +131,15 @@ class _SettingsListState extends State<SettingsList> {
         sliverBox(
           paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
         ),
+
+        if (isStreamSource) ...[
+          sliverBox(
+            paddingIfNeed(isLandscape, streamQualityListTile(context, l10n)),
+          ),
+          sliverBox(
+            paddingIfNeed(isLandscape, streamFormatListTile(context, l10n)),
+          ),
+        ],
 
         sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
 
@@ -527,6 +537,116 @@ class _SettingsListState extends State<SettingsList> {
         builder: (context, value, child) {
           // use blank as placeholders
           return Text("${value.toStringAsFixed(1)}MB  ");
+        },
+      ),
+    );
+  }
+
+  Widget streamQualityListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(equalizerImage, size: iconSize),
+      title: Text(l10n.streamQuality),
+      onTap: () {
+        showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 35,
+                        child: Text(
+                          l10n.streamQuality,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      for (final quality in StreamQuality.values)
+                        ListTile(
+                          title: Text(streamQualityLabel(l10n, quality)),
+                          trailing: streamQualityNotifier.value == quality
+                              ? Icon(Icons.check)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            streamQualityNotifier.value = quality;
+                            setting.save();
+                          },
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      trailing: ValueListenableBuilder(
+        valueListenable: streamQualityNotifier,
+        builder: (context, value, child) {
+          return Text('${streamQualityLabel(l10n, value)}  ');
+        },
+      ),
+    );
+  }
+
+  Widget streamFormatListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(optionImage, size: iconSize),
+      title: Text(l10n.streamFormat),
+      onTap: () {
+        showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 35,
+                        child: Text(
+                          l10n.streamFormat,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      for (final format in StreamFormat.values)
+                        ListTile(
+                          title: Text(format.display),
+                          trailing: streamFormatNotifier.value == format
+                              ? Icon(Icons.check)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            streamFormatNotifier.value = format;
+                            setting.save();
+                          },
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      trailing: ValueListenableBuilder(
+        valueListenable: streamFormatNotifier,
+        builder: (context, value, child) {
+          return Text('${value.display}  ');
         },
       ),
     );
@@ -1161,5 +1281,20 @@ class _SettingsListState extends State<SettingsList> {
         );
       },
     );
+  }
+}
+
+String streamQualityLabel(AppLocalizations l10n, StreamQuality quality) {
+  switch (quality) {
+    case StreamQuality.standard:
+      return l10n.streamQualityStandard;
+    case StreamQuality.high:
+      return l10n.streamQualityHigh;
+    case StreamQuality.hq:
+      return l10n.streamQualityHq;
+    case StreamQuality.sq:
+      return l10n.streamQualitySq;
+    case StreamQuality.original:
+      return l10n.streamQualityOriginal;
   }
 }

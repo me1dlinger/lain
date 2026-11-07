@@ -4,6 +4,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
@@ -432,8 +433,21 @@ class EmbyClient extends StreamClient {
 
   @override
   String getStreamUrl(String id) {
-    return '${dio.options.baseUrl}/Audio/$id/stream'
-        '?UserId=$userId&api_key=$accessToken&static=true';
+    final maxBitRate = streamQualityNotifier.value.maxBitRate;
+    // `static=true` asks Emby for the untouched file; when a quality is chosen
+    // the server has to transcode instead, so request a bitrate cap and codec.
+    final query = <String, String>{
+      'UserId': userId,
+      'api_key': accessToken,
+      'static': (maxBitRate == null).toString(),
+      if (maxBitRate != null) ...{
+        'MaxStreamingBitrate': '${maxBitRate * 1000}',
+        'AudioCodec': streamFormatNotifier.value.embyValue,
+      },
+    };
+    return Uri.parse('${dio.options.baseUrl}/Audio/$id/stream')
+        .replace(queryParameters: query)
+        .toString();
   }
 
   @override

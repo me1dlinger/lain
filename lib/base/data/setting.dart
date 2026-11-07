@@ -7,6 +7,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/portrait_view/portrait_view.dart';
@@ -112,6 +113,9 @@ class Setting {
 
     controlCenterLyricsNotifier.value =
         json['controlCenterLyrics'] as bool? ?? false;
+
+    streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
+    streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
   }
 
   void save() {
@@ -147,6 +151,9 @@ class Setting {
         'recursiveScan': recursiveScanNotifier.value,
 
         'controlCenterLyrics': controlCenterLyricsNotifier.value,
+
+        'streamQuality': streamQualityNotifier.value.name,
+        'streamFormat': streamFormatNotifier.value.name,
       }),
     );
   }
