@@ -49,8 +49,6 @@ class Folder {
   /// Local only: file creation ("added") time per path.
   Map<String, DateTime> pathAndCreated = {};
 
-  ValueNotifier<int> sortTypeNotifier = ValueNotifier(0);
-
   final changeNotifier = ValueNotifier(0);
 
   bool canModify = false;

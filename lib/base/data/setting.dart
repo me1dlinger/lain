@@ -27,14 +27,32 @@ final exitOnCloseNotifier = ValueNotifier(false);
 
 final setting = Setting();
 
+/// Sort order of each song list, keyed by the kind of list it belongs to.
+///
+/// The library, artist and album pages used to build a fresh notifier whenever
+/// they were opened, so the chosen order went back to the default on every
+/// visit - and lost for good when the source was switched.
+final songSortTypes = <String, ValueNotifier<int>>{};
+
+/// The remembered sort order for [kind], created on first use. Every change is
+/// written to the settings file straight away.
+ValueNotifier<int> songSortTypeNotifier(String kind, {int initial = 0}) {
+  return songSortTypes.putIfAbsent(kind, () {
+    final notifier = ValueNotifier<int>(initial);
+    notifier.addListener(setting.save);
+    return notifier;
+  });
+}
+
 class Setting {
-  late final File file;
+  File? file;
 
   Future<void> load() async {
-    file = File("${appSupportDir.path}/setting.json");
-    initFile(file, false);
+    final target = File("${appSupportDir.path}/setting.json");
+    file = target;
+    initFile(target, false);
 
-    final json = await readJsonMapFile(file);
+    final json = await readJsonMapFile(target);
 
     artistsIsListViewNotifier.value =
         json['artistsIsList'] as bool? ?? artistsIsListViewNotifier.value;
@@ -116,10 +134,29 @@ class Setting {
 
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
+
+    final sortTypes = json['songSortTypes'];
+    if (sortTypes is Map) {
+      for (final entry in sortTypes.entries) {
+        final type = entry.value;
+        if (type is int) {
+          // Built with the stored value rather than assigned to it, so that
+          // reading the settings does not immediately write them back.
+          songSortTypeNotifier('${entry.key}', initial: type);
+        }
+      }
+    }
   }
 
   void save() {
-    file.writeAsStringSync(
+    final target = file;
+
+    // Until the settings have been read there is nowhere to write to.
+    if (target == null) {
+      return;
+    }
+
+    target.writeAsStringSync(
       jsonEncode({
         'artistsIsList': artistsIsListViewNotifier.value,
         'artistsIsAscend': artistsIsAscendingNotifier.value,
@@ -154,6 +191,11 @@ class Setting {
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,
+
+        'songSortTypes': {
+          for (final entry in songSortTypes.entries)
+            entry.key: entry.value.value,
+        },
       }),
     );
   }

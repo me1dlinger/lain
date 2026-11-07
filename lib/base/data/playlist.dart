@@ -196,7 +196,6 @@ class Playlist {
   late bool isNotFavorite;
 
   final changeNotifier = ValueNotifier(0);
-  final sortTypeNotifier = ValueNotifier(0);
 
   bool canModify = true;
 

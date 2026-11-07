@@ -23,6 +23,7 @@ import 'package:sylvakru/base/data/history.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/data/playlist.dart';
+import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/edit_metadata.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
@@ -364,7 +365,9 @@ class _SongListState extends State<SongList> {
     if (playlist != null) {
       title = playlist!.name;
       songList = playlist!.songList;
-      sortTypeNotifier = playlist!.sortTypeNotifier;
+      sortTypeNotifier = songSortTypeNotifier(
+        'playlist:${playlist!.id ?? playlist!.name}',
+      );
       changeNotifier = playlist!.changeNotifier;
       if (!widget.isRoot) {
         rootVisibleNotifier = playlistsVisibleNotifier;
@@ -376,6 +379,7 @@ class _SongListState extends State<SongList> {
     } else if (artist != null) {
       title = artist!.name;
       songList = artist!.songList;
+      sortTypeNotifier = songSortTypeNotifier('artist');
       rootVisibleNotifier = artistsVisibleNotifier;
       backToRoot = () {
         layersManager.popDetail('artists');
@@ -385,6 +389,7 @@ class _SongListState extends State<SongList> {
     } else if (album != null) {
       title = album!.name;
       songList = album!.songList;
+      sortTypeNotifier = songSortTypeNotifier('album');
       rootLabel = 'albums';
       rootVisibleNotifier = albumsVisibleNotifier;
       backToRoot = () {
@@ -393,7 +398,7 @@ class _SongListState extends State<SongList> {
     } else if (folder != null) {
       title = folder!.id;
       songList = folder!.songList;
-      sortTypeNotifier = folder!.sortTypeNotifier;
+      sortTypeNotifier = songSortTypeNotifier('folder:${folder!.id}');
       changeNotifier = folder!.changeNotifier;
       rootVisibleNotifier = foldersVisibleNotifier;
       backToRoot = () {
@@ -409,6 +414,11 @@ class _SongListState extends State<SongList> {
     } else {
       isLibrary = true;
       songList = library.songList;
+      // A local library offers modified time and randomising, a streamed one
+      // does not, so the two remember their order separately.
+      sortTypeNotifier = songSortTypeNotifier(
+        isNotStreamSource ? 'library:local' : 'library:stream',
+      );
       library.changeNotifier.addListener(updateSongList);
     }
 
