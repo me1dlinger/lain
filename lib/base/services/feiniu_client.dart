@@ -13,7 +13,6 @@ import 'package:sylvakru/base/services/stream_client.dart';
 class FeiniuClient extends StreamClient {
   String? _token;
   Future<bool>? _loginFuture;
-  bool _isRelay = false;
   late final String _deviceId;
 
   FeiniuClient({
@@ -27,28 +26,35 @@ class FeiniuClient extends StreamClient {
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
 
-    String url = baseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
-
-    if (!baseUrl.startsWith('http')) {
-      url = 'https://$baseUrl.fnos.net';
-    }
-
-    if (url.contains('fnos.net')) {
-      _isRelay = true;
-    }
-
-    if (!url.endsWith('/music/api/v1')) {
-      url += url.endsWith('/music') ? '/api/v1' : '/music/api/v1';
-    }
     dio = Dio(
       BaseOptions(
-        baseUrl: url,
+        baseUrl: normalizeBaseUrl(baseUrl),
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 15),
         sendTimeout: const Duration(seconds: 15),
       ),
     );
   }
+
+  /// A relay address is a bare device id; either way the API sits under
+  /// `/music/api/v1`. Applied on every switch of address, not just at
+  /// construction, or a fallback would request the wrong path.
+  @override
+  String normalizeBaseUrl(String url) {
+    var value = url.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (value.isEmpty) return value;
+    if (!value.startsWith('http')) {
+      value = 'https://$value.fnos.net';
+    }
+    if (!value.endsWith('/music/api/v1')) {
+      value += value.endsWith('/music') ? '/api/v1' : '/music/api/v1';
+    }
+    return value;
+  }
+
+  /// The public address goes through Feiniu's relay host, the LAN one does not;
+  /// read from the address in use rather than from the one configured at first.
+  bool get _isRelay => dio.options.baseUrl.contains('fnos.net');
 
   @override
   Map<String, String> get headers => {
@@ -72,7 +78,7 @@ class FeiniuClient extends StreamClient {
     }
   }
 
-  Future<bool> _login() async {
+  Future<bool> _login({bool retry = true}) async {
     try {
       final response = await dio.post(
         '/user/password-login',
@@ -95,6 +101,10 @@ class FeiniuClient extends StreamClient {
       if (_token?.isEmpty == true) _token = null;
       return _token?.isNotEmpty == true;
     } on DioException catch (e) {
+      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+        logger.output('[$runtimeType] switched to $baseUrl');
+        return _login(retry: false);
+      }
       logger.output(
         '[$runtimeType] Login failed: ${e.type.name} (${e.response?.statusCode})',
       );
@@ -135,6 +145,10 @@ class FeiniuClient extends StreamClient {
         );
       }
     } on DioException catch (e) {
+      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+        logger.output('[$runtimeType] switched to $baseUrl');
+        return _request(path, query: query, data: data, retry: false);
+      }
       expired = e.response?.statusCode == 401;
       if (!expired) {
         logger.output(
@@ -415,6 +429,32 @@ class FeiniuClient extends StreamClient {
     '${dio.options.baseUrl}/track/stream',
   ).replace(queryParameters: {'guid': id}).toString();
 
+  /// One streamed GET, repeated on the server's other address when this one
+  /// cannot be reached.
+  Future<Response<ResponseBody>?> _openResourceResponse(
+    String path,
+    Map<String, dynamic> query, {
+    bool retry = true,
+  }) async {
+    try {
+      return await dio.get<ResponseBody>(
+        path,
+        queryParameters: query,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: headers,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+    } on DioException catch (e) {
+      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+        logger.output('[$runtimeType] switched to $baseUrl');
+        return _openResourceResponse(path, query, retry: false);
+      }
+      rethrow;
+    }
+  }
+
   Future<Response<ResponseBody>?> _openResource(
     String path, {
     required Map<String, dynamic> query,
@@ -422,15 +462,8 @@ class FeiniuClient extends StreamClient {
   }) async {
     if (!await login()) return null;
     final requestToken = _token;
-    final response = await dio.get<ResponseBody>(
-      path,
-      queryParameters: query,
-      options: Options(
-        responseType: ResponseType.stream,
-        headers: headers,
-        validateStatus: (status) => status != null && status < 500,
-      ),
-    );
+    final response = await _openResourceResponse(path, query, retry: retry);
+    if (response == null) return null;
     final body = response.data;
     if (body == null) return null;
     final contentType =

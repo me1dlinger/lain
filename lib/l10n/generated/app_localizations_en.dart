@@ -528,6 +528,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get ignoreCert => 'Ignore certificate';
+
+  @override
   String get recentlyAdded => 'Recently Added';
 
   @override

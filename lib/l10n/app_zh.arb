@@ -168,6 +168,7 @@
   "popularSongs": "热门歌曲",
   "popularAlbums": "热门专辑",
   "timesUnit": "次",
+  "ignoreCert": "忽略证书校验",
   "recentlyAdded": "最近添加",
   "connectSuccess": "连接成功",
   "connectionFailed": "连接失败",

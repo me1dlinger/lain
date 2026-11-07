@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:sylvakru/base/services/cert_policy.dart';
 import 'package:sylvakru/base/services/logger.dart';
 
 final streamRelay = StreamRelay();
@@ -31,6 +32,7 @@ class StreamRelay {
 
   StreamRelay() {
     _client.connectionTimeout = const Duration(seconds: 10);
+    _client.badCertificateCallback = (cert, host, port) => ignoreServerCert;
   }
 
   /// Registers [url] (with the auth [headers] mpv would otherwise have sent)

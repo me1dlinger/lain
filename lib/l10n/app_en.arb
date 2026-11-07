@@ -217,6 +217,7 @@
   "popularSongs": "Top Songs",
   "popularAlbums": "Top Albums",
   "timesUnit": "times",
+  "ignoreCert": "Ignore certificate",
   "recentlyAdded": "Recently Added",
   "connectSuccess": "Connected",
   "connectionFailed": "Connection failed",

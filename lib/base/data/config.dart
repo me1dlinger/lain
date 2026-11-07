@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/music_server.dart';
+import 'package:sylvakru/base/services/cert_policy.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/feiniu_client.dart';
 import 'package:sylvakru/base/services/logger.dart';
@@ -125,9 +126,18 @@ class Config {
         sourceType == .feiniu;
     isNotStreamSource = !isStreamSource;
 
+    ignoreServerCert = active?.ignoreCert ?? false;
+
     if (active != null && active.isUsable) {
-      // Connect to the remembered address without probing: a launch stays fast,
-      // and a failing request switches to the other address instead.
+      // Connect without probing, so a launch stays fast; a failing request
+      // switches to the other address instead. The LAN address wins whenever
+      // the server has one - it is the cheaper route, and when it is not
+      // reachable (a different network) the first request falls back on its
+      // own.
+      final lan = active.lanUrl.trim();
+      if (lan.isNotEmpty) {
+        active.lastGoodUrl = lan;
+      }
       _openClient(active, active.currentUrl);
     }
 
@@ -261,6 +271,9 @@ class Config {
   /// Switches the app to [server]: probes its addresses (LAN first) and only
   /// connects when one of them answers.
   Future<bool> activateServer(MusicServer server) async {
+    // Set before probing, so the probe itself accepts the certificate too.
+    ignoreServerCert = server.ignoreCert;
+
     String? reachable;
     for (final address in server.addresses) {
       if (await _probe(server, address)) {

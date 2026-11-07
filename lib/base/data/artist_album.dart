@@ -160,6 +160,9 @@ class Artist extends ArtistAlbumBase {
   final changeNotifier = ValueNotifier(0);
 
   void combineAlbums() {
+    // classify() runs again on every load and sync, while this list used to be
+    // appended to every time: a song ended up in the artist three times.
+    songList.clear();
     albumSet.removeWhere((album) => album.isEmpty);
     albumList = albumSet.toList();
     albumList.sort((a, b) {

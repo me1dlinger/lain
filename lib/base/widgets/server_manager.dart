@@ -12,6 +12,7 @@ import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/apple_form.dart';
 import 'package:sylvakru/base/widgets/custom_text_field.dart';
+import 'package:sylvakru/base/widgets/my_switch.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 
@@ -322,6 +323,9 @@ class _ServerEditPageState extends State<ServerEditPage> {
 
   bool saving = false;
   bool obscure = true;
+  late final ignoreCertNotifier = ValueNotifier<bool>(
+    widget.server?.ignoreCert ?? false,
+  );
 
   @override
   void dispose() {
@@ -330,6 +334,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
     passwordTmp.dispose();
     publicEditor.dispose();
     lanEditor.dispose();
+    ignoreCertNotifier.dispose();
     super.dispose();
   }
 
@@ -409,6 +414,13 @@ class _ServerEditPageState extends State<ServerEditPage> {
                         placeholder: getSourceTypeDisplayName(l10n, type),
                       ),
                       appleTextFieldRow(l10n.username, usernameTmp),
+                      appleFormRow(
+                        l10n.ignoreCert,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: MySwitch(valueNotifier: ignoreCertNotifier),
+                        ),
+                      ),
                       appleFormRow(
                         l10n.password,
                         Row(
@@ -526,6 +538,7 @@ class _ServerEditPageState extends State<ServerEditPage> {
     server.lanUrl = lanEditor.url;
     server.username = usernameTmp.text.trim();
     server.password = passwordTmp.text;
+    server.ignoreCert = ignoreCertNotifier.value;
 
     if (!server.isUsable) {
       showCenterMessage(l10n.unreachable);

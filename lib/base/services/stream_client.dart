@@ -46,9 +46,10 @@ abstract class StreamClient {
     if (other == null || other.isEmpty || other == baseUrl) {
       return false;
     }
+    final normalized = normalizeBaseUrl(other);
     alternativeBaseUrl = baseUrl;
-    baseUrl = other;
-    dio.options.baseUrl = normalizeBaseUrl(other);
+    baseUrl = normalized;
+    dio.options.baseUrl = normalized;
     return true;
   }
 

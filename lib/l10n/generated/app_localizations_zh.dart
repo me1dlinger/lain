@@ -528,6 +528,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get ignoreCert => '忽略证书校验';
+
+  @override
   String get recentlyAdded => '最近添加';
 
   @override

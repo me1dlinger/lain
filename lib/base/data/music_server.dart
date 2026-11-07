@@ -22,6 +22,10 @@ class MusicServer {
   /// again, so a launch is not delayed by two timeouts.
   String? lastGoodUrl;
 
+  /// Accept this server's TLS certificate without validating it (a NAS on the
+  /// LAN usually has a self-signed one).
+  bool ignoreCert;
+
   MusicServer({
     required this.id,
     required this.type,
@@ -31,6 +35,7 @@ class MusicServer {
     this.username = '',
     this.password = '',
     this.lastGoodUrl,
+    this.ignoreCert = false,
   });
 
   /// Addresses to try, LAN first: it is the cheaper and faster route when both
@@ -77,6 +82,7 @@ class MusicServer {
     'lanUrl': lanUrl,
     'username': username,
     'lastGoodUrl': lastGoodUrl,
+    'ignoreCert': ignoreCert,
   };
 
   static MusicServer? fromJson(Object? raw) {
@@ -95,6 +101,7 @@ class MusicServer {
       lanUrl: '${raw['lanUrl'] ?? ''}',
       username: '${raw['username'] ?? ''}',
       lastGoodUrl: raw['lastGoodUrl'] == null ? null : '${raw['lastGoodUrl']}',
+      ignoreCert: raw['ignoreCert'] == true,
     );
   }
 

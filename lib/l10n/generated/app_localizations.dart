@@ -1110,6 +1110,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @ignoreCert.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore certificate'**
+  String get ignoreCert;
+
   /// No description provided for @recentlyAdded.
   ///
   /// In en, this message translates to:
