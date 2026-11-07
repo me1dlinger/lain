@@ -33,13 +33,13 @@ class _ServerListPageState extends State<ServerListPage> {
     // The panel colour is translucent by design (it sits over the app's
     // cover-art background); on a pushed page that would show the dark
     // navigator underneath, so composite it into an opaque colour instead.
-    return ValueListenableBuilder(
-      valueListenable: Listenable.merge([
+    return ListenableBuilder(
+      listenable: Listenable.merge([
         layersManager.backgroundChangeNotifier,
         panelColor.valueNotifier,
         pageBackgroundColor.valueNotifier,
       ]),
-      builder: (context, _, child) {
+      builder: (context, child) {
         return Scaffold(
           backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
@@ -228,11 +228,7 @@ class _ServerListPageState extends State<ServerListPage> {
     if (!ok) {
       // Say which addresses were tried, so a failure is actionable.
       showCenterMessage(
-        '${server.name}
-${l10n.connectionFailed}
-'
-        '${server.addresses.join('
-')}',
+        '${server.name}\n${l10n.connectionFailed}\n${server.addresses.join('\n')}',
         duration: 5000,
       );
       if (mounted) {
@@ -242,8 +238,7 @@ ${l10n.connectionFailed}
     }
     await _reloadLibrary();
     showCenterMessage(
-      '${server.name}
-${l10n.connectSuccess} · '
+      '${server.name}\n${l10n.connectSuccess} · '
       '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
       duration: 3000,
     );
@@ -608,18 +603,13 @@ class _ServerEditPageState extends State<ServerEditPage> {
 
     if (!reachable) {
       showCenterMessage(
-        '${server.name}
-${l10n.connectionFailed}
-'
-        '${server.addresses.join('
-')}',
+        '${server.name}\n${l10n.connectionFailed}\n${server.addresses.join('\n')}',
         duration: 5000,
       );
       return;
     }
     showCenterMessage(
-      '${server.name}
-${l10n.connectSuccess} · '
+      '${server.name}\n${l10n.connectSuccess} · '
       '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}',
       duration: 3000,
     );

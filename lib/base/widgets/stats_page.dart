@@ -37,13 +37,13 @@ class _StatsPageState extends State<StatsPage> {
     // The panel colour is translucent by design (it sits over the app's
     // cover-art background); on a pushed page that would show the dark
     // navigator underneath, so composite it into an opaque colour instead.
-    return ValueListenableBuilder(
-      valueListenable: Listenable.merge([
+    return ListenableBuilder(
+      listenable: Listenable.merge([
         layersManager.backgroundChangeNotifier,
         panelColor.valueNotifier,
         pageBackgroundColor.valueNotifier,
       ]),
-      builder: (context, _, child) {
+      builder: (context, child) {
         return Scaffold(
           backgroundColor: colorManager.getSpecificOpaqueBgColor(),
           body: SafeArea(
