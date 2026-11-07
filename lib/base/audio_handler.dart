@@ -61,12 +61,12 @@ bool loadingSong = false;
 // the media session can expose artwork that other processes can read.
 const _mediaChannel = MethodChannel('com.afalphy.media');
 
-// cover file path -> content:// URI, so a track's media item can be published
-// synchronously once the conversion has been done once.
-final Map<String, String> _coverContentUriCache = {};
+// cover file path -> a URI that other processes can fetch, so a track's media
+// item can be published synchronously once it has been resolved once.
+final Map<String, String> _coverUriCache = {};
 
-// Paths the provider could not expose; do not keep retrying them.
-final Set<String> _coverContentUriFailed = {};
+// Covers that could not be exposed; do not keep retrying them.
+final Set<String> _coverUriFailed = {};
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
@@ -907,48 +907,70 @@ class MyAudioHandler extends BaseAudioHandler {
   /// `DISPLAY_ICON_URI` / `ALBUM_ART_URI` cannot read an app-private `file://`
   /// path, so a fetchable URI has to be published as well.
   String? _fetchableCoverUri(MyAudioMetadata song) {
-    // Servers that authenticate via the query string can hand out a plain URL.
+    // Servers that authenticate via the query string can hand out a plain URL,
+    // which is reachable both from the phone and from a head unit on the LAN.
     final remote = streamClient?.getPictureUrl(song.picture.id);
     if (remote != null && remote.isNotEmpty) {
       return remote;
     }
 
-    if (!Platform.isAndroid || !song.picture.isExist) {
+    if (!song.picture.isExist) {
       return null;
     }
 
-    final cached = _coverContentUriCache[song.picture.path];
+    final key = song.picture.path;
+    final cached = _coverUriCache[key];
     if (cached != null) {
       return cached;
     }
-    if (_coverContentUriFailed.contains(song.picture.path)) {
+    if (_coverUriFailed.contains(key)) {
       return null;
     }
 
-    // First time only: convert to content://, then re-publish.
+    // First time only: resolve a fetchable URI, then re-publish.
     unawaited(_publishMediaItemWhenCoverUriReady(song));
     return null;
   }
 
   Future<void> _publishMediaItemWhenCoverUriReady(MyAudioMetadata song) async {
-    final path = song.picture.path;
-    try {
-      final uri = await _mediaChannel.invokeMethod<String>(
-        'getContentUri',
-        {'path': path},
-      );
-      if (uri == null || uri.isEmpty) {
-        _coverContentUriFailed.add(path);
-        return;
-      }
-      _coverContentUriCache[path] = uri;
-    } catch (_) {
-      _coverContentUriFailed.add(path);
+    final key = song.picture.path;
+    final uri = await _resolveCoverUri(key);
+    if (uri == null) {
+      _coverUriFailed.add(key);
       return;
     }
+    _coverUriCache[key] = uri;
     if (currentSongNotifier.value?.id == song.id) {
       updateServiceMediaItem(song, lyric: _currentLyricText());
     }
+  }
+
+  Future<String?> _resolveCoverUri(String path) async {
+    // Re-serve the cached cover over the local HTTP relay: it forwards the auth
+    // headers of header-authenticated sources and works for local files too.
+    try {
+      return await streamRelay.registerCover(filePath: path);
+    } catch (e) {
+      logger.output('[cover] relay failed: $e');
+    }
+
+    // Last resort: a content:// URI. Only readable by processes that are
+    // granted access, but harmless to advertise.
+    if (Platform.isAndroid) {
+      try {
+        final uri = await _mediaChannel.invokeMethod<String>(
+          'getContentUri',
+          {'path': path},
+        );
+        if (uri != null && uri.isNotEmpty) {
+          return uri;
+        }
+      } catch (e) {
+        logger.output('[cover] content uri failed: $e');
+      }
+    }
+
+    return null;
   }
 
   /// Publishes the current track to the system media session.
