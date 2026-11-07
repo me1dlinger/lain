@@ -168,6 +168,123 @@ class _SongListState extends State<SongList> {
     return picture;
   }
 
+  /// Albums of the artist being viewed, in the order their songs appear.
+  List<Album> artistAlbums(List<MyAudioMetadata> songs) {
+    final albums = <Album>[];
+    for (final song in songs) {
+      final album = artistAlbumManager.albumMap[getAlbum(song)];
+      if (album != null && !albums.contains(album)) {
+        albums.add(album);
+      }
+    }
+    return albums;
+  }
+
+  /// The songs grouped by album, each group ordered by track number.
+  List<(String, List<MyAudioMetadata>)> artistSongGroups(
+    List<MyAudioMetadata> songs,
+  ) {
+    final groups = <String, List<MyAudioMetadata>>{};
+    for (final song in songs) {
+      groups.putIfAbsent(getAlbum(song), () => []).add(song);
+    }
+    for (final group in groups.values) {
+      group.sort((a, b) => (a.track ?? 9999).compareTo(b.track ?? 9999));
+    }
+    return [for (final entry in groups.entries) (entry.key, entry.value)];
+  }
+
+  /// Opens an album of the artist: the albums layer owns album detail pages.
+  Future<void> openArtistAlbum(Album album) async {
+    layersManager.switchRootLayer('albums');
+    showCenterLoading();
+    await layersManager.pushDetailIfNeed(album);
+    removeCenterLoading();
+  }
+
+  /// Horizontal strip of the artist's albums; tapping one opens that album.
+  Widget artistAlbumStrip(BuildContext context, List<MyAudioMetadata> songs) {
+    final albums = artistAlbums(songs);
+    if (albums.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final textColor = colorManager.getSpecificTextColor();
+    return SizedBox(
+      height: 148,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: albums.length,
+        itemBuilder: (context, index) {
+          final album = albums[index];
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => openArtistAlbum(album),
+              child: SizedBox(
+                width: 108,
+                child: Column(
+                  children: [
+                    CoverArtWidget(
+                      size: 92,
+                      borderRadius: 10,
+                      picture: album.picture,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      album.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: textColor),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Heading of one album group: the album name and a button that puts just that
+  /// album in the play queue (long press shuffles it).
+  Widget artistGroupHeader(
+    BuildContext context,
+    String albumName,
+    List<MyAudioMetadata> groupSongs,
+  ) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 6, 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              albumName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+          ),
+          Text(
+            '${groupSongs.length}',
+            style: TextStyle(fontSize: 12, color: textColor.withAlpha(140)),
+          ),
+          IconButton(
+            icon: Icon(Icons.play_arrow_rounded, color: textColor),
+            onPressed: () => audioHandler.setPlayQueue(groupSongs, 0),
+            onLongPress: () => audioHandler.setPlayQueue(groupSongs, 1),
+          ),
+        ],
+      ),
+    );
+  }
+
   void resetSelectedAndUpdateSongList() {
     continuousSelectBeginIndex = 0;
     for (final tmp in isSelectedNotifierMap.values) {

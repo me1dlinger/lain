@@ -76,6 +76,21 @@ extension _SongListPanel on _SongListState {
                   ),
                 );
               }
+              if (artist != null) {
+                // Same grouping as the portrait view; reordering is not offered
+                // here because the rows belong to separate albums.
+                final groups = artistSongGroups(currentSongList);
+                return SliverList(
+                  delegate: SliverChildListDelegate([
+                    artistAlbumStrip(context, currentSongList),
+                    for (final group in groups) ...[
+                      artistGroupHeader(context, group.$1, group.$2),
+                      for (var i = 0; i < group.$2.length; i++)
+                        artistSongRow(i, group.$2),
+                    ],
+                  ]),
+                );
+              }
               return SliverReorderableList(
                 itemExtent: 60,
                 itemBuilder: (context, index) {
@@ -548,6 +563,37 @@ extension _SongListPanel on _SongListState {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// One song inside an artist's album group: the track number, the song and a
+  /// tap that starts playing that album.
+  Widget artistSongRow(int index, List<MyAudioMetadata> songs) {
+    final song = songs[index];
+    final textColor = colorManager.getSpecificTextColor();
+    return InkWell(
+      onTap: () => audioHandler.setPlayQueue(songs, 0, targetIndex: index),
+      child: SizedBox(
+        height: 60,
+        child: Row(
+          children: [
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 24,
+              child: Text(
+                song.track == null ? '' : '${song.track}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textColor.withAlpha(150),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: mainInfo(song)),
+          ],
+        ),
       ),
     );
   }

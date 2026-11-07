@@ -413,6 +413,24 @@ extension _SongListPage on _SongListState {
                 ),
               );
             }
+            // An artist is shown as albums: a strip of album cards, then the
+            // songs grouped per album in track order.
+            if (artist != null) {
+              final groups = artistSongGroups(currentSongList);
+              return SliverList(
+                delegate: SliverChildListDelegate([
+                  artistAlbumStrip(context, currentSongList),
+                  for (final group in groups) ...[
+                    artistGroupHeader(context, group.$1, group.$2),
+                    for (var i = 0; i < group.$2.length; i++)
+                      SizedBox(
+                        height: 60,
+                        child: Center(child: songListTile(i, group.$2)),
+                      ),
+                  ],
+                ]),
+              );
+            }
             return SliverFixedExtentList.builder(
               itemExtent: 60,
               itemCount: currentSongList.length,
