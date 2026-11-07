@@ -104,9 +104,10 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           return;
         }
 
-        // 2) A root page other than the first one (the home hub switches root
-        //    layers): go back to the page we came from.
-        if (layersManager.popRootLayer()) {
+        // 2) A root page other than home (the hub switches root layers): go back
+        //    to the page we came from. On home itself "back" means leaving the
+        //    app, never stepping back into whatever page was open before.
+        if (currentRootLabel.value != 'home' && layersManager.popRootLayer()) {
           return;
         }
 

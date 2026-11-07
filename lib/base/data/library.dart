@@ -180,6 +180,8 @@ class Library {
 
     if (sourceType == .local) {
       await _restoreCreatedTimes();
+    } else {
+      await _restoreServerCreatedTimes();
     }
 
     for (final folder in folderList) {
@@ -187,6 +189,16 @@ class Library {
     }
 
     await _accumulateCache();
+  }
+
+  /// A server's `created` value is not part of the metadata database either;
+  /// restore it from the file written during the last sync, so sorting by added
+  /// time still works after the app is restarted.
+  Future<void> _restoreServerCreatedTimes() async {
+    await serverCreatedTimes.ensureLoaded();
+    for (final song in songList) {
+      song.created ??= serverCreatedTimes.at(song.id);
+    }
   }
 
   /// "Added time" is not part of the metadata database. Restore it from the
@@ -655,6 +667,11 @@ class Library {
                   }
                 }
                 songList.addAll(songs);
+
+                for (final song in songs) {
+                  serverCreatedTimes.record(song.id, song.created);
+                }
+                unawaited(serverCreatedTimes.flush());
 
                 await _saveBatchMetadata(songs);
 

@@ -454,11 +454,12 @@ extension _SongListPage on _SongListState {
       builder: (context, value, child) {
         return ListTile(
           contentPadding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          // Inside an album the track number is part of the identity of a song.
+          // Inside an album, and in an artist's album grouping, the track
+          // number is part of the identity of a song.
           leading: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (album != null)
+              if (album != null || artist != null)
                 SizedBox(
                   width: 24,
                   child: Text(

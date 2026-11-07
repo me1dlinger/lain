@@ -139,3 +139,64 @@ class FileCreationTimes {
 }
 
 final fileCreationTimes = FileCreationTimes();
+/// The `created` field a server reports for a song, kept in a small json file:
+/// the metadata database has no column for it, so without this the added-time
+/// sort silently falls back to the modified time after a restart.
+class ServerCreatedTimes {
+  final Map<String, int> _cache = {};
+  File? _file;
+  bool _dirty = false;
+
+  Future<void> ensureLoaded() async {
+    if (_file != null) {
+      return;
+    }
+    _file = File('${appSupportDir.path}/${sourceType.name}/created_times.json');
+    try {
+      if (!_file!.existsSync()) {
+        return;
+      }
+      final json = jsonDecode(await _file!.readAsString());
+      if (json is Map) {
+        json.forEach((key, value) {
+          if (value is int) {
+            _cache['$key'] = value;
+          }
+        });
+      }
+    } catch (e) {
+      logger.output('[createdTimes] load failed: $e');
+    }
+  }
+
+  DateTime? at(String id) {
+    final millis = _cache[id];
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  void record(String id, DateTime? created) {
+    if (created == null) {
+      return;
+    }
+    final millis = created.millisecondsSinceEpoch;
+    if (_cache[id] == millis) {
+      return;
+    }
+    _cache[id] = millis;
+    _dirty = true;
+  }
+
+  Future<void> flush() async {
+    if (!_dirty || _file == null) {
+      return;
+    }
+    _dirty = false;
+    try {
+      await _file!.writeAsString(jsonEncode(_cache));
+    } catch (e) {
+      logger.output('[createdTimes] save failed: $e');
+    }
+  }
+}
+
+final serverCreatedTimes = ServerCreatedTimes();
