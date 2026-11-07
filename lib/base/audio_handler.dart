@@ -205,10 +205,7 @@ class MyAudioHandler extends BaseAudioHandler {
       layersManager.updateBackground();
     });
 
-    _player.stream.position.listen((position) {
-      _updateCurrentLyricIndex(position);
-      _updateWidgetProgress(position);
-    });
+    _player.stream.position.listen(_updateCurrentLyricIndex);
 
     // iOS: hold a background task for the whole buffering phase (including
     // mid-song stalls on weak network) so the process is not suspended before
@@ -277,22 +274,6 @@ class MyAudioHandler extends BaseAudioHandler {
         HomeWidgetService.updateLyricsIndex();
       }
     }
-  }
-
-  // Widgets show a progress bar, but pushing every position event would rebuild
-  // them several times a second; one update per five seconds is plenty.
-  int _widgetProgressSecond = -1;
-
-  void _updateWidgetProgress(Duration position) {
-    if (!isMobile) {
-      return;
-    }
-    final second = position.inSeconds;
-    if (second - _widgetProgressSecond < 5) {
-      return;
-    }
-    _widgetProgressSecond = second;
-    unawaited(HomeWidgetService.updateProgress());
   }
 
   Future<void> updateIsPlaying(bool isPlaying) async {

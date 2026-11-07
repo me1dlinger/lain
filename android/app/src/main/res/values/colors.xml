@@ -9,7 +9,4 @@
     <!-- Filled disc behind the play/pause button, and the glyph on top of it. -->
     <color name="widget_button_fill">#FF1C1C1E</color>
     <color name="widget_button_glyph">#FFFFFFFF</color>
-    <!-- Slim playback progress bar. -->
-    <color name="widget_progress_track">#331C1C1E</color>
-    <color name="widget_progress_fill">#FF1C1C1E</color>
 </resources>

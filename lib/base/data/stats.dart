@@ -47,6 +47,9 @@ class StatsDay {
   int plays;
   int millis;
 
+  /// song key -> plays that day (the keys of [StatsYear.songs]).
+  final Map<String, int> songs = {};
+
   StatsDay({this.plays = 0, this.millis = 0});
 }
 
@@ -110,10 +113,19 @@ class ListeningStats {
         if (rawDays is Map) {
           rawDays.forEach((day, value) {
             if (value is Map) {
-              statsYear.days['$day'] = StatsDay(
+              final statsDay = StatsDay(
                 plays: value['p'] as int? ?? 0,
                 millis: value['m'] as int? ?? 0,
               );
+              final daySongs = value['s'];
+              if (daySongs is Map) {
+                daySongs.forEach((key, count) {
+                  if (count is int) {
+                    statsDay.songs['$key'] = count;
+                  }
+                });
+              }
+              statsYear.days['$day'] = statsDay;
             }
           });
         }
@@ -157,7 +169,11 @@ class ListeningStats {
               entry.key: {
                 'days': {
                   for (final day in entry.value.days.entries)
-                    day.key: {'p': day.value.plays, 'm': day.value.millis},
+                    day.key: {
+                      'p': day.value.plays,
+                      'm': day.value.millis,
+                      's': day.value.songs,
+                    },
                 },
                 'songs': {
                   for (final song in entry.value.songs.entries)
@@ -205,6 +221,7 @@ class ListeningStats {
     );
     statsSong.plays++;
     statsSong.millis += millis;
+    day.songs[songKey] = (day.songs[songKey] ?? 0) + 1;
 
     if (artist.isNotEmpty) {
       statsYear.artists[artist] = (statsYear.artists[artist] ?? 0) + 1;
@@ -227,6 +244,39 @@ class ListeningStats {
   }
 
   StatsYear year(String year) => years[year] ?? StatsYear();
+
+  /// Songs played on one day, most played first. Titles come from the year's
+  /// songs, which is where the names are kept.
+  List<StatsSong> topSongsOfDay(String year, StatsDay? day, int limit) {
+    if (day == null || day.songs.isEmpty) {
+      return const [];
+    }
+    final entries = day.songs.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final result = <StatsSong>[];
+    for (final entry in entries) {
+      if (result.length >= limit) {
+        break;
+      }
+      final song = this.year(year).songs[entry.key];
+      if (song != null) {
+        result.add(song);
+      }
+    }
+    return result;
+  }
+
+  List<StatsSong> topSongs(String year, int limit) {
+    final songs = this.year(year).songs.values.toList()
+      ..sort((a, b) => b.plays.compareTo(a.plays));
+    return songs.take(limit).toList();
+  }
+
+  List<MapEntry<String, int>> topOf(Map<String, int> counts, int limit) {
+    final entries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(limit).toList();
+  }
 
   Future<void> clear() async {
     await _ensureLoaded();

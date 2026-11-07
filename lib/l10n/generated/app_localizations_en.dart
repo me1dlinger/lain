@@ -513,6 +513,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverPath => 'Path';
+  @override
+  String get noData => 'No data';
+
+  @override
+  String get popularSongs => 'Top Songs';
+
+  @override
+  String get popularAlbums => 'Top Albums';
+
+  @override
+  String get timesUnit => 'times';
+
 
   @override
   String get serverAddress => 'Server Address';

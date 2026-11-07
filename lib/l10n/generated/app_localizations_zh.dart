@@ -513,6 +513,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverPath => '路径';
+  @override
+  String get noData => '无数据';
+
+  @override
+  String get popularSongs => '热门歌曲';
+
+  @override
+  String get popularAlbums => '热门专辑';
+
+  @override
+  String get timesUnit => '次';
+
 
   @override
   String get serverAddress => '服务器地址';

@@ -1081,6 +1081,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Path'**
   String get serverPath;
+  /// No description provided for @noData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get noData;
+
+  /// No description provided for @popularSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Songs'**
+  String get popularSongs;
+
+  /// No description provided for @popularAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Albums'**
+  String get popularAlbums;
+
+  /// No description provided for @timesUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'times'**
+  String get timesUnit;
+
 
   /// No description provided for @serverAddress.
   ///
