@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/services/bookmark_service.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/services/file_time.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
@@ -44,6 +45,9 @@ class Folder {
   List<MyAudioMetadata> songList = [];
 
   Map<String, DateTime> pathAndModified = {};
+
+  /// Local only: file creation ("added") time per path.
+  Map<String, DateTime> pathAndCreated = {};
 
   ValueNotifier<int> sortTypeNotifier = ValueNotifier(0);
 
@@ -113,6 +117,7 @@ class Folder {
         }
       }
     } else {
+      final paths = <String>[];
       await for (final file in _dir!.list(
         recursive: recursiveScanNotifier.value,
       )) {
@@ -125,13 +130,16 @@ class Folder {
           pathAndModified.addEntries([
             MapEntry(file.path, (await file.stat()).modified),
           ]);
+          paths.add(file.path);
         }
       }
+      pathAndCreated.addAll(await fileCreationTimes.resolve(paths));
     }
   }
 
   void clearPathAndModified() {
     pathAndModified.clear();
+    pathAndCreated.clear();
   }
 
   Future<void> load() async {

@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.os.Build
 import android.hardware.input.InputManager
 import android.os.Handler
+import android.os.Looper
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -57,8 +58,44 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                         result.success(null)
                     }
                 }
+                "getFileCreatedTimes" -> {
+                    val paths = call.argument<List<String>>("paths")
+                    if (paths == null) {
+                        result.success(null)
+                        return@setMethodCallHandler
+                    }
+                    // Stat-ing a whole library must not run on the main thread.
+                    Thread {
+                        val times = paths.map { fileCreatedTime(it) }
+                        Handler(Looper.getMainLooper()).post { result.success(times) }
+                    }.start()
+                }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    // Birth ("added") time of a file. java.nio exposes the real creation time
+    // on API 26+; older devices and file systems that do not keep one fall back
+    // to the last-modified time.
+    private fun fileCreatedTime(path: String): Long? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val attributes = java.nio.file.Files.readAttributes(
+                    java.nio.file.Paths.get(path),
+                    java.nio.file.attribute.BasicFileAttributes::class.java
+                )
+                val millis = attributes.creationTime().toMillis()
+                if (millis > 0) {
+                    return millis
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return try {
+            File(path).lastModified().takeIf { it > 0 }
+        } catch (_: Exception) {
+            null
         }
     }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +9,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/database.dart';
 import 'package:sylvakru/base/extensions/metadata_extension.dart';
 import 'package:sylvakru/base/services/background_task_service.dart';
+import 'package:sylvakru/base/services/file_time.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/picture_load_scheduler.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
@@ -146,11 +148,52 @@ class Library {
     changeNotifier.value++;
     layersManager.updateBackground();
 
+    if (sourceType == .local) {
+      await _restoreCreatedTimes();
+    }
+
     for (final folder in folderList) {
       await folder.load();
     }
 
     await _accumulateCache();
+  }
+
+  /// "Added time" is not part of the metadata database. Restore it from the
+  /// creation-time cache written during the last scan, then resolve whatever is
+  /// still unknown in the background, so an existing library sorts correctly
+  /// without a manual rescan. Songs that stay unresolved fall back to their
+  /// modified time in the comparator.
+  Future<void> _restoreCreatedTimes() async {
+    String pathOf(MyAudioMetadata song) =>
+        Platform.isIOS ? revertIOSPath(song.id) : song.id;
+
+    void apply(Map<String, DateTime> times) {
+      if (times.isEmpty) {
+        return;
+      }
+      for (final song in songList) {
+        if (song.created == null) {
+          song.created = times[pathOf(song)];
+        }
+      }
+    }
+
+    apply(await fileCreationTimes.cached());
+
+    final unknown = [
+      for (final song in songList)
+        if (song.created == null) pathOf(song),
+    ];
+    if (unknown.isEmpty) {
+      return;
+    }
+
+    unawaited(
+      fileCreationTimes.resolve(unknown).then((times) {
+        apply(times);
+      }),
+    );
   }
 
   Future<void> _accumulateCache() async {
@@ -334,8 +377,9 @@ class Library {
   Future<MyAudioMetadata?> _parseMetadataIfNeed(
     String id,
     String path,
-    DateTime modified,
-  ) async {
+    DateTime modified, {
+    DateTime? created,
+  }) async {
     MyAudioMetadata? song = library.id2Song[id];
 
     if ((song?.modified?.difference(modified).inSeconds.abs() ?? 2) > 1) {
@@ -358,12 +402,24 @@ class Library {
       }
 
       if (tmp != null) {
-        song = MyAudioMetadata(tmp, id: id, path: path, modified: modified);
+        song = MyAudioMetadata(
+          tmp,
+          id: id,
+          path: path,
+          modified: modified,
+          created: created,
+        );
       } else {
         song = null;
       }
     }
     if (song != null) {
+      // Fill in the local "added time" even when the metadata itself did not
+      // change, so sorting by added time also works for a library that was
+      // already scanned before this key existed.
+      if (song.created == null) {
+        song.created = created;
+      }
       library.id2Song[id] = song;
     } else {
       library.id2Song.remove(id);
@@ -378,6 +434,7 @@ class Library {
       case .local:
       case .webdav:
         Map<String, DateTime> pathAndModified = {};
+        Map<String, DateTime> pathAndCreated = {};
 
         final updateCount = sourceType == .local ? 1000 : 25;
 
@@ -386,6 +443,7 @@ class Library {
           folder.changeNotifier.value++;
           await folder.setFileAndModified();
           pathAndModified.addAll(folder.pathAndModified);
+          pathAndCreated.addAll(folder.pathAndCreated);
         }
 
         final pool = Pool(6);
@@ -394,8 +452,18 @@ class Library {
 
         Set<String> validId = {};
 
-        Future<void> syncOne(String id, String path, DateTime modified) async {
-          final song = await _parseMetadataIfNeed(id, path, modified);
+        Future<void> syncOne(
+          String id,
+          String path,
+          DateTime modified, {
+          DateTime? created,
+        }) async {
+          final song = await _parseMetadataIfNeed(
+            id,
+            path,
+            modified,
+            created: created,
+          );
           if (song != null) {
             validId.add(id);
             songList.add(song);
@@ -414,11 +482,13 @@ class Library {
           String path = id;
 
           DateTime? modified;
+          DateTime? created;
           if (sourceType == .local) {
             if (Platform.isIOS) {
               path = revertIOSPath(path);
             }
             modified = pathAndModified.remove(path);
+            created = pathAndCreated.remove(path);
           } else {
             if (webdavClient != null) {
               modified = pathAndModified.remove(
@@ -430,7 +500,7 @@ class Library {
           if (modified != null) {
             tasks.add(
               pool.withResource(() async {
-                await syncOne(id, path, modified!);
+                await syncOne(id, path, modified!, created: created);
               }),
             );
           }

@@ -244,15 +244,18 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
       break;
     case 13: // added time Ascending
       songList.sort((a, b) {
-        return (a.created ?? DateTime(1970)).compareTo(
-          b.created ?? DateTime(1970),
+        // `created` is the file's creation time for local files, the server's
+        // `created` field for Navidrome; fall back to the modified time so the
+        // order still changes when a creation time is unavailable.
+        return (a.created ?? a.modified ?? DateTime(1970)).compareTo(
+          b.created ?? b.modified ?? DateTime(1970),
         );
       });
       break;
     case 14: // added time Descending
       songList.sort((a, b) {
-        return (b.created ?? DateTime(1970)).compareTo(
-          a.created ?? DateTime(1970),
+        return (b.created ?? b.modified ?? DateTime(1970)).compareTo(
+          a.created ?? a.modified ?? DateTime(1970),
         );
       });
       break;
