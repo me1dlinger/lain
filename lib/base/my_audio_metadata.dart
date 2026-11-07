@@ -141,7 +141,11 @@ class MyAudioMetadata {
     }
 
     if (sourceType == .feiniu) {
-      return library.id2Song.putIfAbsent(song['guid'], () {
+      // The server's createdAt only arrives with a fresh row, and the database
+      // has no column for it, so a song that is already known has to be given it
+      // here - otherwise sorting by added time falls back to the modified time.
+      final created = _epochToDate(song['createdAt']);
+      final item = library.id2Song.putIfAbsent(song['guid'], () {
         final audioSpec = song['audioSpec'] as Map? ?? const {};
         final album = song['album'] as Map? ?? const {};
         final artists = (song['artists'] as List?) ?? const [];
@@ -172,12 +176,21 @@ class MyAudioMetadata {
           path: audioSpec['path'],
           // fnOS reports createdAt, which is what "added time" means for this
           // source; it is what the server sorts by with sort=createdAt,desc.
-          created: _epochToDate(song['createdAt']),
+          created: created,
         );
       });
+      item.created ??= created;
+      return item;
     }
 
-    return library.id2Song.putIfAbsent(song['Id'], () {
+    final created = _epochToDate(
+      song['created'] is String ? null : song['created'],
+    );
+    final createdText = song['created'] is String
+        ? DateTime.tryParse(song['created'])
+        : null;
+
+    final item = library.id2Song.putIfAbsent(song['Id'], () {
       final mediaSources = (song['MediaSources'] as List?) ?? [];
       final primarySource = mediaSources.isNotEmpty ? mediaSources.first : null;
       final streams = (primarySource?['MediaStreams'] as List?) ?? [];
@@ -233,6 +246,8 @@ class MyAudioMetadata {
             : DateTime.fromMillisecondsSinceEpoch(0),
       );
     });
+    item.created ??= createdText ?? created;
+    return item;
   }
 
   @override
