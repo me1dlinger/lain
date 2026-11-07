@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_player_2x2_name">Sylvakru</string>
+    <string name="widget_player_2x2_desc">显示封面、歌名、艺术家与播放控制。</string>
+    <string name="widget_player_4x2_name">Sylvakru 歌词版</string>
+    <string name="widget_player_4x2_desc">显示封面、歌名、艺术家、当前歌词行与播放控制。</string>
+
+    <string name="widget_action_previous">上一首</string>
+    <string name="widget_action_next">下一首</string>
+    <string name="widget_action_play">播放</string>
+    <string name="widget_action_pause">暂停</string>
+    <string name="widget_cover">专辑封面</string>
+
+    <string name="widget_empty_title">暂无播放</string>
+</resources>

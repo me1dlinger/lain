@@ -12,12 +12,40 @@ import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 
 class HomeWidgetService {
+  /// Android home screen widgets, addressed by fully qualified class name: the
+  /// home_widget plugin resolves `androidName` against the application id, and
+  /// these providers live in a sub-package.
+  static const _androidPlayerProviders = [
+    'com.afalphy.sylvakru.widget.PlayerWidget2x2Provider',
+    'com.afalphy.sylvakru.widget.PlayerWidget4x2Provider',
+  ];
+
   static Future<void> reloadNowPlayingWidget() async {
-    await HomeWidget.updateWidget(iOSName: 'NowPlayingWidget');
+    try {
+      if (Platform.isIOS) {
+        await HomeWidget.updateWidget(iOSName: 'NowPlayingWidget');
+        return;
+      }
+      if (Platform.isAndroid) {
+        for (final provider in _androidPlayerProviders) {
+          await HomeWidget.updateWidget(qualifiedAndroidName: provider);
+        }
+      }
+    } catch (error) {
+      // The platform names cannot be resolved on the other platforms, and a
+      // widget that is not on the home screen must never break playback.
+      logger.output("widget reload error: $error");
+    }
   }
 
   static Future<void> reloadPlaylistsWidget() async {
-    await HomeWidget.updateWidget(iOSName: 'PlaylistsWidget');
+    try {
+      if (Platform.isIOS) {
+        await HomeWidget.updateWidget(iOSName: 'PlaylistsWidget');
+      }
+    } catch (error) {
+      logger.output("widget reload error: $error");
+    }
   }
 
   static Future<void> updateNowPlayingWidget() async {

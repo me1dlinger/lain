@@ -269,7 +269,7 @@ class MyAudioHandler extends BaseAudioHandler {
         updatePlaybackState();
       }
 
-      if (Platform.isIOS) {
+      if (isMobile) {
         HomeWidgetService.updateLyricsIndex();
       }
     }
@@ -288,7 +288,7 @@ class MyAudioHandler extends BaseAudioHandler {
       if (!windowIsClosed) {
         setupTaskbar();
       }
-    } else if (Platform.isIOS) {
+    } else if (isMobile) {
       await HomeWidgetService.updateIsPlaying();
     }
   }
@@ -601,7 +601,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentCoverArtColor = Colors.grey;
     saveAllStates();
 
-    if (Platform.isIOS) {
+    if (isMobile) {
       HomeWidgetService.updateNowPlayingWidget();
       HomeWidgetService.reloadPlaylistsWidget();
     }
@@ -622,7 +622,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
 
-    if (Platform.isIOS) {
+    if (isMobile) {
       HomeWidgetService.updateNowPlayingWidget();
       HomeWidgetService.reloadPlaylistsWidget();
     }
@@ -787,7 +787,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentLyricsIndexNotifier.value = -1;
     _publishedLyric = null;
 
-    if (Platform.isIOS) {
+    if (isMobile) {
       await HomeWidgetService.updateNowPlayingWidget();
       // update colors
       await HomeWidgetService.reloadPlaylistsWidget();

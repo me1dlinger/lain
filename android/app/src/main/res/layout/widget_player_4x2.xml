@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  4x2 player: cover on the left, title / artist / current lyric line in the
+  middle, three controls on the right. Same flat monochrome treatment as the
+  2x2 widget; the lyric row is what this size adds.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp">
+
+    <ImageView
+        android:id="@+id/widget_cover"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/widget_cover_background"
+        android:contentDescription="@string/widget_cover"
+        android:scaleType="centerCrop" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="6dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="@string/widget_empty_title"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_lyric"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/widget_prev"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="@drawable/widget_button_background"
+        android:contentDescription="@string/widget_action_previous"
+        android:padding="6dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_widget_skip_previous" />
+
+    <ImageButton
+        android:id="@+id/widget_toggle"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="2dp"
+        android:background="@drawable/widget_button_background"
+        android:contentDescription="@string/widget_action_play"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_widget_play" />
+
+    <ImageButton
+        android:id="@+id/widget_next"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="@drawable/widget_button_background"
+        android:contentDescription="@string/widget_action_next"
+        android:padding="6dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_widget_skip_next" />
+</LinearLayout>
