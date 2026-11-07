@@ -12,17 +12,17 @@ extension FoldersPage on FoldersLayer {
             leading: ValueListenableBuilder(
               valueListenable: folder.changeNotifier,
               builder: (context, value, child) {
-                final coverSong = getFirstSong(folder.songList);
+                final cover = folder.picture;
                 return ListenableBuilder(
-                  listenable: Listenable.merge([coverSong?.updateNotifier]),
+                  listenable: Listenable.merge([cover?.updateNotifier]),
                   builder: (_, _) {
                     return Hero(
-                      tag: '${coverSong?.picture.id ?? ''}folders${folder.id}',
+                      tag: '${cover?.id ?? ''}folders${folder.id}',
                       transitionOnUserGestures: true,
                       child: CoverArtWidget(
                         size: 50,
                         borderRadius: 5,
-                        picture: coverSong?.picture,
+                        picture: cover,
                       ),
                     );
                   },

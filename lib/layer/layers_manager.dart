@@ -12,6 +12,8 @@ import 'package:sylvakru/base/utils/dynamic_detail_route.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/history.dart';
+import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/layer/about_layer.dart';
 import 'package:sylvakru/layer/albums_layer.dart';
 import 'package:sylvakru/layer/artists_layer.dart';
@@ -398,9 +400,9 @@ class LayersManager {
     } else if (layer is SingleAlbumLayer) {
       return layer.album.picture;
     } else if (layer is SingleFolderLayer) {
-      return getFirstSong(layer.folder.songList)?.picture;
+      return layer.folder.picture;
     } else if (layer is SongsLayer) {
-      return getFirstSong(library.songList)?.picture;
+      return _sortedCover(library.songList, librarySortKey);
     } else if (layer is FrequentlyLayer) {
       return getFirstSong(history.frequentlySongList)?.picture;
     } else if (layer is RecentlyLayer) {
@@ -410,6 +412,14 @@ class LayersManager {
     } else {
       return currentSongNotifier.value?.picture;
     }
+  }
+
+  /// Cover of a list that the user can reorder: its first song as the page in
+  /// front of them shows it, so the backdrop follows the chosen order.
+  MyPicture? _sortedCover(List<MyAudioMetadata> songs, String sortKey) {
+    final ordered = List<MyAudioMetadata>.from(songs);
+    sortSongList(songSortTypeNotifier(sortKey).value, ordered);
+    return getFirstSong(ordered)?.picture;
   }
 
   void _updateLayerInfo(

@@ -5,15 +5,16 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
+import 'package:sylvakru/base/data/library.dart';
+import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/home_widget_service.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
 
 final playlistManager = PlaylistManager();
 
@@ -207,7 +208,36 @@ class Playlist {
     isNotFavorite = !isFavorite;
   }
 
-  MyPicture? get picture => getFirstSong(songList)?.picture;
+  /// Key of this playlist's remembered sort order, shared with the song list
+  /// page (see [songSortTypeNotifier]).
+  String get sortKey => 'playlist:${id ?? name}';
+
+  MyPicture? _serverCover;
+
+  /// The server's own artwork for this playlist, if it has any: Navidrome keeps
+  /// it under the playlist's id, so it downloads like any other cover. The
+  /// favourited-songs list is built locally and has no id at all.
+  MyPicture? get serverCover {
+    if (sourceType != .navidrome) {
+      return null;
+    }
+    final coverId = id;
+    if (coverId == null || coverId.isEmpty) {
+      return null;
+    }
+    return _serverCover ??= MyPicture.form(coverId);
+  }
+
+  /// The songs in the order chosen for this playlist. A copy, since the stored
+  /// list is also what gets written back to the server.
+  List<MyAudioMetadata> get sortedSongList {
+    final songs = List<MyAudioMetadata>.from(songList);
+    sortSongList(songSortTypeNotifier(sortKey).value, songs);
+    return songs;
+  }
+
+  MyPicture? get picture =>
+      serverCover ?? getFirstSong(sortedSongList)?.picture;
 
   int get totalCount => songList.length;
 

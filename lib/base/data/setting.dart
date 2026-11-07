@@ -27,6 +27,11 @@ final exitOnCloseNotifier = ValueNotifier(false);
 
 final setting = Setting();
 
+/// Sort-order key of the whole library: a local library offers orders that a
+/// streamed one does not, so the two are remembered apart.
+String get librarySortKey =>
+    isNotStreamSource ? 'library:local' : 'library:stream';
+
 /// Sort order of each song list, keyed by the kind of list it belongs to.
 ///
 /// The library, artist and album pages used to build a fresh notifier whenever

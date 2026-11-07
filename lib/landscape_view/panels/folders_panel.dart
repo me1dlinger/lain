@@ -66,7 +66,7 @@ extension FoldersPanel on FoldersLayer {
               return ValueListenableBuilder(
                 valueListenable: folder.changeNotifier,
                 builder: (context, value, child) {
-                  final coverSong = getFirstSong(folder.songList);
+                  final cover = folder.picture;
                   return SizedBox(
                     height: 64,
                     child: InkWell(
@@ -80,16 +80,15 @@ extension FoldersPanel on FoldersLayer {
                           SizedBox(width: 20),
                           ListenableBuilder(
                             listenable: Listenable.merge([
-                              coverSong?.updateNotifier,
+                              cover?.updateNotifier,
                             ]),
                             builder: (_, _) {
                               return Hero(
-                                tag:
-                                    '${coverSong?.picture.id ?? ''}folders${folder.id}',
+                                tag: '${cover?.id ?? ''}folders${folder.id}',
                                 child: CoverArtWidget(
                                   size: 50,
                                   borderRadius: 5,
-                                  picture: coverSong?.picture,
+                                  picture: cover,
                                 ),
                               );
                             },

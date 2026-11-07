@@ -109,6 +109,10 @@ class _SongListState extends State<SongList> {
   bool isSearching = false;
 
   ValueNotifier<int> sortTypeNotifier = ValueNotifier(0);
+
+  /// First song of the list as it is ordered, which is the list's cover. Kept
+  /// apart from the shown list so that a search does not change the cover.
+  final coverSongNotifier = ValueNotifier<MyAudioMetadata?>(null);
   ValueNotifier<int> changeNotifier = ValueNotifier(0);
 
   Map<MyAudioMetadata, ValueNotifier<bool>> isSelectedNotifierMap = {};
@@ -158,15 +162,21 @@ class _SongListState extends State<SongList> {
   }
 
   MyPicture? get mainPicture {
-    MyPicture? picture = getFirstSong(songList)?.picture;
+    // A server-side playlist cover wins over any song's artwork.
+    final playlistCover = playlist?.serverCover;
+    if (playlistCover != null) {
+      return playlistCover;
+    }
     if (isStreamSource) {
       if (artist != null) {
-        picture = artist!.picture;
-      } else if (album != null) {
-        picture = album!.picture;
+        return artist!.picture;
+      }
+      if (album != null) {
+        return album!.picture;
       }
     }
-    return picture;
+    final song = coverSongNotifier.value ?? getFirstSong(songList);
+    return song?.picture;
   }
 
   /// Albums of the artist being viewed, in the order their songs appear.
@@ -307,6 +317,12 @@ class _SongListState extends State<SongList> {
     );
   }
 
+  /// The backdrop of this page is generated from its cover, which follows the
+  /// sort order, so it is recomputed when the order changes.
+  void refreshBackdrop() {
+    layersManager.updateBackground();
+  }
+
   void resetSelectedAndUpdateSongList() {
     continuousSelectBeginIndex = 0;
     for (final tmp in isSelectedNotifierMap.values) {
@@ -336,6 +352,14 @@ class _SongListState extends State<SongList> {
     }
     sortSongList(sortTypeNotifier.value, currentSongList);
     currentSongListNotifier.value = currentSongList;
+
+    if (searchValue.isEmpty) {
+      // The cover is the first song of the chosen order, so changing the sort
+      // changes it.
+      coverSongNotifier.value = currentSongList.isEmpty
+          ? null
+          : currentSongList.first;
+    }
   }
 
   void startNewSearchIfNeed() {
@@ -365,9 +389,7 @@ class _SongListState extends State<SongList> {
     if (playlist != null) {
       title = playlist!.name;
       songList = playlist!.songList;
-      sortTypeNotifier = songSortTypeNotifier(
-        'playlist:${playlist!.id ?? playlist!.name}',
-      );
+      sortTypeNotifier = songSortTypeNotifier(playlist!.sortKey);
       changeNotifier = playlist!.changeNotifier;
       if (!widget.isRoot) {
         rootVisibleNotifier = playlistsVisibleNotifier;
@@ -398,7 +420,7 @@ class _SongListState extends State<SongList> {
     } else if (folder != null) {
       title = folder!.id;
       songList = folder!.songList;
-      sortTypeNotifier = songSortTypeNotifier('folder:${folder!.id}');
+      sortTypeNotifier = songSortTypeNotifier(folder!.sortKey);
       changeNotifier = folder!.changeNotifier;
       rootVisibleNotifier = foldersVisibleNotifier;
       backToRoot = () {
@@ -414,11 +436,7 @@ class _SongListState extends State<SongList> {
     } else {
       isLibrary = true;
       songList = library.songList;
-      // A local library offers modified time and randomising, a streamed one
-      // does not, so the two remember their order separately.
-      sortTypeNotifier = songSortTypeNotifier(
-        isNotStreamSource ? 'library:local' : 'library:stream',
-      );
+      sortTypeNotifier = songSortTypeNotifier(librarySortKey);
       library.changeNotifier.addListener(updateSongList);
     }
 
@@ -436,6 +454,7 @@ class _SongListState extends State<SongList> {
     });
 
     sortTypeNotifier.addListener(resetSelectedAndUpdateSongList);
+    sortTypeNotifier.addListener(refreshBackdrop);
     changeNotifier.addListener(updateSongList);
     textController.addListener(startNewSearchIfNeed);
   }
@@ -445,6 +464,7 @@ class _SongListState extends State<SongList> {
     rootVisibleNotifier?.removeListener(updateHideOthers);
 
     sortTypeNotifier.removeListener(resetSelectedAndUpdateSongList);
+    sortTypeNotifier.removeListener(refreshBackdrop);
     changeNotifier.removeListener(updateSongList);
     textController.removeListener(startNewSearchIfNeed);
     scrollController.dispose();
@@ -455,9 +475,12 @@ class _SongListState extends State<SongList> {
   }
 
   Widget mainCover(double size) {
-    return ValueListenableBuilder(
-      valueListenable: currentSongListNotifier,
-      builder: (_, _, _) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        currentSongListNotifier,
+        coverSongNotifier,
+      ]),
+      builder: (_, _) {
         MyPicture? picture = mainPicture;
         return ListenableBuilder(
           listenable: Listenable.merge([

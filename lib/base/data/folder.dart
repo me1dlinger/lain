@@ -3,16 +3,19 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/bookmark_service.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/data/library.dart';
+import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:sylvakru/base/services/bookmark_service.dart';
 import 'package:sylvakru/base/services/file_time.dart';
-import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/services/logger.dart';
+import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
+import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
 
 final Set<String> _loftySupportedExts = {
@@ -48,6 +51,21 @@ class Folder {
 
   /// Local only: file creation ("added") time per path.
   Map<String, DateTime> pathAndCreated = {};
+
+  /// Key of this folder's remembered sort order, shared with the song list page
+  /// (see [songSortTypeNotifier]).
+  String get sortKey => 'folder:$id';
+
+  /// The songs in the order chosen for this folder. A copy, since the stored
+  /// list is scanned in place.
+  List<MyAudioMetadata> get sortedSongList {
+    final songs = List<MyAudioMetadata>.from(songList);
+    sortSongList(songSortTypeNotifier(sortKey).value, songs);
+    return songs;
+  }
+
+  /// Cover of the folder: the first song as the chosen order shows them.
+  MyPicture? get picture => getFirstSong(sortedSongList)?.picture;
 
   final changeNotifier = ValueNotifier(0);
 

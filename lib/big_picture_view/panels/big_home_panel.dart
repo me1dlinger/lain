@@ -119,12 +119,11 @@ class _BigHomePanelState extends State<BigHomePanel> {
         _ListView(
           title: l10n.folders,
           count: library.folderList.length,
-          getPicture: (index) =>
-              getFirstSong(library.folderList[index].songList)?.picture,
+          getPicture: (index) => library.folderList[index].picture,
           onTap: (index) async {
             final folder = library.folderList[index];
             final baseColor = await computeColor(
-              getFirstSong(folder.songList)?.picture,
+              folder.picture,
             );
             if (!context.mounted) {
               return;
@@ -155,7 +154,7 @@ class _BigHomePanelState extends State<BigHomePanel> {
           getTag: (index) {
             final folder = library.folderList[index];
 
-            return 'big${getFirstSong(folder.songList)?.id}${folder.id}';
+            return 'big${folder.picture?.id}${folder.id}';
           },
           verticalController: verticalController,
           changeNotifier: (index) {
