@@ -7,6 +7,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/data/home_layout.dart';
 import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
@@ -146,6 +147,23 @@ class Setting {
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
 
+    homeButtonOrder.value = restoredHomeOrder(
+      json['homeButtons'],
+      HomeButton.values,
+    );
+    homeButtonHidden.value = restoredHomeHidden(
+      json['homeButtonsHidden'],
+      HomeButton.values,
+    );
+    homeShelfOrder.value = restoredHomeOrder(
+      json['homeShelves'],
+      HomeShelf.values,
+    );
+    homeShelfHidden.value = restoredHomeHidden(
+      json['homeShelvesHidden'],
+      HomeShelf.values,
+    );
+
     final sortTypes = json['songSortTypes'];
     if (sortTypes is Map) {
       for (final entry in sortTypes.entries) {
@@ -204,6 +222,15 @@ class Setting {
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,
+
+        'homeButtons': [for (final button in homeButtonOrder.value) button.name],
+        'homeButtonsHidden': [
+          for (final button in homeButtonHidden.value) button.name,
+        ],
+        'homeShelves': [for (final shelf in homeShelfOrder.value) shelf.name],
+        'homeShelvesHidden': [
+          for (final shelf in homeShelfHidden.value) shelf.name,
+        ],
 
         'songSortTypes': {
           for (final entry in songSortTypes.entries)

@@ -1110,6 +1110,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @homeLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Home layout'**
+  String get homeLayout;
+
+  /// No description provided for @homeTopButtons.
+  ///
+  /// In en, this message translates to:
+  /// **'Top buttons'**
+  String get homeTopButtons;
+
+  /// No description provided for @homeSections.
+  ///
+  /// In en, this message translates to:
+  /// **'Home sections'**
+  String get homeSections;
+
   /// No description provided for @ignoreCert.
   ///
   /// In en, this message translates to:

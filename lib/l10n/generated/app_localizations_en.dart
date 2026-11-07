@@ -528,6 +528,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get homeLayout => 'Home layout';
+
+  @override
+  String get homeTopButtons => 'Top buttons';
+
+  @override
+  String get homeSections => 'Home sections';
+
+  @override
   String get ignoreCert => 'Ignore certificate';
 
   @override

@@ -528,6 +528,15 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get homeLayout => '主页设置';
+
+  @override
+  String get homeTopButtons => '最顶部的按钮';
+
+  @override
+  String get homeSections => '主页内容';
+
+  @override
   String get ignoreCert => '忽略证书校验';
 
   @override

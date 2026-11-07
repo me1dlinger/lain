@@ -8,6 +8,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/history.dart';
+import 'package:sylvakru/base/data/home_layout.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
@@ -19,6 +20,7 @@ import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/base/widgets/my_scaffold.dart';
 import 'package:sylvakru/base/widgets/play_next_button.dart';
+import 'package:sylvakru/base/widgets/stats_page.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -113,378 +115,460 @@ class HomeLayerState extends State<HomeLayer> {
   }
 
   Widget content(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final shortestSide = MediaQuery.of(context).size.shortestSide;
     double extraSize = max(0, (shortestSide - 750) * 0.2);
-    return ListView(
-      children: [
-        // Hub buttons: this home page is the only entry point now that the
-        // sidebar is gone, so every list is one tap away from here.
-        SizedBox(
-          height: 84,
-          child: Padding(
-            // Same left margin as the section headings below, so the first
-            // button lines up with them instead of starting further in.
+
+    // Which blocks the home page draws, and in which order, is the user's
+    // choice (settings -> home layout), so the page follows that list.
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        homeButtonOrder,
+        homeButtonHidden,
+        homeShelfOrder,
+        homeShelfHidden,
+      ]),
+      builder: (context, child) {
+        return ListView(
+          children: [
+            if (visibleHomeButtons.isNotEmpty) hubRow(context),
+
+            for (final shelf in visibleHomeShelves)
+              ...shelfBlock(shelf, context, extraSize),
+
+            if (isTooNarrow(context)) SizedBox(height: 60),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The row of buttons at the very top. It spreads them across the page when
+  /// they fit and scrolls sideways when the user kept more of them than fit,
+  /// rather than overflowing.
+  Widget hubRow(BuildContext context) {
+    return SizedBox(
+      height: 84,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                homeNavButton(l10n.artists, Icons.person_outline_rounded, 'artists'),
-                homeNavButton(l10n.albums, Icons.album_outlined, 'albums'),
-                homeNavButton(l10n.songs, Icons.music_note_outlined, 'songs'),
-                homeNavButton(l10n.playlists, Icons.queue_music_rounded, 'playlists'),
-                homeNavButton(l10n.favorites, Icons.favorite_outline_rounded, '_Favorite'),
-              ],
-            ),
-          ),
-        ),
-        Row(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(width: 20),
-            GestureDetector(
-              onTap: () {
-                layersManager.switchRootLayer('albums');
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.albums,
-                      style: .new(fontWeight: .bold, fontSize: 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth - 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final button in visibleHomeButtons)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: homeNavButtonFor(button, context),
                     ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
-        ),
-        SizedBox(height: 10),
+          );
+        },
+      ),
+    );
+  }
 
-        mouseRegionForScroll(
-          child: SizedBox(
-            height: 180 + extraSize,
-            child: ListenableBuilder(
-              listenable: Listenable.merge([
-                artistAlbumManager.updateNotifier,
-                searchChangeNotifier,
-              ]),
-              builder: (context, child) {
-                final lowerValue = searchValue.toLowerCase();
-                final albumList = searchValue.isEmpty
-                    ? artistAlbumManager.albumList
-                    : artistAlbumManager.albumList
-                          .where(
-                            (album) =>
-                                album.name.toLowerCase().contains(lowerValue),
-                          )
-                          .toList();
-                return ListView.separated(
-                  controller: albumsSC,
-                  scrollDirection: .horizontal,
-                  itemCount: albumList.length + 1,
-                  separatorBuilder: (context, index) {
-                    return SizedBox(width: 15);
-                  },
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return SizedBox(width: 5);
-                    }
-                    index--;
-                    final album = albumList[index];
-                    return Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            layersManager.pushDetail('home', album);
-                          },
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Hero(
-                              tag: '${album.picture.id}home${album.name}',
-                              transitionOnUserGestures: true,
-                              child: CoverArtWidget(
-                                size: 150 + extraSize,
-                                borderRadius: 15,
-                                picture: album.picture,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        SizedBox(
-                          width: 140 + extraSize,
-                          child: Text(
-                            album.name,
-                            style: .new(overflow: .ellipsis, fontSize: 15),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          scrollController: albumsSC,
-          displayIconNotifier: albumsDisplayIconNotifier,
-          changeNotifier: albumsChangeNotifier,
-          iconTop: 55 + extraSize / 2,
-        ),
+  Widget homeNavButtonFor(HomeButton button, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (button) {
+      case HomeButton.artists:
+        return homeNavButton(
+          l10n.artists,
+          Icons.person_outline_rounded,
+          'artists',
+        );
+      case HomeButton.albums:
+        return homeNavButton(l10n.albums, Icons.album_outlined, 'albums');
+      case HomeButton.songs:
+        return homeNavButton(l10n.songs, Icons.music_note_outlined, 'songs');
+      case HomeButton.playlists:
+        return homeNavButton(
+          l10n.playlists,
+          Icons.queue_music_rounded,
+          'playlists',
+        );
+      case HomeButton.favorites:
+        return homeNavButton(
+          l10n.favorites,
+          Icons.favorite_outline_rounded,
+          '_Favorite',
+        );
+      case HomeButton.listeningReport:
+        return homeNavAction(l10n.listeningReport, Icons.insights_rounded, () {
+          globalNavigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (context) => const StatsPage()),
+          );
+        });
+    }
+  }
 
-        SizedBox(height: 15),
-
-        Row(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(width: 20),
-            GestureDetector(
-              onTap: () {
-                layersManager.switchRootLayer('frequently');
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.frequently,
-                      style: .new(fontWeight: .bold, fontSize: 20),
-                    ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
-                  ],
+  /// One shelf: the heading that opens its full list, and the list itself.
+  List<Widget> shelfBlock(
+    HomeShelf shelf,
+    BuildContext context,
+    double extraSize,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    switch (shelf) {
+      case HomeShelf.albums:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('albums');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.albums,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10),
-
-        mouseRegionForScroll(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              history.frequentlyChangeNotifier,
-              searchChangeNotifier,
-            ]),
-            builder: (context, child) {
-              return songListView(
-                filterSongList(history.frequentlySongList, searchValue),
-                frequentlySC,
-              );
-            },
+            ],
           ),
-          scrollController: frequentlySC,
-          displayIconNotifier: frequentlyDisplayIconNotifier,
-          changeNotifier: frequentlyChangeNotifier,
-          iconTop: 67,
-        ),
+          SizedBox(height: 10),
 
-        SizedBox(height: 15),
-
-        Row(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(width: 20),
-            GestureDetector(
-              onTap: () {
-                layersManager.switchRootLayer('recentlyAdded');
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.recentlyAdded,
-                      style: .new(fontWeight: .bold, fontSize: 20),
-                    ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10),
-
-        mouseRegionForScroll(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              library.changeNotifier,
-              searchChangeNotifier,
-            ]),
-            builder: (context, child) {
-              return songListView(
-                filterSongList(library.recentlyAddedSongList, searchValue),
-                recentlyAddedSC,
-              );
-            },
-          ),
-          scrollController: recentlyAddedSC,
-          displayIconNotifier: recentlyAddedDisplayIconNotifier,
-          changeNotifier: recentlyAddedChangeNotifier,
-          iconTop: 67,
-        ),
-
-        SizedBox(height: 15),
-
-        Row(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(width: 20),
-            GestureDetector(
-              onTap: () {
-                layersManager.switchRootLayer('recently');
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.recently,
-                      style: .new(fontWeight: .bold, fontSize: 20),
-                    ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10),
-
-        mouseRegionForScroll(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              history.recentlyChangeNotifier,
-              searchChangeNotifier,
-            ]),
-            builder: (context, child) {
-              return songListView(
-                filterSongList(history.recentlySongList, searchValue),
-                recentlySC,
-              );
-            },
-          ),
-          scrollController: recentlySC,
-          displayIconNotifier: recentlyDisplayIconNotifier,
-          changeNotifier: frequentlyChangeNotifier,
-          iconTop: 67,
-        ),
-
-        SizedBox(height: 15),
-
-        Row(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(width: 20),
-            GestureDetector(
-              onTap: () {
-                layersManager.switchRootLayer('playlists');
-              },
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.playlists,
-                      style: .new(fontWeight: .bold, fontSize: 20),
-                    ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10),
-
-        mouseRegionForScroll(
-          child: SizedBox(
-            height: 180 + extraSize,
-            child: ListenableBuilder(
-              listenable: Listenable.merge([
-                playlistManager.updateNotifier,
-                searchChangeNotifier,
-              ]),
-              builder: (context, child) {
-                final lowerValue = searchValue.toLowerCase();
-                final playlists = searchValue.isEmpty
-                    ? playlistManager.playlists
-                    : playlistManager.playlists
-                          .where(
-                            (playlist) => (playlist.isFavorite
-                                    ? l10n.favorites
-                                    : playlist.name)
-                                .toLowerCase()
-                                .contains(lowerValue),
-                          )
-                          .toList();
-                return ListView.separated(
-                  controller: playlistsSC,
-                  scrollDirection: .horizontal,
-                  itemCount: playlists.length + 1,
-                  separatorBuilder: (context, index) {
-                    return SizedBox(width: 15);
-                  },
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return SizedBox(width: 5);
-                    }
-                    index--;
-                    final playlist = playlists[index];
-                    return ValueListenableBuilder(
-                      valueListenable: playlist.changeNotifier,
-                      builder: (context, value, child) {
-                        return Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                layersManager.pushDetail('home', playlist);
-                              },
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: Hero(
-                                  tag:
-                                      '${playlist.picture?.id ?? ''}home${playlist.isFavorite ? l10n.favorites : playlist.name}',
-                                  transitionOnUserGestures: true,
-                                  child: CoverArtWidget(
-                                    size: 150 + extraSize,
-                                    borderRadius: 15,
-                                    picture: playlist.picture,
-                                  ),
+          mouseRegionForScroll(
+            child: SizedBox(
+              height: 180 + extraSize,
+              child: ListenableBuilder(
+                listenable: Listenable.merge([
+                  artistAlbumManager.updateNotifier,
+                  searchChangeNotifier,
+                ]),
+                builder: (context, child) {
+                  final lowerValue = searchValue.toLowerCase();
+                  final albumList = searchValue.isEmpty
+                      ? artistAlbumManager.albumList
+                      : artistAlbumManager.albumList
+                            .where(
+                              (album) =>
+                                  album.name.toLowerCase().contains(lowerValue),
+                            )
+                            .toList();
+                  return ListView.separated(
+                    controller: albumsSC,
+                    scrollDirection: .horizontal,
+                    itemCount: albumList.length + 1,
+                    separatorBuilder: (context, index) {
+                      return SizedBox(width: 15);
+                    },
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return SizedBox(width: 5);
+                      }
+                      index--;
+                      final album = albumList[index];
+                      return Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              layersManager.pushDetail('home', album);
+                            },
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Hero(
+                                tag: '${album.picture.id}home${album.name}',
+                                transitionOnUserGestures: true,
+                                child: CoverArtWidget(
+                                  size: 150 + extraSize,
+                                  borderRadius: 15,
+                                  picture: album.picture,
                                 ),
                               ),
                             ),
-                            SizedBox(height: 5),
-                            SizedBox(
-                              width: 140 + extraSize,
-                              child: Text(
-                                playlist.isFavorite
-                                    ? l10n.favorites
-                                    : playlist.name,
-                                style: .new(overflow: .ellipsis, fontSize: 15),
-                              ),
+                          ),
+                          SizedBox(height: 5),
+                          SizedBox(
+                            width: 140 + extraSize,
+                            child: Text(
+                              album.name,
+                              style: .new(overflow: .ellipsis, fontSize: 15),
                             ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            scrollController: albumsSC,
+            displayIconNotifier: albumsDisplayIconNotifier,
+            changeNotifier: albumsChangeNotifier,
+            iconTop: 55 + extraSize / 2,
+          ),
+
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.frequently:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('frequently');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.frequently,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+
+          mouseRegionForScroll(
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                history.frequentlyChangeNotifier,
+                searchChangeNotifier,
+              ]),
+              builder: (context, child) {
+                return songListView(
+                  filterSongList(history.frequentlySongList, searchValue),
+                  frequentlySC,
                 );
               },
             ),
+            scrollController: frequentlySC,
+            displayIconNotifier: frequentlyDisplayIconNotifier,
+            changeNotifier: frequentlyChangeNotifier,
+            iconTop: 67,
           ),
-          scrollController: playlistsSC,
-          displayIconNotifier: playlistsDisplayIconNotifier,
-          changeNotifier: playlistsChangeNotifier,
-          iconTop: 55 + extraSize / 2,
-        ),
-        SizedBox(height: 15),
 
-        if (isTooNarrow(context)) SizedBox(height: 60),
-      ],
-    );
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.recentlyAdded:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('recentlyAdded');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.recentlyAdded,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+
+          mouseRegionForScroll(
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                library.changeNotifier,
+                searchChangeNotifier,
+              ]),
+              builder: (context, child) {
+                return songListView(
+                  filterSongList(library.recentlyAddedSongList, searchValue),
+                  recentlyAddedSC,
+                );
+              },
+            ),
+            scrollController: recentlyAddedSC,
+            displayIconNotifier: recentlyAddedDisplayIconNotifier,
+            changeNotifier: recentlyAddedChangeNotifier,
+            iconTop: 67,
+          ),
+
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.recently:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('recently');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.recently,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+
+          mouseRegionForScroll(
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                history.recentlyChangeNotifier,
+                searchChangeNotifier,
+              ]),
+              builder: (context, child) {
+                return songListView(
+                  filterSongList(history.recentlySongList, searchValue),
+                  recentlySC,
+                );
+              },
+            ),
+            scrollController: recentlySC,
+            displayIconNotifier: recentlyDisplayIconNotifier,
+            changeNotifier: frequentlyChangeNotifier,
+            iconTop: 67,
+          ),
+
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.playlists:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('playlists');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.playlists,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+
+          mouseRegionForScroll(
+            child: SizedBox(
+              height: 180 + extraSize,
+              child: ListenableBuilder(
+                listenable: Listenable.merge([
+                  playlistManager.updateNotifier,
+                  searchChangeNotifier,
+                ]),
+                builder: (context, child) {
+                  final lowerValue = searchValue.toLowerCase();
+                  final playlists = searchValue.isEmpty
+                      ? playlistManager.playlists
+                      : playlistManager.playlists
+                            .where(
+                              (playlist) => (playlist.isFavorite
+                                      ? l10n.favorites
+                                      : playlist.name)
+                                  .toLowerCase()
+                                  .contains(lowerValue),
+                            )
+                            .toList();
+                  return ListView.separated(
+                    controller: playlistsSC,
+                    scrollDirection: .horizontal,
+                    itemCount: playlists.length + 1,
+                    separatorBuilder: (context, index) {
+                      return SizedBox(width: 15);
+                    },
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return SizedBox(width: 5);
+                      }
+                      index--;
+                      final playlist = playlists[index];
+                      return ValueListenableBuilder(
+                        valueListenable: playlist.changeNotifier,
+                        builder: (context, value, child) {
+                          return Column(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  layersManager.pushDetail('home', playlist);
+                                },
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Hero(
+                                    tag:
+                                        '${playlist.picture?.id ?? ''}home${playlist.isFavorite ? l10n.favorites : playlist.name}',
+                                    transitionOnUserGestures: true,
+                                    child: CoverArtWidget(
+                                      size: 150 + extraSize,
+                                      borderRadius: 15,
+                                      picture: playlist.picture,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              SizedBox(
+                                width: 140 + extraSize,
+                                child: Text(
+                                  playlist.isFavorite
+                                      ? l10n.favorites
+                                      : playlist.name,
+                                  style: .new(overflow: .ellipsis, fontSize: 15),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            scrollController: playlistsSC,
+            displayIconNotifier: playlistsDisplayIconNotifier,
+            changeNotifier: playlistsChangeNotifier,
+            iconTop: 55 + extraSize / 2,
+          ),
+          SizedBox(height: 15),
+        ];
+    }
   }
 
   Widget songListView(
@@ -729,13 +813,23 @@ class HomeLayerState extends State<HomeLayer> {
 
 /// Icon + label tile used by the home hub row.
 Widget homeNavButton(String label, IconData icon, String layer) {
+  return homeNavAction(
+    label,
+    icon,
+    () => layersManager.switchRootLayer(layer),
+  );
+}
+
+/// [label] under [icon], doing [onTap] - a button of the home hub row, whether
+/// it switches to a layer or opens a page.
+Widget homeNavAction(String label, IconData icon, void Function() onTap) {
   final textColor = colorManager.getSpecificTextColor();
   // Sized to its own content (no fixed slot), so the row still starts at the
   // page margin while the icon stays centred over its label.
   return MouseRegion(
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
-      onTap: () => layersManager.switchRootLayer(layer),
+      onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
