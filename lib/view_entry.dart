@@ -36,8 +36,7 @@ class ViewEntry extends StatefulWidget {
 }
 
 class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
-  bool systemCanPop = false;
-  Timer? _exitTimer;
+  // Bumped to rebuild the PopScope, so it keeps handling the back gesture.
   int keyValue = 0;
 
   @override
@@ -74,8 +73,6 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (Platform.isAndroid) {
       if (state == .resumed) {
-        systemCanPop = false;
-        _exitTimer?.cancel();
         applySystemUiMode(forceApply: true);
         // rebuild PopScope to allow it to handle pop
         setState(() {
@@ -112,22 +109,9 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           return;
         }
 
-        // 3) Home: the second back within two seconds leaves the app.
-        if (systemCanPop) {
-          systemCanPop = false;
-          _exitTimer?.cancel();
-          _exitTimer = null;
-          SystemNavigator.pop();
-          return;
-        }
-        systemCanPop = true;
-        _exitTimer?.cancel();
-        _exitTimer = Timer(const Duration(seconds: 2), () {
-          systemCanPop = false;
-        });
-        if (context.mounted) {
-          showCenterMessage(AppLocalizations.of(context).tapAgain);
-        }
+        // 3) Nothing left to go back to: leave the app straight away, with no
+        //    "tap again" prompt.
+        SystemNavigator.pop();
       },
       child: view(),
     );
