@@ -14,7 +14,7 @@ extension FoldersPage on FoldersLayer {
               builder: (context, value, child) {
                 final cover = folder.picture;
                 return ListenableBuilder(
-                  listenable: Listenable.merge([cover?.updateNotifier]),
+                  listenable: Listenable.merge([cover?.changeNotifier]),
                   builder: (_, _) {
                     return Hero(
                       tag: '${cover?.id ?? ''}folders${folder.id}',

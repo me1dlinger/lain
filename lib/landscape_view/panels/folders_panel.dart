@@ -80,7 +80,7 @@ extension FoldersPanel on FoldersLayer {
                           SizedBox(width: 20),
                           ListenableBuilder(
                             listenable: Listenable.merge([
-                              cover?.updateNotifier,
+                              cover?.changeNotifier,
                             ]),
                             builder: (_, _) {
                               return Hero(

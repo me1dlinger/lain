@@ -41,7 +41,7 @@ class _BigFoldersPanelState extends State<BigFoldersPanel> {
                   children: [
                     SizedBox(width: 20),
                     ListenableBuilder(
-                      listenable: Listenable.merge([cover?.updateNotifier]),
+                      listenable: Listenable.merge([cover?.changeNotifier]),
                       builder: (_, _) {
                         return Hero(
                           tag: 'big${cover?.id}${folder.id}',
