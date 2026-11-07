@@ -1,30 +1,31 @@
-import 'package:flutter/cupertino.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/widgets/my_divider.dart';
 
-/// iOS-style form pieces shared by the app's dialogs.
+/// Grouped form pieces in the app's own style.
 ///
-/// The values are grouped in inset cards with the label on the left and the
-/// value right aligned, which is what makes a form read as a native iOS form;
-/// the filled button uses the app's text colour as its tint so it stays
-/// monochrome instead of taking Material's accent colour.
+/// The layout is borrowed from iOS forms - a heading, then one card holding
+/// label/value rows - but every colour comes from the app's colour manager and
+/// the card fills are translucent, so the app's page background (and the vivid
+/// mode's frosted look) still shows through, and light/dark come from the app's
+/// own theme rather than the platform's.
 
-/// Wraps [child] with a Cupertino theme that follows the app's own light/dark
-/// setting (Cupertino would otherwise follow the platform's).
-Widget appleFormTheme({required Widget child}) {
-  return CupertinoTheme(
-    data: CupertinoThemeData(
-      brightness: mainPageThemeNotifier.value == .dark
-          ? Brightness.dark
-          : Brightness.light,
-      primaryColor: colorManager.getSpecificTextColor(),
+/// Heading above a card.
+Widget appleSectionTitle(String title) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+    child: Text(
+      title,
+      style: TextStyle(
+        fontSize: 15,
+        color: colorManager.getSpecificTextColor().withAlpha(160),
+      ),
     ),
-    child: child,
   );
 }
 
-/// One inset card, optionally with a small heading above it.
+/// One card of rows.
 class AppleFormSection extends StatelessWidget {
   final String? title;
   final List<Widget> children;
@@ -33,22 +34,57 @@ class AppleFormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoFormSection.insetGrouped(
-      header: title == null ? null : Text(title!),
-      children: children,
+    final textColor = colorManager.getSpecificTextColor();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) appleSectionTitle(title!),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            // Translucent on purpose: the app's own surfaces are, so the cover
+            // art background stays visible in vivid mode.
+            color: textColor.withAlpha(20),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0)
+                  MyDivider(thickness: 0.5, height: 1, color: dividerColor),
+                children[i],
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// One label/value line inside a section.
+/// One label/value line inside a card.
 Widget appleFormRow(String label, Widget child) {
-  return CupertinoFormRow(
-    prefix: Text(label, style: const TextStyle(fontSize: 15)),
-    child: child,
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+    child: Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            color: colorManager.getSpecificTextColor(),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: child),
+      ],
+    ),
   );
 }
 
-/// A borderless, right aligned text field as used inside a form row.
+/// A borderless, right aligned field, coloured by the app's theme.
 Widget appleTextField(
   TextEditingController controller, {
   bool number = false,
@@ -56,17 +92,24 @@ Widget appleTextField(
   int maxLines = 1,
   String? placeholder,
 }) {
-  return CupertinoTextField(
+  final textColor = colorManager.getSpecificTextColor();
+
+  return TextField(
     controller: controller,
-    placeholder: placeholder,
     keyboardType: number ? TextInputType.number : null,
     obscureText: obscure,
     maxLines: maxLines,
     minLines: maxLines > 1 ? 3 : 1,
     textAlign: maxLines > 1 ? TextAlign.start : TextAlign.right,
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    decoration: const BoxDecoration(),
-    style: const TextStyle(fontSize: 15),
+    style: TextStyle(fontSize: 15, color: textColor),
+    cursorColor: textColor,
+    decoration: InputDecoration(
+      isDense: true,
+      border: InputBorder.none,
+      hintText: placeholder,
+      hintStyle: TextStyle(fontSize: 15, color: textColor.withAlpha(110)),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+    ),
   );
 }
 
@@ -89,13 +132,89 @@ Widget appleTextFieldRow(
   );
 }
 
-/// Apple's primary action: a filled pill, monochrome.
-Widget appleFilledButton(String label, VoidCallback? onPressed) {
-  return CupertinoButton.filled(
-    borderRadius: BorderRadius.circular(14),
-    padding: const EdgeInsets.symmetric(vertical: 14),
-    onPressed: onPressed,
-    child: Text(label),
+/// An equally wide segmented picker, centred as a whole: every option keeps the
+/// same width, so the selection sits in the middle of the card instead of
+/// drifting to where the longest label happens to be.
+Widget appleSegmented<T>(
+  List<T> values,
+  String Function(T) labelOf,
+  T selected,
+  ValueChanged<T> onChanged,
+) {
+  final textColor = colorManager.getSpecificTextColor();
+
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+    child: Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: textColor.withAlpha(24),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        children: [
+          for (final value in values)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(value),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      color: value == selected
+                          ? textColor.withAlpha(38)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Text(
+                      labelOf(value),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: textColor),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// The app's primary action: a rounded pill in the app's button colour.
+Widget appleFilledButton(
+  String label,
+  VoidCallback? onPressed, {
+  bool busy = false,
+}) {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: buttonColor.value,
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (busy)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          Text(label),
+        ],
+      ),
+    ),
   );
 }
 
@@ -105,8 +224,30 @@ Widget appleTextButton(
   VoidCallback? onPressed, {
   Color? color,
 }) {
-  return CupertinoButton(
+  return TextButton(
     onPressed: onPressed,
-    child: Text(label, style: TextStyle(color: color)),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color ?? colorManager.getSpecificTextColor(),
+        fontSize: 15,
+      ),
+    ),
+  );
+}
+/// A route for these pages: not opaque, so the app's own background - and the
+/// vivid mode's frosted cover art - stays visible behind them, as it is on every
+/// other page.
+Route<T> applePageRoute<T>(Widget Function() builder) {
+  return PageRouteBuilder<T>(
+    opaque: false,
+    barrierColor: Colors.transparent,
+    pageBuilder: (context, animation, secondaryAnimation) => builder(),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: child,
+      );
+    },
   );
 }

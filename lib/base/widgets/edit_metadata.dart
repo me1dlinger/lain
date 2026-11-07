@@ -96,8 +96,7 @@ class _EditMetadataState extends State<EditMetadata> {
     final l10n = AppLocalizations.of(context);
     final textColor = colorManager.getSpecificTextColor();
 
-    return appleFormTheme(
-      child: Padding(
+    return Padding(
         padding: const EdgeInsets.fromLTRB(4, 12, 4, 10),
         child: Column(
           children: [
@@ -173,7 +172,6 @@ class _EditMetadataState extends State<EditMetadata> {
             ),
           ],
         ),
-      ),
     );
   }
 

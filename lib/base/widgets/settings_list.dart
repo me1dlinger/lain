@@ -24,6 +24,7 @@ import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/server_manager.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/apple_form.dart';
 import 'package:sylvakru/base/widgets/stats_page.dart';
 import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/data/stream_quality.dart';
@@ -438,7 +439,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
       onTap: () {
         globalNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (context) => const ServerListPage()),
+          applePageRoute<void>(() => const ServerListPage()),
         );
       },
     );

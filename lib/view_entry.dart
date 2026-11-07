@@ -23,6 +23,7 @@ import 'package:sylvakru/base/widgets/server_manager.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/big_picture_view/big_picture_view.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/base/widgets/apple_form.dart';
 import 'package:sylvakru/landscape_view/landscape_view.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
@@ -249,9 +250,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
                               size: 16,
                             ),
                             onTap: () => globalNavigatorKey.currentState?.push(
-                              MaterialPageRoute(
-                                builder: (context) => const ServerListPage(),
-                              ),
+                              applePageRoute<void>(() => const ServerListPage()),
                             ),
                           ),
                         ),
