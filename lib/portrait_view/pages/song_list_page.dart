@@ -136,6 +136,12 @@ extension _SongListPage on _SongListState {
                       (l10n.durationDescending, 8),
                       (l10n.addedTimeAscending, 13),
                       (l10n.addedTimeDescending, 14),
+                      // Track order only has a meaning inside an album, so these
+                      // two are offered there and nowhere else.
+                      if (widget.album != null) ...[
+                        (l10n.trackAscending, 15),
+                        (l10n.trackDescending, 16),
+                      ],
                     ];
                     if (isLibrary && isNotStreamSource || folder != null) {
                       orderOptions.add((l10n.modifiedTimeAscending, 9));
@@ -428,10 +434,28 @@ extension _SongListPage on _SongListState {
       builder: (context, value, child) {
         return ListTile(
           contentPadding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          leading: CoverArtWidget(
-            size: 40,
-            borderRadius: 4,
-            picture: song.picture,
+          // Inside an album the track number is part of the identity of a song.
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (album != null)
+                SizedBox(
+                  width: 24,
+                  child: Text(
+                    song.track == null ? '' : '${song.track}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorManager.getSpecificTextColor().withAlpha(150),
+                    ),
+                  ),
+                ),
+              CoverArtWidget(
+                size: 40,
+                borderRadius: 4,
+                picture: song.picture,
+              ),
+            ],
           ),
           title: ValueListenableBuilder(
             valueListenable: currentSongNotifier,

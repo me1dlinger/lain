@@ -168,6 +168,8 @@
   "popularSongs": "热门歌曲",
   "popularAlbums": "热门专辑",
   "timesUnit": "次",
+  "trackAscending": "音轨号升序",
+  "trackDescending": "音轨号降序",
   "servers": "服务器",
   "addServer": "添加服务器",
   "serverName": "名称",

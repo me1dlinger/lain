@@ -528,6 +528,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get trackAscending => 'Track Ascending';
+
+  @override
+  String get trackDescending => 'Track Descending';
+
+  @override
   String get servers => 'Servers';
 
   @override

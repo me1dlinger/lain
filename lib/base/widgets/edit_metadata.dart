@@ -19,6 +19,7 @@ import 'package:sylvakru/base/utils/contrast_color_generator.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/custom_text_field.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/apple_form.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -93,120 +94,85 @@ class _EditMetadataState extends State<EditMetadata> {
 
   Widget _content(BuildContext context, bool isPhone) {
     final l10n = AppLocalizations.of(context);
+    final textColor = colorManager.getSpecificTextColor();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      child: Column(
-        children: [
-          Text(
-            l10n.editMetadata,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-          SizedBox(height: 5),
-
-          MyDivider(thickness: 0.5, height: 1, color: dividerColor),
-          SizedBox(height: 5),
-          Expanded(
-            child: ListView(
-              padding: .symmetric(horizontal: isMobile ? 10 : 15),
-              children: [
-                SizedBox(height: 10),
-
-                Row(
-                  children: [
-                    _coverArt(context, song, isPhone),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          CustomTextField(
-                            l10n.year,
-                            _yearTextController,
-                            onlyNumber: true,
-                          ),
-
-                          if (!isPhone) SizedBox(height: 10),
-
-                          CustomTextField(
-                            l10n.track,
-                            _trackTextController,
-                            onlyNumber: true,
-                          ),
-
-                          if (!isPhone) SizedBox(height: 10),
-
-                          CustomTextField(
-                            l10n.disc,
-                            _discTextController,
-                            onlyNumber: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10),
-
-                CustomTextField(l10n.title, _titleTextController),
-
-                SizedBox(height: 5),
-
-                CustomTextField(l10n.artist, _artistTextController),
-
-                SizedBox(height: 5),
-
-                CustomTextField(l10n.album, _albumTextController),
-
-                SizedBox(height: 5),
-
-                CustomTextField(l10n.albumArtist, _albumArtistTextController),
-
-                SizedBox(height: 5),
-
-                CustomTextField(l10n.genre, _genreTextController),
-
-                SizedBox(height: 5),
-
-                CustomTextField(
-                  l10n.lyrics,
-                  _lyricsTextController,
-                  expand: true,
-                ),
-                SizedBox(height: 15),
-
-                ValueListenableBuilder(
-                  valueListenable: buttonColor.valueNotifier,
-                  builder: (context, value, child) {
-                    return Row(
-                      children: [
-                        Spacer(),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: value,
-                          ),
-                          child: Text(l10n.cancel),
-                        ),
-                        const SizedBox(width: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            _tryWriteMetadata(context, song);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: value,
-                            foregroundColor: Colors.red,
-                          ),
-                          child: Text(l10n.confirm),
-                        ),
-                        Spacer(),
-                      ],
-                    );
-                  },
-                ),
-              ],
+    return appleFormTheme(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 12, 4, 10),
+        child: Column(
+          children: [
+            Text(
+              l10n.editMetadata,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: textColor,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 10),
+                children: [
+                  Center(child: _coverArt(context, song, isPhone)),
+                  AppleFormSection(
+                    children: [
+                      appleTextFieldRow(l10n.title, _titleTextController),
+                      appleTextFieldRow(l10n.artist, _artistTextController),
+                      appleTextFieldRow(l10n.album, _albumTextController),
+                      appleTextFieldRow(
+                        l10n.albumArtist,
+                        _albumArtistTextController,
+                      ),
+                    ],
+                  ),
+                  AppleFormSection(
+                    children: [
+                      appleTextFieldRow(l10n.genre, _genreTextController),
+                      appleTextFieldRow(
+                        l10n.year,
+                        _yearTextController,
+                        number: true,
+                      ),
+                      appleTextFieldRow(
+                        l10n.track,
+                        _trackTextController,
+                        number: true,
+                      ),
+                      appleTextFieldRow(
+                        l10n.disc,
+                        _discTextController,
+                        number: true,
+                      ),
+                    ],
+                  ),
+                  AppleFormSection(
+                    children: [
+                      appleFormRow(
+                        l10n.lyrics,
+                        appleTextField(_lyricsTextController, maxLines: 6),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                    child: appleFilledButton(
+                      l10n.confirm,
+                      () => _tryWriteMetadata(context, song),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: appleTextButton(
+                      l10n.cancel,
+                      () => Navigator.pop(context, false),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

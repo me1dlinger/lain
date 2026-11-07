@@ -528,6 +528,12 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get trackAscending => '音轨号升序';
+
+  @override
+  String get trackDescending => '音轨号降序';
+
+  @override
   String get servers => '服务器';
 
   @override

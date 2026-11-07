@@ -252,6 +252,16 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
         );
       });
       break;
+    case 15: // track number Ascending
+      songList.sort((a, b) {
+        return (a.track ?? 9999).compareTo(b.track ?? 9999);
+      });
+      break;
+    case 16: // track number Descending
+      songList.sort((a, b) {
+        return (b.track ?? 9999).compareTo(a.track ?? 9999);
+      });
+      break;
     case 14: // added time Descending
       songList.sort((a, b) {
         return (b.created ?? b.modified ?? DateTime(1970)).compareTo(

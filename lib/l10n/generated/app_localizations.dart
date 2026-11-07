@@ -1110,6 +1110,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @trackAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Ascending'**
+  String get trackAscending;
+
+  /// No description provided for @trackDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Descending'**
+  String get trackDescending;
+
   /// No description provided for @servers.
   ///
   /// In en, this message translates to:
