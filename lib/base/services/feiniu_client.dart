@@ -101,7 +101,7 @@ class FeiniuClient extends StreamClient {
       if (_token?.isEmpty == true) _token = null;
       return _token?.isNotEmpty == true;
     } on DioException catch (e) {
-      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+      if (retry && StreamClient.isNetworkFailure(e) && switchToAlternative()) {
         logger.output('[$runtimeType] switched to $baseUrl');
         return _login(retry: false);
       }
@@ -145,7 +145,7 @@ class FeiniuClient extends StreamClient {
         );
       }
     } on DioException catch (e) {
-      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+      if (retry && StreamClient.isNetworkFailure(e) && switchToAlternative()) {
         logger.output('[$runtimeType] switched to $baseUrl');
         return _request(path, query: query, data: data, retry: false);
       }
@@ -447,7 +447,7 @@ class FeiniuClient extends StreamClient {
         ),
       );
     } on DioException catch (e) {
-      if (retry && isNetworkFailure(e) && switchToAlternative()) {
+      if (retry && StreamClient.isNetworkFailure(e) && switchToAlternative()) {
         logger.output('[$runtimeType] switched to $baseUrl');
         return _openResourceResponse(path, query, retry: false);
       }
