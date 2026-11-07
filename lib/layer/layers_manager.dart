@@ -12,7 +12,10 @@ import 'package:sylvakru/base/utils/dynamic_detail_route.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/landscape_view/sidebar.dart';
+/// Label of the layer currently shown as a root page. The sidebar that used to
+/// highlight it is gone; the value still drives "back" (detail pop) handling.
+final ValueNotifier<String> currentRootLabel = ValueNotifier('');
+
 import 'package:sylvakru/layer/about_layer.dart';
 import 'package:sylvakru/layer/albums_layer.dart';
 import 'package:sylvakru/layer/artists_layer.dart';
@@ -167,7 +170,7 @@ class LayersManager {
       );
     }
 
-    sidebarHighlighLabel.value = label;
+    currentRootLabel.value = label;
     switchNotifier.value++;
     updateBackground();
   }

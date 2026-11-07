@@ -113,6 +113,22 @@ class HomeLayerState extends State<HomeLayer> {
     double extraSize = max(0, (shortestSide - 750) * 0.2);
     return ListView(
       children: [
+        // Hub buttons: this home page is the only entry point now that the
+        // sidebar is gone, so every list is one tap away from here.
+        SizedBox(
+          height: 84,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              homeNavButton(l10n.artists, Icons.person_outline_rounded, 'artists'),
+              homeNavButton(l10n.albums, Icons.album_outlined, 'albums'),
+              homeNavButton(l10n.songs, Icons.music_note_outlined, 'songs'),
+              homeNavButton(l10n.playlists, Icons.queue_music_rounded, 'playlists'),
+              homeNavButton(l10n.favorites, Icons.favorite_outline_rounded, '_Favorite'),
+            ],
+          ),
+        ),
         Row(
           mainAxisSize: .min,
           children: [
@@ -646,4 +662,33 @@ class HomeLayerState extends State<HomeLayer> {
       ),
     );
   }
+}
+
+/// Icon + label tile used by the home hub row.
+Widget homeNavButton(String label, IconData icon, String layer) {
+  final textColor = colorManager.getSpecificTextColor();
+  return MouseRegion(
+    cursor: SystemMouseCursors.click,
+    child: GestureDetector(
+      onTap: () => layersManager.switchRootLayer(layer),
+      child: Container(
+        width: 76,
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 26, color: textColor),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: textColor),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

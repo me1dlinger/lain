@@ -24,7 +24,6 @@ import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/big_picture_view/big_picture_view.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/landscape_view.dart';
-import 'package:sylvakru/landscape_view/sidebar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
 import 'package:sylvakru/portrait_view/portrait_view.dart';
@@ -104,7 +103,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           portraitKey.currentState?.closeDrawer();
           return;
         }
-        if (await layersManager.popDetail(sidebarHighlighLabel.value)) {
+        if (await layersManager.popDetail(currentRootLabel.value)) {
           return;
         }
 

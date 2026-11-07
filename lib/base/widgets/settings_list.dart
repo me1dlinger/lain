@@ -155,7 +155,6 @@ class _SettingsListState extends State<SettingsList> {
         if (Platform.isIOS &&
             !isLandscape &&
             viewModeNotifier.value != .bigPicture)
-          sliverBox(paddingIfNeed(isLandscape, drawerListTile(l10n))),
 
         if (isMobile && !isTV)
           sliverBox(paddingIfNeed(isLandscape, vibrationListTile(l10n))),
@@ -722,25 +721,6 @@ class _SettingsListState extends State<SettingsList> {
           onToggleCallBack: () {
             setting.save();
             audioHandler.refreshServiceMediaItem();
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget drawerListTile(AppLocalizations l10n) {
-    return ListTile(
-      leading: Transform.scale(
-        scale: 0.95,
-        child: Icon(Icons.menu_rounded, size: iconSize),
-      ),
-      title: Text(l10n.menuOnRight),
-      trailing: SizedBox(
-        width: 50,
-        child: MySwitch(
-          valueNotifier: endDrawerNotifier,
-          onToggleCallBack: () {
-            setting.save();
           },
         ),
       ),
