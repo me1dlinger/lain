@@ -285,9 +285,22 @@ class HomeLayerState extends State<HomeLayer> {
           mainAxisSize: .min,
           children: [
             SizedBox(width: 20),
-            Text(
-              l10n.recentlyAdded,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            GestureDetector(
+              onTap: () {
+                layersManager.switchRootLayer('recentlyAdded');
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.recentlyAdded,
+                      style: .new(fontWeight: .bold, fontSize: 20),
+                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -301,7 +314,7 @@ class HomeLayerState extends State<HomeLayer> {
             ]),
             builder: (context, child) {
               return songListView(
-                filterSongList(recentlyAddedSongList, searchValue),
+                filterSongList(library.recentlyAddedSongList, searchValue),
                 recentlyAddedSC,
               );
             },
@@ -471,18 +484,6 @@ class HomeLayerState extends State<HomeLayer> {
         if (isTooNarrow(context)) SizedBox(height: 60),
       ],
     );
-  }
-
-  /// Newest songs first, by the creation time of a local file or the `created`
-  /// value a server reported.
-  List<MyAudioMetadata> get recentlyAddedSongList {
-    final songs = List<MyAudioMetadata>.from(library.songList);
-    songs.sort((a, b) {
-      final aTime = a.created ?? a.modified ?? DateTime(1970);
-      final bTime = b.created ?? b.modified ?? DateTime(1970);
-      return bTime.compareTo(aTime);
-    });
-    return songs.take(30).toList();
   }
 
   Widget songListView(

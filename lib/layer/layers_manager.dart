@@ -24,6 +24,7 @@ import 'package:sylvakru/layer/license_layer.dart';
 import 'package:sylvakru/layer/playlists_layer.dart';
 import 'package:sylvakru/layer/premium_layer.dart';
 import 'package:sylvakru/layer/frequently_layer.dart';
+import 'package:sylvakru/layer/recently_added_layer.dart';
 import 'package:sylvakru/layer/recently_layer.dart';
 import 'package:sylvakru/layer/settings_layer.dart';
 import 'package:sylvakru/layer/single_album_layer.dart';
@@ -143,6 +144,8 @@ class LayersManager {
         return FrequentlyLayer(key: GlobalKey());
       } else if (label == 'recently') {
         return RecentlyLayer(key: GlobalKey());
+      } else if (label == 'recentlyAdded') {
+        return RecentlyAddedLayer(key: GlobalKey());
       } else if (label == 'playlists') {
         return PlaylistsLayer(key: GlobalKey());
       } else if (label == 'settings') {
@@ -407,6 +410,8 @@ class LayersManager {
       return getFirstSong(history.frequentlySongList)?.picture;
     } else if (layer is RecentlyLayer) {
       return getFirstSong(history.recentlySongList)?.picture;
+    } else if (layer is RecentlyAddedLayer) {
+      return getFirstSong(library.recentlyAddedSongList)?.picture;
     } else if (layer is SinglePlaylistLayer) {
       return layer.playlist.picture;
     } else {

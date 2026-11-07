@@ -69,6 +69,18 @@ class Library {
 
   bool canModify = false;
 
+  /// Newest songs first, by the creation time of a local file or the `created`
+  /// value a server reported: the home page's shelf, and the page it opens.
+  List<MyAudioMetadata> get recentlyAddedSongList {
+    final songs = List<MyAudioMetadata>.from(songList);
+    songs.sort((a, b) {
+      final aTime = a.created ?? a.modified ?? DateTime(1970);
+      final bTime = b.created ?? b.modified ?? DateTime(1970);
+      return bTime.compareTo(aTime);
+    });
+    return songs.take(30).toList();
+  }
+
   Library() {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     _metadataDB = MetadataDB(openMetadataDB('${sourceType.name}/metadata.db'));

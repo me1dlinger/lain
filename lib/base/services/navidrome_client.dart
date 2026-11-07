@@ -334,11 +334,13 @@ class NavidromeClient extends StreamClient {
 
   @override
   String getStreamUrl(String id) {
-    final query = <String, dynamic>{'id': id};
+    // Strings only: `Uri.replace` refuses an int in queryParameters, and this
+    // URL is built by hand rather than handed to Dio.
+    final query = <String, String>{'id': id};
     final maxBitRate = streamQualityNotifier.value.maxBitRate;
     if (maxBitRate != null) {
       // Subsonic transcodes on request: cap the bitrate and pick the container.
-      query['maxBitRate'] = maxBitRate;
+      query['maxBitRate'] = '$maxBitRate';
       query['format'] = streamFormatNotifier.value.subsonicValue;
     }
     return Uri.parse(baseUrl)

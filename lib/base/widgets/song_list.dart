@@ -54,6 +54,7 @@ class SongList extends StatefulWidget {
   final Folder? folder;
   final bool isFrequently;
   final bool isRecently;
+  final bool isRecentlyAdded;
 
   final bool isRoot;
 
@@ -67,6 +68,7 @@ class SongList extends StatefulWidget {
     this.folder,
     this.isFrequently = false,
     this.isRecently = false,
+    this.isRecentlyAdded = false,
     this.isRoot = true,
     this.isHomeDetail = false,
   });
@@ -88,6 +90,7 @@ class _SongListState extends State<SongList> {
   bool isLibrary = false;
   bool isFrequently = false;
   bool isRecently = false;
+  bool isRecentlyAdded = false;
 
   bool canModify = false;
 
@@ -158,6 +161,8 @@ class _SongListState extends State<SongList> {
         ? l10n.frequently
         : isRecently
         ? l10n.recently
+        : isRecentlyAdded
+        ? l10n.recentlyAdded
         : title;
   }
 
@@ -385,6 +390,7 @@ class _SongListState extends State<SongList> {
     folder = widget.folder;
     isFrequently = widget.isFrequently;
     isRecently = widget.isRecently;
+    isRecentlyAdded = widget.isRecentlyAdded;
 
     if (playlist != null) {
       title = playlist!.name;
@@ -433,6 +439,9 @@ class _SongListState extends State<SongList> {
     } else if (isRecently) {
       songList = history.recentlySongList;
       history.recentlyChangeNotifier.addListener(updateSongList);
+    } else if (isRecentlyAdded) {
+      songList = library.recentlyAddedSongList;
+      library.changeNotifier.addListener(updateSongList);
     } else {
       isLibrary = true;
       songList = library.songList;
