@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
@@ -24,6 +25,35 @@ import 'package:pool/pool.dart';
 Library library = Library();
 
 final ValueNotifier<double> cacheSizeNotifier = ValueNotifier(0);
+
+enum CacheKind { song, cover, lyric }
+
+/// One file inside the source's cache directories, with the song it belongs to
+/// when that can be resolved (cache files are named after the md5 of a song or
+/// cover id).
+class CacheEntry {
+  final CacheKind kind;
+  final String path;
+  final int size;
+  final DateTime modified;
+  final MyAudioMetadata? song;
+
+  const CacheEntry({
+    required this.kind,
+    required this.path,
+    required this.size,
+    required this.modified,
+    this.song,
+  });
+
+  String get fileName {
+    final index = path.lastIndexOf(Platform.pathSeparator);
+    return index == -1 ? path : path.substring(index + 1);
+  }
+}
+
+/// Everything currently on disk, largest first.
+final ValueNotifier<List<CacheEntry>> cacheEntriesNotifier = ValueNotifier([]);
 
 class Library {
   MetadataDB? _metadataDB;
@@ -197,18 +227,69 @@ class Library {
   }
 
   Future<void> _accumulateCache() async {
-    cacheSizeNotifier.value = 0;
-    Directory cacheDir = Directory(getCachesPath(sourceType));
-    if (!await cacheDir.exists()) {
-      return;
+    final entries = <CacheEntry>[];
+    var total = 0;
+
+    // Cache files are named md5(song id) / md5(cover id), so map them back to
+    // the songs to show something readable in the cache detail view.
+    final byHash = <String, MyAudioMetadata>{};
+    for (final song in songList) {
+      byHash[md5.convert(utf8.encode(song.id)).toString()] = song;
     }
-    int total = 0;
-    await for (final file in cacheDir.list()) {
-      if (file is File && !file.path.endsWith('.part')) {
-        total += await file.length();
+
+    Future<void> collect(String dirPath, CacheKind kind) async {
+      final dir = Directory(dirPath);
+      if (!await dir.exists()) {
+        return;
+      }
+      await for (final file in dir.list()) {
+        if (file is! File || file.path.endsWith('.part')) {
+          continue;
+        }
+        final stat = await file.stat();
+        total += stat.size;
+        final name = file.path.substring(
+          file.path.lastIndexOf(Platform.pathSeparator) + 1,
+        );
+        entries.add(
+          CacheEntry(
+            kind: kind,
+            path: file.path,
+            size: stat.size,
+            modified: stat.modified,
+            song: byHash[name],
+          ),
+        );
       }
     }
-    cacheSizeNotifier.value += total / (1024 * 1024);
+
+    await collect(getCachesPath(sourceType), CacheKind.song);
+    await collect(getPicturesPath(sourceType), CacheKind.cover);
+    await collect(getLrcPath(sourceType), CacheKind.lyric);
+
+    entries.sort((a, b) => b.size.compareTo(a.size));
+    cacheEntriesNotifier.value = entries;
+    cacheSizeNotifier.value = total / (1024 * 1024);
+  }
+
+  /// Removes a single cached file and keeps the song's state in sync.
+  Future<void> refreshCache() => _accumulateCache();
+
+  Future<void> deleteCacheEntry(CacheEntry entry) async {
+    final file = File(entry.path);
+    if (await file.exists()) {
+      final size = await file.length();
+      await file.delete();
+      cacheSizeNotifier.value = (cacheSizeNotifier.value -
+              size / (1024 * 1024))
+          .clamp(0, double.infinity);
+    }
+    if (entry.kind == CacheKind.song) {
+      entry.song?.cacheExist = false;
+    } else if (entry.kind == CacheKind.lyric) {
+      entry.song?.parsedLyrics = null;
+    }
+    await _accumulateCache();
   }
 
   Future<void> tryAddCache(MyAudioMetadata song) async {
@@ -254,6 +335,7 @@ class Library {
     }
 
     cacheSizeNotifier.value = 0;
+    cacheEntriesNotifier.value = [];
     for (final song in library.id2Song.values) {
       song.cacheExist = false;
     }

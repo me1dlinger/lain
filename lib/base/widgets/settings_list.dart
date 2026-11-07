@@ -18,6 +18,7 @@ import 'package:sylvakru/base/services/navidrome_client.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
 import 'package:sylvakru/base/services/system_ui_service.dart';
 import 'package:sylvakru/base/utils/common_utils.dart';
+import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/connect_client_widget.dart';
@@ -515,22 +516,7 @@ class _SettingsListState extends State<SettingsList> {
     return ListTile(
       leading: ImageIcon(cacheImage, size: iconSize),
       title: Text(l10n.clearCache),
-      onTap: () async {
-        if (Loader.busy) {
-          showCenterMessage(l10n.syncLibrary);
-          return;
-        }
-        if (await showConfirmDialog(context, l10n.clear)) {
-          showCenterLoading();
-          layersManager.clearDataLayers();
-          audioHandler.clear();
-          await library.clearCache();
-          await library.clearPicture();
-          await library.clearLrcCache();
-          playlistManager.updateNotifier.value++;
-          removeCenterLoading();
-        }
-      },
+      onTap: () => showCacheDetailDialog(context, l10n),
       trailing: ValueListenableBuilder(
         valueListenable: cacheSizeNotifier,
         builder: (context, value, child) {
@@ -1277,4 +1263,147 @@ String streamQualityLabel(AppLocalizations l10n, StreamQuality quality) {
     case StreamQuality.original:
       return l10n.streamQualityOriginal;
   }
+}
+
+String _cacheMb(Iterable<CacheEntry> entries) {
+  var bytes = 0;
+  for (final entry in entries) {
+    bytes += entry.size;
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+}
+
+String _cacheKindLabel(AppLocalizations l10n, CacheKind kind) {
+  switch (kind) {
+    case CacheKind.song:
+      return l10n.cacheSongs;
+    case CacheKind.cover:
+      return l10n.cacheCovers;
+    case CacheKind.lyric:
+      return l10n.cacheLyrics;
+  }
+}
+
+/// Per-source cache contents: what is on disk, how big it is, and a way to drop
+/// individual files instead of only being able to wipe everything.
+Future<void> showCacheDetailDialog(
+  BuildContext context,
+  AppLocalizations l10n,
+) async {
+  if (Loader.busy) {
+    showCenterMessage(l10n.syncLibrary);
+    return;
+  }
+  await library.refreshCache();
+  if (!context.mounted) {
+    return;
+  }
+
+  showAnimationDialog(
+    context: context,
+    child: SizedBox(
+      width: 340,
+      height: 460,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 32,
+              child: Text(
+                l10n.cacheDetails,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 6),
+            ValueListenableBuilder(
+              valueListenable: cacheEntriesNotifier,
+              builder: (context, entries, child) {
+                final songs = entries.where((e) => e.kind == CacheKind.song);
+                final covers = entries.where((e) => e.kind == CacheKind.cover);
+                final lyrics = entries.where((e) => e.kind == CacheKind.lyric);
+
+                Widget line(String label, Iterable<CacheEntry> group) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(label)),
+                        Text('${group.length} · ${_cacheMb(group)}'),
+                      ],
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    line(l10n.cacheSongs, songs),
+                    line(l10n.cacheCovers, covers),
+                    line(l10n.cacheLyrics, lyrics),
+                    const Divider(height: 12),
+                    line(l10n.cacheTotal, entries),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 6),
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: cacheEntriesNotifier,
+                builder: (context, entries, child) {
+                  if (entries.isEmpty) {
+                    return Center(child: Text(l10n.cacheEmpty));
+                  }
+                  return ListView.builder(
+                    itemCount: entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = entries[index];
+                      final song = entry.song;
+                      return ListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(
+                          song == null ? entry.fileName : getTitle(song),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${_cacheKindLabel(l10n, entry.kind)} · '
+                          '${(entry.size / (1024 * 1024)).toStringAsFixed(1)}MB',
+                        ),
+                        trailing: IconButton(
+                          tooltip: l10n.removeCache,
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () async {
+                            await library.deleteCacheEntry(entry);
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 12),
+            TextButton(
+              onPressed: () async {
+                if (!await showConfirmDialog(context, l10n.clear)) {
+                  return;
+                }
+                showCenterLoading();
+                layersManager.clearDataLayers();
+                audioHandler.clear();
+                await library.clearCache();
+                await library.clearPicture();
+                await library.clearLrcCache();
+                playlistManager.updateNotifier.value++;
+                removeCenterLoading();
+              },
+              child: Text(l10n.clear),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
