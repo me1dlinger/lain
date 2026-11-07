@@ -24,7 +24,12 @@ class WebDavFile {
 }
 
 class WebDavClient {
-  final String baseUrl;
+  /// Mutable: a server may be reachable at two addresses; the app switches to
+  /// the other one when this one stops answering.
+  String baseUrl;
+
+  /// The server's other address.
+  String? alternativeBaseUrl;
   final String username;
   final String password;
 

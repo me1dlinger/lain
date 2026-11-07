@@ -239,6 +239,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get add2Queue => 'Add to Queue';
 
   @override
+  @override
+  String get edit => 'Edit';
+
   String get editMetadata => 'Edit Metadata';
 
   @override
@@ -524,9 +527,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timesUnit => 'times';
+  @override
+  String get servers => 'Servers';
 
   @override
-  String get cacheLocalNote => 'cacheLocalNote';
+  String get addServer => 'Add server';
+
+  @override
+  String get serverName => 'Name';
+
+  @override
+  String get serverType => 'Type';
+
+  @override
+  String get publicAddress => 'Public address';
+
+  @override
+  String get lanAddress => 'LAN address';
+
+  @override
+  String get testAndSave => 'Test and save';
+
+  @override
+  String get recheck => 'Check again';
+
+  @override
+  String get unreachable => 'Unreachable';
+
+  @override
+  String get inUse => 'In use';
+
+  @override
+  String get localMusic => 'Local music';
+
 
 
   @override

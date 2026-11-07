@@ -58,6 +58,20 @@ class EmbyClient extends StreamClient {
   }
 
   @protected
+  /// Runs one request; when it fails because the server cannot be reached, the
+  /// same request is retried once against the server's other address.
+  Future<Response> _runWithFailover(Future<Response> Function() request) async {
+    try {
+      return await request();
+    } catch (error) {
+      if (!StreamClient.isNetworkFailure(error) || !switchToAlternative()) {
+        rethrow;
+      }
+      logger.output('[EmbyClient] switched to $baseUrl');
+      return await request();
+    }
+  }
+
   Future<T?> safeRequest<T>(
     Future<Response> Function() request, {
     T? Function(Response response)? parser,
@@ -74,7 +88,7 @@ class EmbyClient extends StreamClient {
         }
       }
 
-      final response = await request();
+      final response = await _runWithFailover(request);
 
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&

@@ -19,7 +19,7 @@ import 'package:sylvakru/base/services/system_ui_service.dart';
 import 'package:sylvakru/base/services/taskbar_service.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/connect_client_widget.dart';
+import 'package:sylvakru/base/widgets/server_manager.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/big_picture_view/big_picture_view.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
@@ -243,9 +243,32 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       sliver: SliverToBoxAdapter(
                         child: Card(
-                          child: ConnectClientWidget(
-                            key: ValueKey(sourceType),
-                            sourceType: sourceType,
+                          child: ListTile(
+                            leading: Image(
+                              image: getSourceTypeImage(sourceType),
+                              width: 28,
+                              height: 28,
+                            ),
+                            title: Text(l10n.servers),
+                            subtitle: Text(
+                              config.serversOf(sourceType).isEmpty
+                                  ? l10n.addServer
+                                  : config
+                                        .serversOf(sourceType)
+                                        .map((server) => server.name)
+                                        .join(', '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16,
+                            ),
+                            onTap: () => globalNavigatorKey.currentState?.push(
+                              MaterialPageRoute(
+                                builder: (context) => const ServerListPage(),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -326,31 +349,21 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         child: InkWell(
           mouseCursor: SystemMouseCursors.click,
           onTap: () async {
-            sourceType = thisSourceType;
-            isStreamSource =
-                sourceType == .navidrome ||
-                sourceType == .emby ||
-                sourceType == .feiniu;
-            isNotStreamSource = !isStreamSource;
-            streamClient = null;
-            if (sourceType == .navidrome && config.navidromeBaseUrl != null) {
-              streamClient = NavidromeClient(
-                baseUrl: config.navidromeBaseUrl!,
-                username: config.navidromeUsername!,
-                password: config.navidromePassword!,
-              );
-            } else if (sourceType == .emby && config.embyBaseUrl != null) {
-              streamClient = EmbyClient(
-                baseUrl: config.embyBaseUrl!,
-                username: config.embyUsername!,
-                password: config.embyPassword!,
-              );
-            } else if (sourceType == .feiniu && config.feiniuBaseUrl != null) {
-              streamClient = FeiniuClient(
-                baseUrl: config.feiniuBaseUrl!,
-                username: config.feiniuUsername!,
-                password: config.feiniuPassword!,
-              );
+            final existing = config.serversOf(thisSourceType);
+            if (existing.isNotEmpty) {
+              // Reuse the server already configured for this kind: it probes its
+              // addresses and connects to the one that answers.
+              await config.activateServer(existing.first);
+            } else {
+              sourceType = thisSourceType;
+              isStreamSource =
+                  sourceType == .navidrome ||
+                  sourceType == .emby ||
+                  sourceType == .feiniu;
+              isNotStreamSource = !isStreamSource;
+              streamClient = null;
+              config.activeServerId = null;
+              await config.save();
             }
             library = Library();
             if (isNotStreamSource) {

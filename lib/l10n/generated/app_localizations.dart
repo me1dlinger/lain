@@ -534,6 +534,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Edit Metadata'**
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
   String get editMetadata;
 
   /// No description provided for @add2Playlist.
@@ -1104,12 +1110,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
-
-  /// No description provided for @cacheLocalNote.
+  /// No description provided for @servers.
   ///
   /// In en, this message translates to:
-  /// **'For a local source nothing is downloaded: covers and lyrics are extracted from the audio files and simply re-extracted if you remove them.'**
-  String get cacheLocalNote;
+  /// **'Servers'**
+  String get servers;
+
+  /// No description provided for @addServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add server'**
+  String get addServer;
+
+  /// No description provided for @serverName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get serverName;
+
+  /// No description provided for @serverType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get serverType;
+
+  /// No description provided for @publicAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Public address'**
+  String get publicAddress;
+
+  /// No description provided for @lanAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'LAN address'**
+  String get lanAddress;
+
+  /// No description provided for @testAndSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Test and save'**
+  String get testAndSave;
+
+  /// No description provided for @recheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get recheck;
+
+  /// No description provided for @unreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unreachable'**
+  String get unreachable;
+
+  /// No description provided for @inUse.
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get inUse;
+
+  /// No description provided for @localMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Local music'**
+  String get localMusic;
+
 
 
   /// No description provided for @serverAddress.

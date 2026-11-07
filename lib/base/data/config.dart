@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/data/music_server.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/feiniu_client.dart';
 import 'package:sylvakru/base/services/logger.dart';
@@ -19,17 +20,23 @@ final config = Config();
 class Config {
   late final File file;
 
-  String? navidromeBaseUrl;
-  String? navidromeUsername;
-  String? navidromePassword;
+  /// Every configured server, in the order they were added.
+  final List<MusicServer> servers = [];
 
-  String? embyBaseUrl;
-  String? embyUsername;
-  String? embyPassword;
+  /// The server the app is currently using, if any (a local library has none).
+  String? activeServerId;
 
-  String? feiniuBaseUrl;
-  String? feiniuUsername;
-  String? feiniuPassword;
+  MusicServer? get activeServer {
+    for (final server in servers) {
+      if (server.id == activeServerId) {
+        return server;
+      }
+    }
+    return null;
+  }
+
+  List<MusicServer> serversOf(SourceType type) =>
+      [for (final server in servers) if (server.type == type) server];
 
   static const _secureStorage = FlutterSecureStorage(
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
@@ -90,62 +97,26 @@ class Config {
     final Map<String, dynamic> map =
         jsonDecode(content) as Map<String, dynamic>;
 
-    final webdavMap = map['webdav'] as Map<String, dynamic>?;
-    if (webdavMap != null) {
-      String? securePassword = await _trySecureRead('webdav_password');
-      securePassword ??= webdavMap['password'];
-      securePassword ??= '';
-
-      webdavClient = WebDavClient(
-        baseUrl: webdavMap['baseUrl'],
-        username: webdavMap['username'],
-        password: securePassword,
-      );
-    }
-
-    final navidromeMap = map['navidrome'] as Map<String, dynamic>?;
-    if (navidromeMap != null) {
-      navidromeBaseUrl = navidromeMap['baseUrl'];
-      navidromeUsername = navidromeMap['username'];
-
-      navidromePassword = await _trySecureRead('navidrome_password');
-      navidromePassword ??= navidromeMap['password'];
-      navidromePassword ??= '';
-    }
-
-    final embyMap = map['emby'] as Map<String, dynamic>?;
-    if (embyMap != null) {
-      embyBaseUrl = embyMap['baseUrl'];
-      embyUsername = embyMap['username'];
-
-      embyPassword = await _trySecureRead('emby_password');
-      embyPassword ??= embyMap['password'];
-      embyPassword ??= '';
-    }
-
-    final feiniuMap = map['feiniu'] as Map<String, dynamic>?;
-    if (feiniuMap != null) {
-      feiniuBaseUrl = feiniuMap['baseUrl'];
-      feiniuUsername = feiniuMap['username'];
-
-      feiniuPassword = await _trySecureRead('feiniu_password');
-      feiniuPassword ??= feiniuMap['password'];
-      feiniuPassword ??= '';
-    }
+    await _loadServers(map);
 
     final tmpSourceType = map['sourceType'] as String?;
     if (tmpSourceType != null) {
-      sourceType = SourceType.values.firstWhere((e) => e.name == tmpSourceType);
-    } else {
-      if (webdavClient != null) {
-        sourceType = .webdav;
-      } else if (navidromeMap != null) {
-        sourceType = .navidrome;
-      } else if (embyMap != null) {
-        sourceType = .emby;
-      } else if (feiniuMap != null) {
-        sourceType = .feiniu;
-      }
+      sourceType = SourceType.values.asNameMap()[tmpSourceType] ?? sourceType;
+    }
+
+    activeServerId = map['activeServerId'] as String?;
+    final active = activeServer;
+    if (active != null) {
+      // The chosen server decides the source; the legacy field only survives for
+      // a local library, which has no server.
+      sourceType = active.type;
+    } else if (sourceType != .local && servers.isNotEmpty) {
+      final picked = servers.firstWhere(
+        (server) => server.type == sourceType,
+        orElse: () => servers.first,
+      );
+      activeServerId = picked.id;
+      sourceType = picked.type;
     }
 
     isStreamSource =
@@ -154,29 +125,222 @@ class Config {
         sourceType == .feiniu;
     isNotStreamSource = !isStreamSource;
 
-    if (sourceType == .navidrome && navidromeMap != null) {
-      streamClient = NavidromeClient(
-        baseUrl: navidromeBaseUrl!,
-        username: navidromeUsername!,
-        password: navidromePassword!,
-      );
-    } else if (sourceType == .emby && embyMap != null) {
-      streamClient = EmbyClient(
-        baseUrl: embyBaseUrl!,
-        username: embyUsername!,
-        password: embyPassword!,
-      );
-    } else if (sourceType == .feiniu && feiniuMap != null) {
-      streamClient = FeiniuClient(
-        baseUrl: feiniuBaseUrl!,
-        username: feiniuUsername!,
-        password: feiniuPassword!,
-      );
+    if (active != null && active.isUsable) {
+      // Connect to the remembered address without probing: a launch stays fast,
+      // and a failing request switches to the other address instead.
+      _openClient(active, active.currentUrl);
     }
 
     if (_hasPlainTextPassword(map)) {
       await save();
     }
+  }
+
+  /// Reads the server list, migrating the single-server layout the app used
+  /// before multiple servers existed.
+  Future<void> _loadServers(Map<String, dynamic> map) async {
+    servers.clear();
+
+    final rawServers = map['servers'];
+    if (rawServers is List && rawServers.isNotEmpty) {
+      for (final raw in rawServers) {
+        final server = MusicServer.fromJson(raw);
+        if (server == null) {
+          continue;
+        }
+        var password = await _trySecureRead('password_${server.id}');
+        if (password == null || password.isEmpty) {
+          password = raw is Map ? '${raw['password'] ?? ''}' : '';
+        }
+        server.password = password;
+        servers.add(server);
+      }
+      return;
+    }
+
+    Future<void> migrate(
+      SourceType type,
+      Object? legacy,
+      String secureKey,
+    ) async {
+      final raw = legacy is Map ? legacy : const {};
+      final baseUrl = '${raw['baseUrl'] ?? ''}'.trim();
+      if (baseUrl.isEmpty) {
+        return;
+      }
+      var password = await _trySecureRead(secureKey) ?? '';
+      if (password.isEmpty) {
+        password = '${raw['password'] ?? ''}';
+      }
+      servers.add(
+        MusicServer(
+          id: MusicServer.newId(),
+          type: type,
+          name: type.name,
+          publicUrl: baseUrl,
+          username: '${raw['username'] ?? ''}',
+          password: password,
+        ),
+      );
+    }
+
+    await migrate(.webdav, map['webdav'], 'webdav_password');
+    await migrate(.navidrome, map['navidrome'], 'navidrome_password');
+    await migrate(.emby, map['emby'], 'emby_password');
+    await migrate(.feiniu, map['feiniu'], 'feiniu_password');
+  }
+
+  Future<bool> _probe(MusicServer server, String address) async {
+    try {
+      if (server.type == .webdav) {
+        final client = WebDavClient(
+          baseUrl: address,
+          username: server.username,
+          password: server.password,
+        );
+        return await client.ping().timeout(const Duration(seconds: 5));
+      }
+      return await _buildStreamClient(server, address)
+          .ping()
+          .timeout(const Duration(seconds: 5));
+    } catch (error) {
+      logger.output('[servers] ${server.name} $address: $error');
+      return false;
+    }
+  }
+
+  StreamClient _buildStreamClient(MusicServer server, String address) {
+    switch (server.type) {
+      case .emby:
+        return EmbyClient(
+          baseUrl: address,
+          username: server.username,
+          password: server.password,
+        );
+      case .feiniu:
+        return FeiniuClient(
+          baseUrl: address,
+          username: server.username,
+          password: server.password,
+        );
+      default:
+        return NavidromeClient(
+          baseUrl: address,
+          username: server.username,
+          password: server.password,
+        );
+    }
+  }
+
+  /// Builds the runtime client for [server] at [address] and points the app at
+  /// it; the other address becomes the fallback tried when a request fails.
+  void _openClient(MusicServer server, String address) {
+    final alternative = server.addresses.firstWhere(
+      (url) => url != address,
+      orElse: () => '',
+    );
+
+    if (server.type == .webdav) {
+      final client = WebDavClient(
+        baseUrl: address,
+        username: server.username,
+        password: server.password,
+      );
+      client.alternativeBaseUrl = alternative;
+      webdavClient = client;
+      streamClient = null;
+      return;
+    }
+
+    final client = _buildStreamClient(server, address);
+    client.alternativeBaseUrl = alternative;
+    streamClient = client;
+    webdavClient = null;
+  }
+
+  /// Switches the app to [server]: probes its addresses (LAN first) and only
+  /// connects when one of them answers.
+  Future<bool> activateServer(MusicServer server) async {
+    String? reachable;
+    for (final address in server.addresses) {
+      if (await _probe(server, address)) {
+        reachable = address;
+        break;
+      }
+    }
+    if (reachable == null) {
+      return false;
+    }
+
+    server.lastGoodUrl = reachable;
+    if (!servers.any((item) => item.id == server.id)) {
+      servers.add(server);
+    }
+    activeServerId = server.id;
+    sourceType = server.type;
+    isStreamSource =
+        sourceType == .navidrome ||
+        sourceType == .emby ||
+        sourceType == .feiniu;
+    isNotStreamSource = !isStreamSource;
+    _openClient(server, reachable);
+    await save();
+    return true;
+  }
+
+  /// Switches to a local library: no server, folders are scanned instead.
+  Future<void> activateLocal() async {
+    activeServerId = null;
+    sourceType = .local;
+    isStreamSource = false;
+    isNotStreamSource = true;
+    streamClient = null;
+    webdavClient = null;
+    await save();
+  }
+
+  Future<void> upsertServer(MusicServer server) async {
+    final index = servers.indexWhere((item) => item.id == server.id);
+    if (index == -1) {
+      servers.add(server);
+    } else {
+      servers[index] = server;
+    }
+    await save();
+  }
+
+  /// Removes [server], together with its stored password. Its cached songs,
+  /// covers and offline library are only wiped when no other server of the same
+  /// kind is left: that data lives in one directory per kind, shared by all of
+  /// them.
+  Future<void> deleteServer(MusicServer server) async {
+    servers.removeWhere((item) => item.id == server.id);
+
+    final sameKind = servers.any((item) => item.type == server.type);
+    if (!sameKind) {
+      final dir = Directory('${appSupportDir.path}/${server.type.name}');
+      try {
+        if (await dir.exists()) {
+          await dir.delete(recursive: true);
+        }
+      } catch (error) {
+        logger.output('[servers] could not delete ${dir.path}: $error');
+      }
+    }
+
+    await _trySecureDelete('password_${server.id}');
+
+    if (activeServerId == server.id) {
+      activeServerId = null;
+      if (!sameKind && sourceType == server.type) {
+        streamClient = null;
+        webdavClient = null;
+        sourceType = .local;
+        isStreamSource = false;
+        isNotStreamSource = true;
+      }
+    }
+    await save();
   }
 
   Future<void> savePremium() async {
@@ -193,72 +357,37 @@ class Config {
   }
 
   Future<void> save() async {
-    // Secure storage (keyring/Keychain) can fail to write - e.g. no Secret
-    // Service running on some Linux setups - and previously that failure was
-    // silently ignored while the plaintext password was still stripped from
-    // config.json, permanently losing the credential on the next load. Keep
-    // the plaintext as a fallback in that one field until a write actually
-    // succeeds, instead of losing it outright.
-    bool webdavSecured = true;
-    bool navidromeSecured = true;
-    bool embySecured = true;
-    bool feiniuSecured = true;
-
-    if (webdavClient != null) {
-      webdavSecured = await _trySecureWrite(
-        'webdav_password',
-        webdavClient!.password,
+    // The password of every server lives in secure storage, keyed by the
+    // server's id; when that write fails the plaintext stays in config.json for
+    // that entry only, instead of losing the credential on the next load.
+    final entries = <Map<String, Object?>>[];
+    for (final server in servers) {
+      final secured = await _trySecureWrite(
+        'password_${server.id}',
+        server.password,
       );
-    }
-
-    if (navidromePassword != null) {
-      navidromeSecured = await _trySecureWrite(
-        'navidrome_password',
-        navidromePassword!,
-      );
-    }
-
-    if (embyPassword != null) {
-      embySecured = await _trySecureWrite('emby_password', embyPassword!);
-    }
-
-    if (feiniuPassword != null) {
-      feiniuSecured = await _trySecureWrite('feiniu_password', feiniuPassword!);
+      final json = server.toJson();
+      if (!secured) {
+        json['password'] = server.password;
+      }
+      entries.add(json);
     }
 
     await file.writeAsString(
       jsonEncode({
         'sourceType': sourceType.name,
-
-        if (webdavClient != null)
-          'webdav': {
-            'baseUrl': webdavClient!.baseUrl,
-            'username': webdavClient!.username,
-            if (!webdavSecured) 'password': webdavClient!.password,
-          },
-
-        if (navidromeBaseUrl != null)
-          'navidrome': {
-            'baseUrl': navidromeBaseUrl,
-            'username': navidromeUsername,
-            if (!navidromeSecured) 'password': navidromePassword,
-          },
-
-        if (embyBaseUrl != null)
-          'emby': {
-            'baseUrl': embyBaseUrl,
-            'username': embyUsername,
-            if (!embySecured) 'password': embyPassword,
-          },
-
-        if (feiniuBaseUrl != null)
-          'feiniu': {
-            'baseUrl': feiniuBaseUrl,
-            'username': feiniuUsername,
-            if (!feiniuSecured) 'password': feiniuPassword,
-          },
+        'activeServerId': activeServerId,
+        'servers': entries,
       }),
     );
+  }
+
+  Future<void> _trySecureDelete(String key) async {
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (e) {
+      logger.output('Failed to delete "$key" from secure storage: $e');
+    }
   }
 
   Future<String?> _trySecureRead(String key) async {

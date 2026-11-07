@@ -239,6 +239,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get add2Queue => '添加到播放列表';
 
   @override
+  @override
+  String get edit => '编辑';
+
   String get editMetadata => '编辑元数据';
 
   @override
@@ -524,9 +527,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get timesUnit => '次';
+  @override
+  String get servers => '服务器';
 
   @override
-  String get cacheLocalNote => 'For a local source nothing is downloaded: covers and lyrics are extracted from the audio files and simply re-extracted if you remove them.';
+  String get addServer => '添加服务器';
+
+  @override
+  String get serverName => '名称';
+
+  @override
+  String get serverType => '类型';
+
+  @override
+  String get publicAddress => '公网地址';
+
+  @override
+  String get lanAddress => '局域网地址';
+
+  @override
+  String get testAndSave => '测试并保存';
+
+  @override
+  String get recheck => '重新检测';
+
+  @override
+  String get unreachable => '不可用';
+
+  @override
+  String get inUse => '使用中';
+
+  @override
+  String get localMusic => '本地音乐';
+
 
 
   @override

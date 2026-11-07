@@ -21,7 +21,7 @@ import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/connect_client_widget.dart';
+import 'package:sylvakru/base/widgets/server_manager.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/widgets/stats_page.dart';
@@ -113,11 +113,7 @@ class _SettingsListState extends State<SettingsList> {
           ),
 
         sliverBox(
-          paddingIfNeed(isLandscape, switchSourceTypeListTile(context, l10n)),
-        ),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, manageServersListTile(context, l10n)),
+          paddingIfNeed(isLandscape, serversListTile(context, l10n)),
         ),
 
         if (isNotStreamSource)
@@ -297,226 +293,6 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget switchSourceTypeListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: ImageIcon(optionImage, size: iconSize),
-      title: Text(l10n.switchSource),
-      onTap: () {
-        if (Loader.busy) {
-          showCenterMessage(l10n.syncingTryLater);
-          return;
-        }
-        showAnimationDialog(
-          context: context,
-          child: SizedBox(
-            width: 300,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10.0,
-                vertical: 15,
-              ),
-              child: Builder(
-                builder: (context) {
-                  return Column(
-                    mainAxisSize: .min,
-                    children: [
-                      SizedBox(
-                        height: 35,
-                        child: Text(
-                          l10n.switchSource,
-                          style: .new(fontSize: 18, fontWeight: .bold),
-                        ),
-                      ),
-                      for (final tmp in SourceType.values)
-                        ListTile(
-                          leading: Image(
-                            image: getSourceTypeImage(tmp),
-                            width: 30,
-                            height: 30,
-                            color: tmp == .local || tmp == .webdav
-                                ? iconColor.value
-                                : null,
-                          ),
-
-                          title: Text(getSourceTypeDisplayName(l10n, tmp)),
-                          trailing: sourceType == tmp
-                              ? Icon(Icons.check)
-                              : null,
-                          onTap: () async {
-                            if (sourceType == tmp) {
-                              return;
-                            }
-                            if (!await showConfirmDialog(
-                              context,
-                              l10n.switchSource,
-                            )) {
-                              return;
-                            }
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                            sourceType = tmp;
-                            isStreamSource =
-                                sourceType == .navidrome ||
-                                sourceType == .emby ||
-                                sourceType == .feiniu;
-                            isNotStreamSource = !isStreamSource;
-                            streamClient = null;
-                            if (sourceType == .navidrome &&
-                                config.navidromeBaseUrl != null) {
-                              streamClient = NavidromeClient(
-                                baseUrl: config.navidromeBaseUrl!,
-                                username: config.navidromeUsername!,
-                                password: config.navidromePassword!,
-                              );
-                            } else if (sourceType == .emby &&
-                                config.embyBaseUrl != null) {
-                              streamClient = EmbyClient(
-                                baseUrl: config.embyBaseUrl!,
-                                username: config.embyUsername!,
-                                password: config.embyPassword!,
-                              );
-                            } else if (sourceType == .feiniu &&
-                                config.feiniuBaseUrl != null) {
-                              streamClient = FeiniuClient(
-                                baseUrl: config.feiniuBaseUrl!,
-                                username: config.feiniuUsername!,
-                                password: config.feiniuPassword!,
-                              );
-                            }
-                            setState(() {});
-
-                            Loader.reload();
-                            config.save();
-                          },
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget manageServersListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: ImageIcon(serverImage, size: iconSize),
-      title: Text(l10n.manageServers),
-      onTap: () {
-        showAnimationDialog(
-          context: context,
-          child: SizedBox(
-            width: 300,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10.0,
-                vertical: 15,
-              ),
-              child: Builder(
-                builder: (context) {
-                  return Column(
-                    mainAxisSize: .min,
-                    children: [
-                      SizedBox(
-                        height: 35,
-                        child: Text(
-                          l10n.manageServers,
-                          style: .new(fontSize: 18, fontWeight: .bold),
-                        ),
-                      ),
-                      webdavListTile(context, l10n),
-                      navidromeListTile(context, l10n),
-                      embyListTile(context, l10n),
-                      feiniuListTile(context, l10n),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget webdavListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: Image(
-        image: webdavImage,
-        width: 30,
-        height: 30,
-        color: iconColor.value,
-      ),
-
-      title: Text(getSourceTypeDisplayName(l10n, .webdav)),
-      onTap: () {
-        if (Loader.busy && sourceType == .webdav) {
-          showCenterMessage(l10n.syncingTryLater);
-          return;
-        }
-        showAnimationDialog(
-          context: context,
-          child: ConnectClientWidget(sourceType: .webdav),
-        );
-      },
-    );
-  }
-
-  Widget navidromeListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: Image(image: navidromeImage, width: 30, height: 30),
-      title: Text(getSourceTypeDisplayName(l10n, .navidrome)),
-      onTap: () {
-        if (Loader.busy && sourceType == .navidrome) {
-          showCenterMessage(l10n.syncingTryLater);
-          return;
-        }
-        showAnimationDialog(
-          context: context,
-          child: ConnectClientWidget(sourceType: .navidrome),
-        );
-      },
-    );
-  }
-
-  Widget embyListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: Image(image: embyImage, width: 30, height: 30),
-
-      title: Text(getSourceTypeDisplayName(l10n, .emby)),
-      onTap: () {
-        if (Loader.busy && sourceType == .emby) {
-          showCenterMessage(l10n.syncingTryLater);
-          return;
-        }
-        showAnimationDialog(
-          context: context,
-          child: ConnectClientWidget(sourceType: .emby),
-        );
-      },
-    );
-  }
-
-  Widget feiniuListTile(BuildContext context, AppLocalizations l10n) {
-    return ListTile(
-      leading: Image(image: feiniuImage, width: 30, height: 30),
-      title: Text(getSourceTypeDisplayName(l10n, .feiniu)),
-      onTap: () {
-        if (Loader.busy && sourceType == .feiniu) {
-          showCenterMessage(l10n.syncingTryLater);
-          return;
-        }
-        showAnimationDialog(
-          context: context,
-          child: ConnectClientWidget(sourceType: .feiniu),
-        );
-      },
-    );
-  }
-
   Widget cleanCacheListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(cacheImage, size: iconSize),
@@ -650,6 +426,19 @@ class _SettingsListState extends State<SettingsList> {
       onTap: () {
         globalNavigatorKey.currentState?.push(
           MaterialPageRoute(builder: (context) => const StatsPage()),
+        );
+      },
+    );
+  }
+
+  Widget serversListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(optionImage, size: iconSize),
+      title: Text(l10n.servers),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        globalNavigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (context) => const ServerListPage()),
         );
       },
     );
@@ -1333,17 +1122,6 @@ Future<void> showCacheDetailDialog(
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-            if (isNotStreamSource)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  l10n.cacheLocalNote,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorManager.getSpecificTextColor().withAlpha(150),
-                  ),
-                ),
-              ),
             const SizedBox(height: 6),
             ValueListenableBuilder(
               valueListenable: cacheEntriesNotifier,

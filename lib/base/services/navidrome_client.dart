@@ -62,7 +62,7 @@ class NavidromeClient extends StreamClient {
     bool showRealError = false,
   }) async {
     try {
-      final res = await dio.get(
+      final res = await getWithFailover(
         path,
         queryParameters: params(query),
         options: options,
