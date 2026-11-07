@@ -96,29 +96,37 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
       canPop: false,
       key: ValueKey(keyValue),
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop | isTyping | isTV) {
+        if (didPop || isTyping || isTV) {
           return;
         }
-        if (portraitKey.currentState?.isDrawerOpen ?? false) {
-          portraitKey.currentState?.closeDrawer();
-          return;
-        }
+
+        // 1) A detail page (album, artist, playlist, folder) is open: go back to
+        //    the list it was opened from. This never reaches the exit flow.
         if (await layersManager.popDetail(currentRootLabel.value)) {
           return;
         }
 
+        // 2) A root page other than the first one (the home hub switches root
+        //    layers): go back to the page we came from.
+        if (layersManager.popRootLayer()) {
+          return;
+        }
+
+        // 3) Home: the second back within two seconds leaves the app.
         if (systemCanPop) {
           systemCanPop = false;
           _exitTimer?.cancel();
+          _exitTimer = null;
           SystemNavigator.pop();
-        } else {
-          systemCanPop = true;
-          if (context.mounted) {
-            showCenterMessage(AppLocalizations.of(context).tapAgain);
-          }
-          _exitTimer = Timer(const Duration(seconds: 2), () {
-            systemCanPop = false;
-          });
+          return;
+        }
+        systemCanPop = true;
+        _exitTimer?.cancel();
+        _exitTimer = Timer(const Duration(seconds: 2), () {
+          systemCanPop = false;
+        });
+        if (context.mounted) {
+          showCenterMessage(AppLocalizations.of(context).tapAgain);
         }
       },
       child: view(),

@@ -5,7 +5,6 @@ import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/portrait_view/play_bar.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
-bool isDrawerOpen = false;
 final endDrawerNotifier = ValueNotifier(false);
 
 class PortraitView extends StatefulWidget {

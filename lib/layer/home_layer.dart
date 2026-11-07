@@ -436,6 +436,13 @@ class HomeLayerState extends State<HomeLayer> {
     List<MyAudioMetadata> songList,
     ScrollController scrollController,
   ) {
+    // One column fills a phone's width, so the per-song overflow button ends up
+    // on the right edge (as in the song lists) instead of roughly mid-screen;
+    // wider screens keep the multi-column shelf.
+    final available = MediaQuery.of(context).size.width - 15;
+    final columns = (available / 300).floor().clamp(1, 4);
+    final itemWidth = available / columns;
+
     return SizedBox(
       height: 180,
       child: MouseRegion(
@@ -450,7 +457,7 @@ class HomeLayerState extends State<HomeLayer> {
             }
             index -= 1;
             return SizedBox(
-              width: 300,
+              width: itemWidth,
               child: Column(
                 mainAxisSize: .min,
                 children: List.generate(min(3, songList.length - index * 3), (

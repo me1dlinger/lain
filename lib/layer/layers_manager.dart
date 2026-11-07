@@ -155,7 +155,12 @@ class LayersManager {
     });
   }
 
-  void switchRootLayer(String label) {
+  /// Root layers are switched, not pushed, so nothing remembers the order they
+  /// were visited in. Keeping it lets "back" return to the previous page (the
+  /// home hub switches layers) instead of offering to quit the app.
+  final List<String> _rootHistory = [];
+
+  void switchRootLayer(String label, {bool record = true}) {
     Widget layer = getRootLayer(label);
     if (layer == topRootLayer) {
       return;
@@ -171,8 +176,31 @@ class LayersManager {
     }
 
     currentRootLabel.value = label;
+    if (record) {
+      // Like a browser: re-visiting a page drops whatever came after it.
+      final index = _rootHistory.indexOf(label);
+      if (index != -1) {
+        _rootHistory.removeRange(index + 1, _rootHistory.length);
+      } else {
+        _rootHistory.add(label);
+        if (_rootHistory.length > 12) {
+          _rootHistory.removeAt(0);
+        }
+      }
+    }
     switchNotifier.value++;
     updateBackground();
+  }
+
+  /// Goes back to the previously shown root layer. False when the current page
+  /// is the first one (home), which is when "back" may leave the app.
+  bool popRootLayer() {
+    if (_rootHistory.length <= 1) {
+      return false;
+    }
+    _rootHistory.removeLast();
+    switchRootLayer(_rootHistory.last, record: false);
+    return true;
   }
 
   void removeLayerIfNeed(dynamic target) async {
