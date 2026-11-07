@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Cover art lives in <app support dir>/<sourceType>/pictures, which maps
-         to the app files directory; the other entries are fallbacks. -->
+    <!-- Cover art lives in <app support dir>/<sourceType>/pictures, which is
+         the app files directory (getApplicationSupportDirectory() maps to
+         getFilesDir() on Android). The external/cache roots are intentionally
+         not declared: they are unused and <external-files-path> throws when
+         getExternalFilesDir() is unavailable. -->
     <files-path name="app_files" path="." />
-    <external-files-path name="ext_files" path="." />
-    <cache-path name="cache" path="." />
 </paths>
