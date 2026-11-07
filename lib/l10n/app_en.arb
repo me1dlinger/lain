@@ -216,6 +216,7 @@
   "popularSongs": "Top Songs",
   "popularAlbums": "Top Albums",
   "timesUnit": "times",
+  "cacheLocalNote": "For a local source nothing is downloaded: covers and lyrics are extracted from the audio files and simply re-extracted if you remove them.",
   "serverAddress": "Server Address",
   "cacheDetails": "Cache Details",
   "cacheSongs": "Cached Songs",

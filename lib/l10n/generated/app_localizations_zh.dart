@@ -525,6 +525,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
 
+  @override
+  String get cacheLocalNote => 'For a local source nothing is downloaded: covers and lyrics are extracted from the audio files and simply re-extracted if you remove them.';
+
 
   @override
   String get serverAddress => '服务器地址';

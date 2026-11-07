@@ -678,15 +678,14 @@ class HomeLayerState extends State<HomeLayer> {
 /// Icon + label tile used by the home hub row.
 Widget homeNavButton(String label, IconData icon, String layer) {
   final textColor = colorManager.getSpecificTextColor();
-  // Sized to its own content (no fixed slot), left aligned so the icon and its
-  // label share the left edge of the row.
+  // Sized to its own content (no fixed slot), so the row still starts at the
+  // page margin while the icon stays centred over its label.
   return MouseRegion(
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       onTap: () => layersManager.switchRootLayer(layer),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 26, color: textColor),
           const SizedBox(height: 6),

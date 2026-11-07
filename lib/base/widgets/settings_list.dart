@@ -1333,6 +1333,17 @@ Future<void> showCacheDetailDialog(
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
+            if (isNotStreamSource)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  l10n.cacheLocalNote,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorManager.getSpecificTextColor().withAlpha(150),
+                  ),
+                ),
+              ),
             const SizedBox(height: 6),
             ValueListenableBuilder(
               valueListenable: cacheEntriesNotifier,

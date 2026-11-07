@@ -1105,6 +1105,12 @@ abstract class AppLocalizations {
   /// **'times'**
   String get timesUnit;
 
+  /// No description provided for @cacheLocalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'For a local source nothing is downloaded: covers and lyrics are extracted from the audio files and simply re-extracted if you remove them.'**
+  String get cacheLocalNote;
+
 
   /// No description provided for @serverAddress.
   ///

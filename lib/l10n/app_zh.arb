@@ -167,6 +167,7 @@
   "popularSongs": "热门歌曲",
   "popularAlbums": "热门专辑",
   "timesUnit": "次",
+  "cacheLocalNote": "本地音源不会下载音频：这里的封面和歌词是从音频文件里提取出来的，删掉后下次会自动重新提取。",
   "serverAddress": "服务器地址",
   "cacheDetails": "缓存详情",
   "cacheSongs": "已缓存歌曲",

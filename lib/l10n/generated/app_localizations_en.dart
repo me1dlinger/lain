@@ -525,6 +525,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
 
+  @override
+  String get cacheLocalNote => 'cacheLocalNote';
+
 
   @override
   String get serverAddress => 'Server Address';
