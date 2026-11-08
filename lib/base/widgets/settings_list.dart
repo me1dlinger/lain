@@ -23,6 +23,8 @@ import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/server_manager.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
+import 'package:sylvakru/base/services/download_manager.dart';
+import 'package:sylvakru/base/widgets/downloads_page.dart';
 import 'package:sylvakru/base/widgets/home_layout_settings.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/widgets/apple_form.dart';
@@ -130,6 +132,10 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(
           paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
+        ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, downloadsListTile(context, l10n)),
         ),
 
         sliverBox(
@@ -421,6 +427,22 @@ class _SettingsListState extends State<SettingsList> {
           return Text('${value.display}  ');
         },
       ),
+    );
+  }
+
+  Widget downloadsListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(Icons.download_rounded, size: iconSize),
+      title: Text(l10n.downloads),
+      trailing: ValueListenableBuilder(
+        valueListenable: downloadsNotifier,
+        builder: (context, items, child) => Text('${items.length}  '),
+      ),
+      onTap: () {
+        globalNavigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (context) => const DownloadsPage()),
+        );
+      },
     );
   }
 

@@ -133,5 +133,12 @@ abstract class StreamClient {
 
   Future<bool> downloadSong(String songId, String savePath);
 
+  /// Fetches the song as the server stores it, for the user to keep - unlike
+  /// [downloadSong], which is what the offline cache holds and may be a
+  /// transcoded copy. Sources without a "give me the original" endpoint inherit
+  /// this.
+  Future<bool> downloadOriginal(String songId, String savePath) =>
+      downloadSong(songId, savePath);
+
   Future<bool> scrobble(String songId);
 }

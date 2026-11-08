@@ -13,6 +13,7 @@ import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/services/download_manager.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/utils/zoom_page_route.dart';
@@ -881,6 +882,16 @@ void showSongOptions({
                     audioHandler.saveAllStates();
                   },
                 ),
+
+                if (isStreamSource)
+                  _optionItem(
+                    leading: Icon(Icons.download_rounded),
+                    text: l10n.download,
+                    onTap: () {
+                      Navigator.pop(context);
+                      downloadManager.startDownload(song);
+                    },
+                  ),
 
                 _optionItem(
                   leading: Icon(Icons.add_rounded),

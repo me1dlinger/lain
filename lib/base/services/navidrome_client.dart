@@ -400,9 +400,30 @@ class NavidromeClient extends StreamClient {
 
   @override
   Future<bool> downloadSong(String songId, String savePath) async {
+    return _download(getStreamUrl(songId), savePath);
+  }
+
+  /// `/rest/download` with `format=raw&bitrate=0` hands over the file itself,
+  /// where `/rest/stream` would honour the stream quality settings. A download
+  /// is meant to be the original.
+  @override
+  Future<bool> downloadOriginal(String songId, String savePath) async {
+    final url = Uri.parse(baseUrl)
+        .resolve('rest/download.view')
+        .replace(
+          queryParameters: params({
+            'id': songId,
+            'format': 'raw',
+            'bitrate': '0',
+          }),
+        )
+        .toString();
+    return _download(url, savePath);
+  }
+
+  Future<bool> _download(String url, String savePath) async {
     try {
-      final streamUrl = getStreamUrl(songId);
-      final response = await dio.download(streamUrl, savePath);
+      final response = await dio.download(url, savePath);
       return response.statusCode == 200;
     } on DioException catch (e) {
       logger.output('[$runtimeType] Download failed: ${e.message}');

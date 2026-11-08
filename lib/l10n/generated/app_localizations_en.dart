@@ -528,6 +528,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get download => 'Download';
+
+  @override
+  String get downloads => 'Downloads';
+
+  @override
+  String get downloading => 'Downloading…';
+
+  @override
+  String get downloaded => 'Downloaded';
+
+  @override
+  String get downloadFailed => 'Download failed';
+
+  @override
+  String get noDownloads => 'Nothing downloaded yet';
+
+  @override
   String get importPlaylist => 'Import playlist from a file';
 
   @override

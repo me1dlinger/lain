@@ -528,6 +528,24 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get download => '下载';
+
+  @override
+  String get downloads => '下载记录';
+
+  @override
+  String get downloading => '正在下载…';
+
+  @override
+  String get downloaded => '已下载';
+
+  @override
+  String get downloadFailed => '下载失败';
+
+  @override
+  String get noDownloads => '还没有下载记录';
+
+  @override
   String get importPlaylist => '从文件导入歌单';
 
   @override

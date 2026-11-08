@@ -1110,6 +1110,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get download;
+
+  /// No description provided for @downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloads;
+
+  /// No description provided for @downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloading;
+
+  /// No description provided for @downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get downloaded;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get downloadFailed;
+
+  /// No description provided for @noDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded yet'**
+  String get noDownloads;
+
   /// No description provided for @importPlaylist.
   ///
   /// In en, this message translates to:
