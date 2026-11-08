@@ -15,7 +15,6 @@ import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
