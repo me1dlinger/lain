@@ -445,26 +445,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             ),
             remainTimesText(textColor: lyricsPageForegroundColor.value),
             Spacer(),
-            IconButton(
-              color: lyricsPageForegroundColor.value,
-              onPressed: () {
-                lyricsFontSizeOffsetNotifier.value += 2;
-                setting.save();
-              },
-              icon: Icon(Icons.text_increase_rounded),
-            ),
-            IconButton(
-              color: lyricsPageForegroundColor.value,
-              onPressed: () {
-                if (lyricsFontSizeOffsetNotifier.value < -2) {
-                  return;
-                }
-                lyricsFontSizeOffsetNotifier.value -= 2;
-                setting.save();
-              },
-              icon: Icon(Icons.text_decrease_rounded),
-            ),
 
+            // The font size moved to this row's menu ("adjust lyrics"), so it no
+            // longer takes two permanent buttons next to the seek bar.
             moreButton(currentSong),
 
             SizedBox(width: 25),

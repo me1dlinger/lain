@@ -763,10 +763,18 @@ class MyAudioHandler extends BaseAudioHandler {
         _playedDuration += DateTime.now().difference(_playLastSyncTime!);
       }
       if (_player.state.duration.inSeconds > 0) {
+        // The share listened to is measured in *played* time, not by how far
+        // the progress bar moved: dragging it to the end adds nothing, and a
+        // pause does not count either.
         double times =
             _playedDuration.inSeconds / _player.state.duration.inSeconds;
         if (times > 0.5) {
           library.tryAddCache(currentSongNotifier.value!);
+        }
+        // Past two thirds of the track it is a finished listen: the play count,
+        // the server's scrobble and the listening report all take it from here,
+        // without having to run to the very end.
+        if (times > 0.67) {
           history.addSongTimes(currentSongNotifier.value!, times.round());
           // Local listening report: one entry per mostly-finished listen,
           // aggregated across every source (see ListeningStats).
