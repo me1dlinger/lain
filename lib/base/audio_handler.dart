@@ -66,8 +66,10 @@ const _mediaChannel = MethodChannel('com.afalphy.media');
 // item can be published synchronously once it has been resolved once.
 final Map<String, String> _coverUriCache = {};
 
-// Covers that could not be exposed; do not keep retrying them.
-final Set<String> _coverUriFailed = {};
+// Covers that could not be exposed, with the modification time of the file
+// that failed: the same file is not retried, but a cover written since (which
+// is what happens the first time a local song's artwork is extracted) is.
+final Map<String, DateTime> _coverUriFailed = {};
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
@@ -934,17 +936,27 @@ class MyAudioHandler extends BaseAudioHandler {
       return remote;
     }
 
-    if (!song.picture.isExist) {
+    // Ask the file, not `picture.isExist`: that flag is only set when the
+    // artwork is loaded (a local file's is extracted the first time it plays),
+    // and a picture whose load failed once is never retried, so the flag can be
+    // false while the image is right there on disk.
+    final key = song.picture.path;
+    if (key.isEmpty || !File(key).existsSync()) {
       return null;
     }
 
-    final key = song.picture.path;
     final cached = _coverUriCache[key];
     if (cached != null) {
       return cached;
     }
-    if (_coverUriFailed.contains(key)) {
-      return null;
+
+    final failedAt = _coverUriFailed[key];
+    if (failedAt != null) {
+      if (failedAt == File(key).statSync().modified) {
+        return null;
+      }
+      // A newer file: try again.
+      _coverUriFailed.remove(key);
     }
 
     // First time only: resolve a fetchable URI, then re-publish.
@@ -956,7 +968,11 @@ class MyAudioHandler extends BaseAudioHandler {
     final key = song.picture.path;
     final uri = await _resolveCoverUri(key);
     if (uri == null) {
-      _coverUriFailed.add(key);
+      logger.output('[cover] nothing can serve $key to the car');
+      final file = File(key);
+      _coverUriFailed[key] = file.existsSync()
+          ? file.statSync().modified
+          : DateTime.fromMillisecondsSinceEpoch(0);
       return;
     }
     _coverUriCache[key] = uri;
@@ -969,9 +985,11 @@ class MyAudioHandler extends BaseAudioHandler {
     // Re-serve the cached cover over the local HTTP relay: it forwards the auth
     // headers of header-authenticated sources and works for local files too.
     try {
-      return await streamRelay.registerCover(filePath: path);
+      final uri = await streamRelay.registerCover(filePath: path);
+      logger.output('[cover] relay serves $path as $uri');
+      return uri;
     } catch (e) {
-      logger.output('[cover] relay failed: $e');
+      logger.output('[cover] relay failed for $path: $e');
     }
 
     // Last resort: a content:// URI. Only readable by processes that are
@@ -1011,9 +1029,13 @@ class MyAudioHandler extends BaseAudioHandler {
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
 
+    // Again: the file decides, not the flag (see _fetchableCoverUri). The
+    // bitmap this URI carries is what a phone-side car UI shows for local
+    // songs, where there is no server URL to point at.
     Uri? artUri;
-    if (currentSong.picture.isExist) {
-      artUri = File(currentSong.picture.path).uri;
+    final coverPath = currentSong.picture.path;
+    if (coverPath.isNotEmpty && File(coverPath).existsSync()) {
+      artUri = File(coverPath).uri;
     } else if (!currentSong.picture.isLoaded) {
       // Artwork still downloading: publish the rest now and refresh afterwards.
       unawaited(_publishMediaItemWhenCoverReady(currentSong));
