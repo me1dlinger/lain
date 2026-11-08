@@ -23,6 +23,8 @@ class _RelayTarget {
 /// HTTP: mpv never touches TLS or the proxy at all.
 class StreamRelay {
   Future<HttpServer>? _starting;
+  Future<HttpServer>? _startingLan;
+  HttpServer? _lanServer;
   String? _baseUrl;
   final _targets = <String, _RelayTarget>{};
   final _covers = <String, _RelayTarget>{};
@@ -50,6 +52,100 @@ class StreamRelay {
     return '$_baseUrl/audio/$token';
   }
 
+  /// A cover URL for a *different* device - a car head unit reading the media
+  /// session's artwork URI. `127.0.0.1` means the head unit itself, so the cover
+  /// is served by a second, LAN-facing server that only knows about covers (the
+  /// audio streams stay on loopback). Null when this device has no local network
+  /// address, in which case the caller falls back to the loopback URL.
+  Future<String?> registerCoverForLan({
+    String? url,
+    String? filePath,
+    Map<String, String>? headers,
+  }) async {
+    final address = await _lanAddress();
+    if (address == null) {
+      return null;
+    }
+
+    final server = await _ensureLanStarted();
+    final token = _addCover(url, headers, filePath);
+    return 'http://$address:${server.port}/cover/$token';
+  }
+
+  /// Registers a cover and returns its token. Kept in the long term, unlike the
+  /// stream targets: the media session publishes one per song and re-publishes
+  /// the same URL when the user goes back to a track.
+  String _addCover(String? url, Map<String, String>? headers, String? filePath) {
+    if (_covers.length > 64) {
+      _covers.remove(_covers.keys.first);
+    }
+
+    final token = '${DateTime.now().microsecondsSinceEpoch}-${_counter++}';
+    _covers[token] = _RelayTarget(url ?? '', headers, filePath: filePath);
+    return token;
+  }
+
+  Future<HttpServer> _ensureLanStarted() {
+    final existing = _lanServer;
+    if (existing != null) {
+      return Future.value(existing);
+    }
+    return _startingLan ??= _startLan();
+  }
+
+  Future<HttpServer> _startLan() async {
+    final server = await HttpServer.bind(InternetAddress.anyIPv4, 0);
+    _lanServer = server;
+
+    server.listen(
+      (request) {
+        // Covers only: a head unit must not be able to pull the audio streams.
+        _handle(request, coversOnly: true);
+      },
+      onError: (e) {
+        logger.output('[StreamRelay] lan server error: $e');
+      },
+    );
+
+    return server;
+  }
+
+  /// This device's address on the local network, preferring a private one.
+  Future<String?> _lanAddress() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+        includeLoopback: false,
+        includeLinkLocal: false,
+      );
+
+      final addresses = [
+        for (final interface in interfaces) ...interface.addresses,
+      ];
+
+      for (final address in addresses) {
+        if (_isPrivateAddress(address.address)) {
+          return address.address;
+        }
+      }
+    } catch (e) {
+      logger.output('[StreamRelay] could not read the network addresses: $e');
+    }
+
+    return null;
+  }
+
+  bool _isPrivateAddress(String address) {
+    if (address.startsWith('192.168.') || address.startsWith('10.')) {
+      return true;
+    }
+    if (address.startsWith('172.')) {
+      final second = int.tryParse(address.split('.').elementAt(1)) ?? 0;
+      return second >= 16 && second <= 31;
+    }
+    return false;
+  }
+
   /// Returns a plain-HTTP localhost URL that serves cover art, either proxied
   /// from [url] (with auth [headers]) or read from the local [filePath].
   ///
@@ -64,12 +160,7 @@ class StreamRelay {
   }) async {
     await _ensureStarted();
 
-    if (_covers.length > 8) {
-      _covers.remove(_covers.keys.first);
-    }
-
-    final token = '${DateTime.now().microsecondsSinceEpoch}-${_counter++}';
-    _covers[token] = _RelayTarget(url ?? '', headers, filePath: filePath);
+    final token = _addCover(url, headers, filePath);
 
     return '$_baseUrl/cover/$token';
   }
@@ -95,12 +186,12 @@ class StreamRelay {
     return server;
   }
 
-  Future<void> _handle(HttpRequest request) async {
+  Future<void> _handle(HttpRequest request, {bool coversOnly = false}) async {
     try {
       final segments = request.uri.pathSegments;
       _RelayTarget? target;
       if (segments.length == 2) {
-        if (segments[0] == 'audio') {
+        if (!coversOnly && segments[0] == 'audio') {
           target = _targets[segments[1]];
         } else if (segments[0] == 'cover') {
           target = _covers[segments[1]];

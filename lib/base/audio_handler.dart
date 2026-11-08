@@ -982,8 +982,20 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<String?> _resolveCoverUri(String path) async {
-    // Re-serve the cached cover over the local HTTP relay: it forwards the auth
-    // headers of header-authenticated sources and works for local files too.
+    // A car head unit is a separate device: `127.0.0.1` is *its* loopback, so the
+    // cover goes on this phone's LAN address instead. That is why a Navidrome
+    // song works (its URL points at the NAS) while a local one did not.
+    try {
+      final lan = await streamRelay.registerCoverForLan(filePath: path);
+      if (lan != null) {
+        logger.output('[cover] lan relay serves $path as $lan');
+        return lan;
+      }
+    } catch (e) {
+      logger.output('[cover] lan relay failed for $path: $e');
+    }
+
+    // No local network: the loopback URL still works for a phone-side consumer.
     try {
       final uri = await streamRelay.registerCover(filePath: path);
       logger.output('[cover] relay serves $path as $uri');
