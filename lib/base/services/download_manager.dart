@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/interaction.dart';
@@ -148,6 +149,15 @@ class DownloadManager {
     if (_inFlight.contains(song.id) || isDownloaded(song.id)) {
       showCenterMessage(l10n.downloaded);
       return true;
+    }
+
+    // Writing into the public Downloads folder needs "all files access" on a
+    // modern Android, the same permission the metadata editor asks for.
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.request() == .denied) {
+        showCenterMessage(l10n.downloadFailed, duration: 3000);
+        return false;
+      }
     }
 
     _inFlight.add(song.id);

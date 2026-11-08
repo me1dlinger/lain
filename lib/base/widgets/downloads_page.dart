@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/download_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
@@ -94,8 +95,8 @@ class _DownloadsPageState extends State<DownloadsPage> {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Text(
         Platform.isAndroid
-            ? 'Download/$downloadFolderName'
-            : '${downloadFolderName}',
+            ? '/storage/emulated/0/Download/$downloadFolderName'
+            : '${appDocsDir.path}/$downloadFolderName',
         style: TextStyle(fontSize: 12, color: textColor.withAlpha(160)),
       ),
     );
