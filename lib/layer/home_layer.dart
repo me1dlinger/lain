@@ -24,6 +24,7 @@ import 'package:sylvakru/base/widgets/stats_page.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:sylvakru/portrait_view/my_search_field.dart';
 
 part '../landscape_view/panels/home_panel.dart';
@@ -658,7 +659,7 @@ class HomeLayerState extends State<HomeLayer> {
                               ],
                             ),
                           ),
-                          playNextButton(song),
+                          playNextButton(context, song),
                           IconButton(
                             onPressed: () {
                               showSongOptions(
@@ -823,26 +824,40 @@ Widget homeNavButton(String label, IconData icon, String layer) {
 /// [label] under [icon], doing [onTap] - a button of the home hub row, whether
 /// it switches to a layer or opens a page.
 Widget homeNavAction(String label, IconData icon, void Function() onTap) {
-  final textColor = colorManager.getSpecificTextColor();
-  // Sized to its own content (no fixed slot), so the row still starts at the
-  // page margin while the icon stays centred over its label.
-  return MouseRegion(
-    cursor: SystemMouseCursors.click,
-    child: GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 26, color: textColor),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: textColor),
+  // The colour depends on whether the playing page is up, on the theme and on
+  // the view mode, and the home page is not rebuilt when such a page is merely
+  // dismissed - so the button watches the palette itself rather than painting a
+  // colour captured while the playing page was still on screen.
+  return ListenableBuilder(
+    listenable: Listenable.merge([
+      displayLyricsPageNotifier,
+      textColor.valueNotifier,
+      lyricsPageForegroundColor.valueNotifier,
+      viewModeNotifier,
+    ]),
+    builder: (context, child) {
+      final textColor = colorManager.getSpecificTextColor();
+      // Sized to its own content (no fixed slot), so the row still starts at the
+      // page margin while the icon stays centred over its label.
+      return MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 26, color: textColor),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: textColor),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
+      );
+    },
   );
 }

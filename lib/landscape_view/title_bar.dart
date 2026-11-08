@@ -138,7 +138,7 @@ class _TitleBarState extends State<TitleBar> {
                         return IconButton(
                           color: value,
                           onPressed: () {
-                            displayLyricsPage = false;
+                            displayLyricsPageNotifier.value = false;
                             Navigator.pop(context);
                           },
                           icon: ImageIcon(arrowDownImage),

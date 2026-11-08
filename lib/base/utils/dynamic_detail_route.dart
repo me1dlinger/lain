@@ -12,12 +12,14 @@ class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
   final String label;
 
   @override
+  // Kept short: this is the one animation between the lists and a song list
+  // detail, and 400ms made opening a playlist feel like loading it.
   Duration get transitionDuration =>
-      Duration(milliseconds: isMobile ? 400 : 500);
+      Duration(milliseconds: isMobile ? 300 : 400);
 
   @override
   Duration get reverseTransitionDuration =>
-      Duration(milliseconds: isMobile ? 400 : 500);
+      Duration(milliseconds: isMobile ? 300 : 400);
 
   @override
   Widget buildContent(BuildContext context) => builder(context);

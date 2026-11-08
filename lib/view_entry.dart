@@ -111,8 +111,15 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           return;
         }
 
-        // 3) Nothing left to go back to: leave the app straight away, with no
-        //    "tap again" prompt.
+        // 3) A page other than home that could not be popped: fall back to
+        //    home rather than leaving, so a stuck stack cannot trap the user.
+        if (currentRootLabel.value != 'home') {
+          layersManager.switchRootLayer('home');
+          return;
+        }
+
+        // 4) On home itself there is nothing left to go back to: leave the app
+        //    straight away, with no "tap again" prompt.
         SystemNavigator.pop();
       },
       child: view(),

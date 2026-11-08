@@ -593,7 +593,7 @@ extension _SongListPanel on _SongListState {
             const SizedBox(width: 8),
             Expanded(child: mainInfo(song)),
 
-            playNextButton(song, size: 18),
+            playNextButton(context, song, size: 18),
             const SizedBox(width: 12),
           ],
         ),
@@ -706,7 +706,7 @@ extension _SongListPanel on _SongListState {
                             ),
                           ),
 
-                        playNextButton(song, size: 18),
+                        playNextButton(context, song, size: 18),
                       ],
                     );
                   },

@@ -166,6 +166,13 @@ class LayersManager {
   final List<String> _rootHistory = [];
 
   void switchRootLayer(String label, {bool record = true}) {
+    // Going to a page on purpose means its list: not a detail left open on top
+    // of it, and not the several a burst of taps used to leave behind. Stepping
+    // back (record: false) keeps them, so "back" returns where the user was.
+    if (record) {
+      unawaited(_closeDetails(label));
+    }
+
     Widget layer = getRootLayer(label);
     if (layer == topRootLayer) {
       return;
@@ -245,11 +252,48 @@ class LayersManager {
     }
   }
 
+  /// The song collection a detail layer stands for, or null for the ones that
+  /// stand for none of them (the settings pages).
+  Object? _detailTarget(Widget? layer) {
+    if (layer is SingleArtistLayer) {
+      return layer.artist;
+    }
+    if (layer is SingleAlbumLayer) {
+      return layer.album;
+    }
+    if (layer is SingleFolderLayer) {
+      return layer.folder;
+    }
+    if (layer is SinglePlaylistLayer) {
+      return layer.playlist;
+    }
+    return null;
+  }
+
+  /// When the last detail was opened. A route takes a moment to appear, and a
+  /// burst of taps inside that window used to stack page upon page.
+  DateTime? _lastDetailPushAt;
+
+  bool get _detailPushTooSoon =>
+      _lastDetailPushAt != null &&
+      DateTime.now().difference(_lastDetailPushAt!) <
+          const Duration(milliseconds: 350);
+
   void pushDetail(String label, dynamic detail) async {
     if (viewModeNotifier.value == .bigPicture) {
       return;
     }
+    if (_detailPushTooSoon) {
+      return;
+    }
     final rootLayer = getRootLayer(label);
+
+    // Tapping the same row again - before the page is even up, or after it has
+    // settled - must not open a second copy of it.
+    if (_detailTarget(detailWidgetMap[rootLayer]) == detail) {
+      return;
+    }
+    _lastDetailPushAt = DateTime.now();
 
     late GlobalKey<NavigatorState> rootKey;
     late ValueNotifier<bool> visibleNotifier;
@@ -303,8 +347,6 @@ class LayersManager {
     }
     detailWidgetMap[rootLayer] = detailLayer;
 
-    await layersManager.updateBackground();
-
     final detailPage = createPage(detailLayer);
     rootKey.currentState?.push(
       DynamicDetailRoute(
@@ -320,9 +362,17 @@ class LayersManager {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       visibleNotifier.value = false;
     });
+
+    // After the page is up: this waits for the new cover to load (it may have
+    // to be downloaded), which must not hold the page back.
+    await updateBackground();
   }
 
   Future<bool> popDetail(String label, {bool executePop = true}) async {
+    // Leaving a page clears the guard in pushDetail: opening another one right
+    // after going back is a normal thing to do.
+    _lastDetailPushAt = null;
+
     if (rootLayerMap[label] == null) {
       return false;
     }
@@ -360,8 +410,6 @@ class LayersManager {
       }
     }
 
-    await layersManager.updateBackground();
-
     if ((rootKey.currentState?.canPop() ?? false) && executePop) {
       rootKey.currentState?.pop();
     }
@@ -369,7 +417,16 @@ class LayersManager {
       visibleNotifier.value = true;
     });
 
+    // After the pop, for the same reason as in pushDetail.
+    await updateBackground();
+
     return true;
+  }
+
+  /// Closes every detail of [label], so that switching to that layer shows its
+  /// list rather than whatever was left open on top of it.
+  Future<void> _closeDetails(String label) async {
+    while (await popDetail(label)) {}
   }
 
   Future<void> pushDetailIfNeed(dynamic detail) async {

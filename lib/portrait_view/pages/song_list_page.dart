@@ -544,7 +544,7 @@ extension _SongListPage on _SongListState {
                     ],
                   ),
                 ),
-              playNextButton(song),
+              playNextButton(context, song),
               songOptionsButton(index, song),
             ],
           ),

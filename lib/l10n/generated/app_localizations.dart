@@ -1110,6 +1110,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @added2Next.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing next'**
+  String get added2Next;
+
   /// No description provided for @homeLayout.
   ///
   /// In en, this message translates to:

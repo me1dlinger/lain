@@ -777,15 +777,21 @@ Widget _optionItem({
   );
 }
 
-/// Queues [song] to play right after the current one. An empty queue has
-/// nothing to follow, so the song simply starts.
-void playSongNext(MyAudioMetadata song) {
+/// Queues [song] to play right after the current one, and says so when
+/// [message] is given. An empty queue has nothing to follow, so the song simply
+/// starts; a song that is already the current one cannot be moved and is left
+/// alone, message included.
+void playSongNext(MyAudioMetadata song, [String? message]) {
   if (playQueue.isEmpty) {
     audioHandler.singlePlay(song);
-  } else {
-    audioHandler.insert2Next(song);
+  } else if (!audioHandler.insert2Next(song)) {
+    return;
   }
   audioHandler.saveAllStates();
+
+  if (message != null) {
+    showCenterMessage(message);
+  }
 }
 
 void showSongOptions({
@@ -854,8 +860,11 @@ void showSongOptions({
                   leading: Icon(Icons.navigate_next_rounded),
                   text: l10n.playNext,
                   onTap: () {
+                    // Read the wording before the sheet goes away, then report
+                    // the result on the page underneath.
+                    final message = AppLocalizations.of(context).added2Next;
                     Navigator.pop(context);
-                    playSongNext(song);
+                    playSongNext(song, message);
                   },
                 ),
 

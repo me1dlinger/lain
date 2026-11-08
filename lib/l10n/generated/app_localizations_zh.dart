@@ -528,6 +528,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get added2Next => '已添加到下一首播放';
+
+  @override
   String get homeLayout => '主页设置';
 
   @override

@@ -528,6 +528,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get added2Next => 'Playing next';
+
+  @override
   String get homeLayout => 'Home layout';
 
   @override
