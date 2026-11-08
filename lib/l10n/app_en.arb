@@ -217,6 +217,7 @@
   "popularSongs": "Top Songs",
   "popularAlbums": "Top Albums",
   "timesUnit": "times",
+  "rename": "Rename",
   "exportPlaylist": "Export playlist",
   "exported": "Exported to",
   "exportFailed": "Export failed",

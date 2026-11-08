@@ -233,6 +233,40 @@ extension _SongListPage on _SongListState {
               },
             ),
 
+          if (playlist != null && playlist!.isNotFavorite && isNotStreamSource)
+            ListTile(
+              leading: Icon(Icons.drive_file_rename_outline),
+              title: Text(
+                l10n.rename,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+              onTap: () async {
+                final target = playlist!;
+                final name = await getInputTextDialog(
+                  context,
+                  l10n.rename,
+                  initial: target.name,
+                );
+                if (name.trim().isEmpty || name.trim() == target.name) {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                  return;
+                }
+
+                final renamed = await playlistManager.renamePlaylist(
+                  target,
+                  name,
+                );
+                if (renamed && context.mounted) {
+                  showCenterMessage(l10n.savedSuccessfully);
+                }
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+            ),
           if (playlist != null && playlist!.isNotFavorite)
             ListTile(
               leading: ImageIcon(deleteImage),

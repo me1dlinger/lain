@@ -141,6 +141,51 @@ class PlaylistManager {
     }
   }
 
+  /// Renames a playlist that lives here: its songs file is renamed with it, the
+  /// lookup key moves, and the name list on disk is rewritten. A server playlist
+  /// is left alone - its name belongs to the server - as is the favourites list.
+  Future<bool> renamePlaylist(Playlist playlist, String newName) async {
+    final name = newName.trim();
+
+    if (name.isEmpty || name == playlist.name) {
+      return false;
+    }
+    if (playlist.isFavorite || isStreamSource) {
+      return false;
+    }
+    if (playlistMap[name] != null) {
+      showCenterMessage('Playlist exists');
+      return false;
+    }
+
+    final oldFile = playlist.songListFile;
+    final newFile = File('${getPlaylistConfigPath(sourceType)}/$name.json');
+
+    try {
+      if (await oldFile.exists()) {
+        await oldFile.rename(newFile.path);
+      } else {
+        initFile(newFile, true);
+      }
+    } catch (e) {
+      showCenterMessage('Rename failed');
+      return false;
+    }
+
+    playlistMap.remove(playlist.name);
+    playlist.songListFile = newFile;
+    playlist.name = name;
+    playlistMap[name] = playlist;
+
+    update();
+
+    if (Platform.isIOS) {
+      HomeWidgetService.updatePlaylistsWidget();
+    }
+
+    return true;
+  }
+
   Future<void> deletePlaylist(Playlist playlist) async {
     playlist.songListFile.deleteSync();
 

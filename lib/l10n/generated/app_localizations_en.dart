@@ -528,6 +528,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get rename => 'Rename';
+
+  @override
   String get exportPlaylist => 'Export playlist';
 
   @override

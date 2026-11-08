@@ -1110,6 +1110,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
   /// No description provided for @exportPlaylist.
   ///
   /// In en, this message translates to:

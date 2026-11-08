@@ -528,6 +528,9 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get rename => '重命名';
+
+  @override
   String get exportPlaylist => '导出歌单';
 
   @override

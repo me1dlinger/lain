@@ -182,10 +182,13 @@ Future<String> getInputTextDialog(
   BuildContext context,
   String title, {
   bool needConfirm = true,
+  String initial = '',
 }) async {
   final l10n = AppLocalizations.of(context);
 
-  final controller = TextEditingController();
+  // Prefilled when there is something to edit (a rename), empty when a name is
+  // being asked for.
+  final controller = TextEditingController(text: initial);
 
   final result = await showAnimationDialog<String>(
     context: context,
