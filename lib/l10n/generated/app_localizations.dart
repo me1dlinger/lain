@@ -1110,6 +1110,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @exportPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Export playlist'**
+  String get exportPlaylist;
+
+  /// No description provided for @exported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to'**
+  String get exported;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed'**
+  String get exportFailed;
+
   /// No description provided for @download.
   ///
   /// In en, this message translates to:

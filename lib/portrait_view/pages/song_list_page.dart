@@ -109,6 +109,21 @@ extension _SongListPage on _SongListState {
               );
             },
           ),
+          // A local playlist can be written out as a list of file paths, the
+          // shape it can be imported from again.
+          if (playlist != null && isNotStreamSource)
+            ListTile(
+              leading: Icon(Icons.ios_share_rounded),
+              title: Text(
+                l10n.exportPlaylist,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+              onTap: () {
+                Navigator.pop(context);
+                exportPlaylist(playlist!);
+              },
+            ),
           // The artist view is grouped by album in track order, so a sort order
           // would have nothing to act on and is not offered there.
           if (!isFrequently && !isRecently && !isRecentlyAdded && artist == null)

@@ -528,6 +528,15 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get exportPlaylist => '导出歌单';
+
+  @override
+  String get exported => '已导出到';
+
+  @override
+  String get exportFailed => '导出失败';
+
+  @override
   String get download => '下载';
 
   @override

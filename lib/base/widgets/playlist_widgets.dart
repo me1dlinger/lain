@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
@@ -9,6 +11,7 @@ import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/services/home_widget_service.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/logger.dart';
+import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
@@ -130,6 +133,56 @@ Future<bool> showCreatePlaylistDialog(BuildContext context) async {
 /// newest song first: that way the file's first line ends up as the newest
 /// entry, so reading the playlist by added time (newest first) gives the file
 /// back in the order it was written.
+/// Writes a playlist to `Download/<name>.txt`: one song path per line, which is
+/// what [showImportPlaylistDialog] reads back. The order is the playlist's own
+/// (newest first), which is the order the importer expects - so exporting and
+/// importing the same file leaves the playlist as it was.
+Future<void> exportPlaylist(Playlist playlist) async {
+  final l10n = getAppLocalizations();
+
+  if (Platform.isAndroid) {
+    if (await Permission.manageExternalStorage.request() == .denied) {
+      showCenterMessage(l10n.exportFailed, duration: 3000);
+      return;
+    }
+  }
+
+  final lines = <String>[];
+  for (final song in playlist.songList) {
+    final path = song.path;
+    if (path != null && path.isNotEmpty) {
+      lines.add(path);
+    }
+  }
+
+  if (lines.isEmpty) {
+    showCenterMessage(l10n.exportFailed, duration: 3000);
+    return;
+  }
+
+  var name = playlist.name.replaceAll(RegExp(r'[\/:*?"<>|]'), '_').trim();
+  if (name.isEmpty) {
+    name = 'playlist';
+  }
+
+  try {
+    final dir = Platform.isAndroid
+        ? Directory('/storage/emulated/0/Download')
+        : appDocsDir;
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final file = File('${dir.path}${Platform.pathSeparator}$name.txt');
+    await file.writeAsString(lines.join('\n'));
+
+    showCenterMessage('${l10n.exported} Download/$name.txt', duration: 4000);
+  } catch (e) {
+    logger.output('[export] $e');
+    showCenterMessage(l10n.exportFailed, duration: 3000);
+  }
+}
+
 Future<void> showImportPlaylistDialog(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
 
@@ -218,9 +271,7 @@ Future<void> showImportPlaylistDialog(BuildContext context) async {
 
   final content = await file.readAsString();
   final paths = [
-    for (final line in content.split(RegExp(r'
-?
-')))
+    for (final line in content.split(RegExp(r'\r?\n')))
       if (line.trim().isNotEmpty && !line.trim().startsWith('#')) line.trim(),
   ];
 
