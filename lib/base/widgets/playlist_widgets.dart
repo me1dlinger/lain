@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
@@ -191,74 +192,16 @@ Future<void> showImportPlaylistDialog(BuildContext context) async {
     return;
   }
 
-  final files = await _candidateImportFiles();
-  if (!context.mounted) {
+  // The system picker: the user chooses the file, no path to type.
+  final files = await FilePicker.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['txt'],
+  );
+  if (files.isEmpty) {
     return;
   }
 
-  final chosen = await showAnimationDialog<String>(
-    context: context,
-    child: SizedBox(
-      width: 320,
-      height: 380,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 40,
-            child: Center(
-              child: Text(
-                l10n.importPlaylist,
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          MyDivider(thickness: 0.5, height: 1, color: dividerColor),
-          Expanded(
-            child: ListView(
-              children: [
-                for (final file in files)
-                  ListTile(
-                    leading: ImageIcon(playlistsImage, size: 22),
-                    title: Text(
-                      file.path.substring(
-                        file.path.lastIndexOf(Platform.pathSeparator) + 1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      file.parent.path,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    onTap: () => Navigator.pop(context, file.path),
-                  ),
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined, size: 22),
-                  title: Text(l10n.enterPath),
-                  onTap: () async {
-                    final path = await getInputTextDialog(
-                      context,
-                      l10n.enterPath,
-                      needConfirm: false,
-                    );
-                    if (!context.mounted) {
-                      return;
-                    }
-                    if (path.trim().isNotEmpty) {
-                      Navigator.pop(context, path.trim());
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
+  final chosen = files.first.path;
   if (chosen == null || chosen.isEmpty) {
     return;
   }
@@ -328,33 +271,6 @@ List<MyAudioMetadata> _matchSongs(List<String> paths) {
       result.add(matched);
     }
   }
-  return result;
-}
-
-/// Text files the user is likely to drop a playlist into.
-Future<List<File>> _candidateImportFiles() async {
-  final result = <File>[];
-  for (final path in const [
-    '/storage/emulated/0/Download',
-    '/storage/emulated/0/Documents',
-    '/storage/emulated/0/Music',
-    '/storage/emulated/0/音乐',
-  ]) {
-    final dir = Directory(path);
-    if (!await dir.exists()) {
-      continue;
-    }
-    try {
-      await for (final entry in dir.list()) {
-        if (entry is File && entry.path.toLowerCase().endsWith('.txt')) {
-          result.add(entry);
-        }
-      }
-    } catch (e) {
-      logger.output('[import] cannot list $path: $e');
-    }
-  }
-  result.sort((a, b) => a.path.compareTo(b.path));
   return result;
 }
 

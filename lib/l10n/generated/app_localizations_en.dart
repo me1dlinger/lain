@@ -555,7 +555,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDownloads => 'Nothing downloaded yet';
 
   @override
-  String get importPlaylist => 'Import playlist from a file';
+  String get importPlaylist => 'Import playlist';
 
   @override
   String get enterPath => 'Enter a path';

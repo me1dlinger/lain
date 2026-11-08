@@ -555,7 +555,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noDownloads => '还没有下载记录';
 
   @override
-  String get importPlaylist => '从文件导入歌单';
+  String get importPlaylist => '导入歌单';
 
   @override
   String get enterPath => '手动输入路径';

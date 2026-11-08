@@ -226,7 +226,7 @@
   "downloaded": "Downloaded",
   "downloadFailed": "Download failed",
   "noDownloads": "Nothing downloaded yet",
-  "importPlaylist": "Import playlist from a file",
+  "importPlaylist": "Import playlist",
   "enterPath": "Enter a path",
   "importedSongs": "Imported songs:",
   "noMatchingSongs": "No song in the library matches the file",

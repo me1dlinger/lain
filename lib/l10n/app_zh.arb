@@ -177,7 +177,7 @@
   "downloaded": "已下载",
   "downloadFailed": "下载失败",
   "noDownloads": "还没有下载记录",
-  "importPlaylist": "从文件导入歌单",
+  "importPlaylist": "导入歌单",
   "enterPath": "手动输入路径",
   "importedSongs": "已导入歌曲数：",
   "noMatchingSongs": "文件里没有匹配到曲库中的歌曲",
