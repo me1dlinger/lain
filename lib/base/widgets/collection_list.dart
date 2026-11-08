@@ -23,6 +23,9 @@ abstract class CollectionList extends StatefulWidget {
 }
 
 abstract class CollectionListState extends State<CollectionList> {
+  /// Extra entries for this layer's "more" sheet; layers that need none leave
+  /// it alone.
+  List<Widget> sheetExtras(BuildContext context) => const [];
   final GlobalKey<NavigatorState> globalKey = GlobalKey();
   final visibleNotifier = ValueNotifier(true);
 

@@ -161,6 +161,7 @@ extension _CollectionListPage on CollectionListState {
                     );
                   },
                 ),
+                ...sheetExtras(context),
               ],
             ),
           ),

@@ -90,7 +90,17 @@ List<MyAudioMetadata> filterSongList(
   }).toList();
 }
 
-void sortSongList(int sortType, List<MyAudioMetadata> songList) {
+/// Sorts [songList] by [sortType].
+///
+/// [addedOrder] is the list's own order of addition, oldest first, for lists
+/// that store one (a local playlist keeps its newest song first): inside such a
+/// list "added time" means when the song joined *it*, not when its file was
+/// created. Servers report a per-entry `created` and pass nothing here.
+void sortSongList(
+  int sortType,
+  List<MyAudioMetadata> songList, {
+  List<MyAudioMetadata>? addedOrder,
+}) {
   switch (sortType) {
     case 1: // Title Ascending
       songList.sort((a, b) {
@@ -243,6 +253,16 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
       songList.shuffle();
       break;
     case 13: // added time Ascending
+      if (addedOrder != null) {
+        final position = {
+          for (var index = 0; index < addedOrder.length; index++)
+            addedOrder[index]: index,
+        };
+        songList.sort(
+          (a, b) => (position[a] ?? 0).compareTo(position[b] ?? 0),
+        );
+        break;
+      }
       songList.sort((a, b) {
         // `created` is the file's creation time for local files, the server's
         // `created` field for Navidrome; fall back to the modified time so the
@@ -271,6 +291,16 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
       });
       break;
     case 14: // added time Descending
+      if (addedOrder != null) {
+        final position = {
+          for (var index = 0; index < addedOrder.length; index++)
+            addedOrder[index]: index,
+        };
+        songList.sort(
+          (a, b) => (position[b] ?? 0).compareTo(position[a] ?? 0),
+        );
+        break;
+      }
       songList.sort((a, b) {
         return (b.created ?? b.modified ?? DateTime(1970)).compareTo(
           a.created ?? a.modified ?? DateTime(1970),

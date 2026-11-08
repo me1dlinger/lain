@@ -1110,6 +1110,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @importPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Import playlist from a file'**
+  String get importPlaylist;
+
+  /// No description provided for @enterPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a path'**
+  String get enterPath;
+
+  /// No description provided for @importedSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported songs:'**
+  String get importedSongs;
+
+  /// No description provided for @noMatchingSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'No song in the library matches the file'**
+  String get noMatchingSongs;
+
+  /// No description provided for @fileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'File not found'**
+  String get fileNotFound;
+
   /// No description provided for @mostPlayed.
   ///
   /// In en, this message translates to:

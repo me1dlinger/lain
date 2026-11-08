@@ -528,6 +528,21 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get importPlaylist => '从文件导入歌单';
+
+  @override
+  String get enterPath => '手动输入路径';
+
+  @override
+  String get importedSongs => '已导入歌曲数：';
+
+  @override
+  String get noMatchingSongs => '文件里没有匹配到曲库中的歌曲';
+
+  @override
+  String get fileNotFound => '找不到该文件';
+
+  @override
   String get mostPlayed => '播放次数倒序';
 
   @override

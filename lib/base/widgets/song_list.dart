@@ -356,7 +356,11 @@ class _SongListState extends State<SongList> {
     } else if (isLibrary) {
       canModify = library.canModify;
     }
-    sortSongList(sortTypeNotifier.value, currentSongList);
+    sortSongList(
+      sortTypeNotifier.value,
+      currentSongList,
+      addedOrder: playlistAddedOrder,
+    );
     currentSongListNotifier.value = currentSongList;
 
     if (searchValue.isEmpty) {
@@ -366,6 +370,17 @@ class _SongListState extends State<SongList> {
           ? null
           : currentSongList.first;
     }
+  }
+
+  /// The order the songs of a locally-built playlist were added in, oldest
+  /// first: the playlist keeps them newest first, and the servers report a
+  /// per-entry `created` instead.
+  List<MyAudioMetadata>? get playlistAddedOrder {
+    final target = playlist;
+    if (target == null || isStreamSource) {
+      return null;
+    }
+    return target.songList.reversed.toList();
   }
 
   void startNewSearchIfNeed() {

@@ -528,6 +528,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get importPlaylist => 'Import playlist from a file';
+
+  @override
+  String get enterPath => 'Enter a path';
+
+  @override
+  String get importedSongs => 'Imported songs:';
+
+  @override
+  String get noMatchingSongs => 'No song in the library matches the file';
+
+  @override
+  String get fileNotFound => 'File not found';
+
+  @override
   String get mostPlayed => 'Most played';
 
   @override

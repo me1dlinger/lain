@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/widgets/collection_list.dart';
+import 'package:sylvakru/base/widgets/playlist_widgets.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/asset_images.dart';
@@ -36,6 +38,30 @@ class _PlaylistsLayerState extends CollectionListState {
 
   @override
   String get label => 'playlists';
+
+  @override
+  List<Widget> sheetExtras(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // Importing a list of file paths only means something for a local library.
+    if (isStreamSource) {
+      return const [];
+    }
+    return [
+      ListTile(
+        leading: ImageIcon(playlistsImage),
+        title: Text(l10n.importPlaylist),
+        onTap: () {
+          Navigator.pop(context);
+          // The sheet's own context is gone by then; the app's root navigator
+          // outlives it.
+          final rootContext = globalNavigatorKey.currentContext;
+          if (rootContext != null) {
+            showImportPlaylistDialog(rootContext);
+          }
+        },
+      ),
+    ];
+  }
 
   @override
   void updateCurrentList() {

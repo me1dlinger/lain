@@ -1,12 +1,17 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/services/home_widget_service.dart';
 import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/services/logger.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
@@ -115,6 +120,191 @@ Future<bool> showCreatePlaylistDialog(BuildContext context) async {
     return true;
   }
   return false;
+}
+
+/// Creates a playlist from a text file: the file's name (without its suffix) is
+/// the playlist's name, every line is one song's path, and lines that match no
+/// song are skipped.
+///
+/// The songs go in from the *last* line backwards, because a playlist keeps its
+/// newest song first: that way the file's first line ends up as the newest
+/// entry, so reading the playlist by added time (newest first) gives the file
+/// back in the order it was written.
+Future<void> showImportPlaylistDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+
+  if (Loader.busy) {
+    showCenterMessage(l10n.syncingTryLater);
+    return;
+  }
+
+  final files = await _candidateImportFiles();
+  if (!context.mounted) {
+    return;
+  }
+
+  final chosen = await showAnimationDialog<String>(
+    context: context,
+    child: SizedBox(
+      width: 320,
+      height: 380,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 40,
+            child: Center(
+              child: Text(
+                l10n.importPlaylist,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          MyDivider(thickness: 0.5, height: 1, color: dividerColor),
+          Expanded(
+            child: ListView(
+              children: [
+                for (final file in files)
+                  ListTile(
+                    leading: ImageIcon(playlistsImage, size: 22),
+                    title: Text(
+                      file.path.substring(
+                        file.path.lastIndexOf(Platform.pathSeparator) + 1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      file.parent.path,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    onTap: () => Navigator.pop(context, file.path),
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined, size: 22),
+                  title: Text(l10n.enterPath),
+                  onTap: () async {
+                    final path = await getInputTextDialog(
+                      context,
+                      l10n.enterPath,
+                      needConfirm: false,
+                    );
+                    if (!context.mounted) {
+                      return;
+                    }
+                    if (path.trim().isNotEmpty) {
+                      Navigator.pop(context, path.trim());
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (chosen == null || chosen.isEmpty) {
+    return;
+  }
+
+  final file = File(chosen);
+  if (!await file.exists()) {
+    showCenterMessage(l10n.fileNotFound);
+    return;
+  }
+
+  final content = await file.readAsString();
+  final paths = [
+    for (final line in content.split(RegExp(r'
+?
+')))
+      if (line.trim().isNotEmpty && !line.trim().startsWith('#')) line.trim(),
+  ];
+
+  final songs = _matchSongs(paths);
+  if (songs.isEmpty) {
+    showCenterMessage(l10n.noMatchingSongs);
+    return;
+  }
+
+  var name = file.uri.pathSegments.last;
+  final dot = name.lastIndexOf('.');
+  if (dot > 0) {
+    name = name.substring(0, dot);
+  }
+
+  final playlist =
+      playlistManager.playlistMap[name] ?? Playlist(name: name, id: null);
+  if (playlistManager.playlistMap[name] == null) {
+    playlistManager.addPlaylist(playlist);
+  }
+
+  // Reversed: see the note above about the order.
+  await playlist.add(songs.reversed.toList());
+
+  showCenterMessage('${l10n.importedSongs} ${songs.length}');
+}
+
+/// The songs named by [paths], in the order they appear, skipping the ones that
+/// match nothing. A path is looked up as it is, then by its file name, so a list
+/// written on another device still lands.
+List<MyAudioMetadata> _matchSongs(List<String> paths) {
+  final byName = <String, MyAudioMetadata>{};
+  for (final song in library.songList) {
+    final path = song.path;
+    if (path == null || path.isEmpty) {
+      continue;
+    }
+    final index = path.lastIndexOf(Platform.pathSeparator);
+    final name = index == -1 ? path : path.substring(index + 1);
+    byName.putIfAbsent(name.toLowerCase(), () => song);
+  }
+
+  final result = <MyAudioMetadata>[];
+  for (final path in paths) {
+    final exact = library.id2Song[path];
+    if (exact != null) {
+      result.add(exact);
+      continue;
+    }
+    final index = path.lastIndexOf(Platform.pathSeparator);
+    final name = index == -1 ? path : path.substring(index + 1);
+    final matched = byName[name.toLowerCase()];
+    if (matched != null) {
+      result.add(matched);
+    }
+  }
+  return result;
+}
+
+/// Text files the user is likely to drop a playlist into.
+Future<List<File>> _candidateImportFiles() async {
+  final result = <File>[];
+  for (final path in const [
+    '/storage/emulated/0/Download',
+    '/storage/emulated/0/Documents',
+    '/storage/emulated/0/Music',
+    '/storage/emulated/0/音乐',
+  ]) {
+    final dir = Directory(path);
+    if (!await dir.exists()) {
+      continue;
+    }
+    try {
+      await for (final entry in dir.list()) {
+        if (entry is File && entry.path.toLowerCase().endsWith('.txt')) {
+          result.add(entry);
+        }
+      }
+    } catch (e) {
+      logger.output('[import] cannot list $path: $e');
+    }
+  }
+  result.sort((a, b) => a.path.compareTo(b.path));
+  return result;
 }
 
 void showAddPlaylistDialog(
