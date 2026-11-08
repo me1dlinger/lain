@@ -26,7 +26,7 @@ Library library = Library();
 
 final ValueNotifier<double> cacheSizeNotifier = ValueNotifier(0);
 
-enum CacheKind { song, cover, lyric }
+enum CacheKind { song, cover, lyric, list }
 
 /// One file inside the source's cache directories, with the song it belongs to
 /// when that can be resolved (cache files are named after the md5 of a song or
@@ -252,7 +252,8 @@ class Library {
 
   Future<void> _accumulateCache() async {
     final entries = <CacheEntry>[];
-    var total = 0;
+    var totalBytes = 0;
+    int totalOf() => totalBytes;
 
     // Cache files are named md5(song id) / md5(cover id), so map them back to
     // the songs to show something readable in the cache detail view.
@@ -271,7 +272,7 @@ class Library {
           continue;
         }
         final stat = await file.stat();
-        total += stat.size;
+        totalBytes += stat.size;
         final name = file.path.substring(
           file.path.lastIndexOf(Platform.pathSeparator) + 1,
         );
@@ -291,9 +292,43 @@ class Library {
     await collect(getPicturesPath(sourceType), CacheKind.cover);
     await collect(getLrcPath(sourceType), CacheKind.lyric);
 
+    // And the lists themselves: the database the library, artist, album and
+    // playlist pages are built from, plus the sidecars holding a playlist's
+    // songs, the folder list and the servers' added times. Opening a list reads
+    // these; the server is only asked during a sync.
+    final sourceDir = Directory('${appSupportDir.path}/${sourceType.name}');
+    if (await sourceDir.exists()) {
+      await for (final file in sourceDir.list()) {
+        if (file is! File) {
+          continue;
+        }
+        final name = file.path.substring(
+          file.path.lastIndexOf(Platform.pathSeparator) + 1,
+        );
+        // `metadata.db` is a SQLite database: its write-ahead files belong to it.
+        if (name.startsWith('metadata.db') || name == 'created_times.json') {
+          if (file.path.endsWith('.part')) {
+            continue;
+          }
+          final stat = await file.stat();
+          totalBytes += stat.size;
+          entries.add(
+            CacheEntry(
+              kind: CacheKind.list,
+              path: file.path,
+              size: stat.size,
+              modified: stat.modified,
+            ),
+          );
+        }
+      }
+    }
+    await collect(getPlaylistConfigPath(sourceType), CacheKind.list);
+    await collect(getFolderConfigPath(sourceType), CacheKind.list);
+
     entries.sort((a, b) => b.size.compareTo(a.size));
     cacheEntriesNotifier.value = entries;
-    cacheSizeNotifier.value = total / (1024 * 1024);
+    cacheSizeNotifier.value = totalOf() / (1024 * 1024);
   }
 
   /// Removes a single cached file and keeps the song's state in sync.
@@ -312,8 +347,28 @@ class Library {
       entry.song?.cacheExist = false;
     } else if (entry.kind == CacheKind.lyric) {
       entry.song?.parsedLyrics = null;
+    } else if (entry.kind == CacheKind.list) {
+      _forgetSyncIfListsAreGone(entry);
     }
     await _accumulateCache();
+  }
+
+  /// The metadata database is what a streamed source shows at launch; with it
+  /// gone the app must fetch again, and that is exactly what the marker file
+  /// `synced.keep` suppresses. Dropping this file has to drop the marker with
+  /// it, or the next launch would come up with an empty library instead.
+  void _forgetSyncIfListsAreGone(CacheEntry entry) {
+    final name = entry.fileName;
+    final isTheLibrary =
+        name.startsWith('metadata.db') || name.startsWith('created_times');
+    if (!isTheLibrary) {
+      return;
+    }
+
+    final marker = File(getSyncedFilePath(sourceType));
+    if (marker.existsSync()) {
+      marker.deleteSync();
+    }
   }
 
   Future<void> tryAddCache(MyAudioMetadata song) async {
@@ -705,5 +760,8 @@ class Library {
 
     canModify = true;
     _syncNotify();
+
+    // What was just written is what the cache view reports.
+    await _accumulateCache();
   }
 }

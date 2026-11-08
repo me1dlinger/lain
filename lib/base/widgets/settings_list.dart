@@ -1107,6 +1107,8 @@ String _cacheKindLabel(AppLocalizations l10n, CacheKind kind) {
       return l10n.cacheCovers;
     case CacheKind.lyric:
       return l10n.cacheLyrics;
+    case CacheKind.list:
+      return l10n.cacheLists;
   }
 }
 
@@ -1148,6 +1150,7 @@ Future<void> showCacheDetailDialog(
                 final songs = entries.where((e) => e.kind == CacheKind.song);
                 final covers = entries.where((e) => e.kind == CacheKind.cover);
                 final lyrics = entries.where((e) => e.kind == CacheKind.lyric);
+                final lists = entries.where((e) => e.kind == CacheKind.list);
 
                 Widget line(String label, Iterable<CacheEntry> group) {
                   return Padding(
@@ -1166,6 +1169,7 @@ Future<void> showCacheDetailDialog(
                     line(l10n.cacheSongs, songs),
                     line(l10n.cacheCovers, covers),
                     line(l10n.cacheLyrics, lyrics),
+                    line(l10n.cacheLists, lists),
                     const Divider(height: 12),
                     line(l10n.cacheTotal, entries),
                   ],

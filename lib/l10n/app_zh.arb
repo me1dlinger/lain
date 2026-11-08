@@ -168,6 +168,8 @@
   "popularSongs": "热门歌曲",
   "popularAlbums": "热门专辑",
   "timesUnit": "次",
+  "mostPlayed": "播放次数倒序",
+  "cacheLists": "列表缓存",
   "added2Next": "已添加到下一首播放",
   "homeLayout": "主页设置",
   "homeTopButtons": "最顶部的按钮",

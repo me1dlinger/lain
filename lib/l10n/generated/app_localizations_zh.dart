@@ -528,6 +528,12 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get timesUnit => '次';
   @override
+  String get mostPlayed => '播放次数倒序';
+
+  @override
+  String get cacheLists => '列表缓存';
+
+  @override
   String get added2Next => '已添加到下一首播放';
 
   @override

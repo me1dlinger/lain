@@ -307,6 +307,22 @@ extension _SongListPanel on _SongListState {
                                                       ? Icon(Icons.check)
                                                       : null,
                                                 ),
+                                                if (sourceType == .navidrome ||
+                                                    sourceType == .emby)
+                                                  ListTile(
+                                                    title: Text(l10n.mostPlayed),
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      sortTypeNotifier.value =
+                                                          17;
+                                                    },
+                                                    trailing:
+                                                        sortTypeNotifier.value ==
+                                                            17
+                                                        ? Icon(Icons.check)
+                                                        : null,
+                                                  ),
+
                                                 if (isLibrary && isNotStreamSource ||
                                                     folder != null) ...[
                                                   ListTile(

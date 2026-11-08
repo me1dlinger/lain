@@ -1110,6 +1110,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+  /// No description provided for @mostPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most played'**
+  String get mostPlayed;
+
+  /// No description provided for @cacheLists.
+  ///
+  /// In en, this message translates to:
+  /// **'List cache'**
+  String get cacheLists;
+
   /// No description provided for @added2Next.
   ///
   /// In en, this message translates to:

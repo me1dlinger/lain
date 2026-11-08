@@ -138,6 +138,10 @@ extension _SongListPage on _SongListState {
                       (l10n.durationDescending, 8),
                       (l10n.addedTimeAscending, 13),
                       (l10n.addedTimeDescending, 14),
+                      // Only the servers report a play count; Navidrome and
+                      // Emby both do, Feiniu has no such field.
+                      if (sourceType == .navidrome || sourceType == .emby)
+                        (l10n.mostPlayed, 17),
                       // Track order only has a meaning inside an album, so these
                       // two are offered there and nowhere else.
                       if (widget.album != null) ...[

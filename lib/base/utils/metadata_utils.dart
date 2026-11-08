@@ -262,6 +262,14 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
         return (b.track ?? 9999).compareTo(a.track ?? 9999);
       });
       break;
+    case 17: // play count Descending
+      // The counter the server keeps (Navidrome's and Emby's own, what their
+      // native "sort by playCount" endpoints order by) - not the app's own
+      // history.
+      songList.sort((a, b) {
+        return b.playCount.compareTo(a.playCount);
+      });
+      break;
     case 14: // added time Descending
       songList.sort((a, b) {
         return (b.created ?? b.modified ?? DateTime(1970)).compareTo(

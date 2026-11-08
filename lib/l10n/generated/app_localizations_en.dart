@@ -528,6 +528,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timesUnit => 'times';
   @override
+  String get mostPlayed => 'Most played';
+
+  @override
+  String get cacheLists => 'List cache';
+
+  @override
   String get added2Next => 'Playing next';
 
   @override

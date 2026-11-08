@@ -217,6 +217,8 @@
   "popularSongs": "Top Songs",
   "popularAlbums": "Top Albums",
   "timesUnit": "times",
+  "mostPlayed": "Most played",
+  "cacheLists": "List cache",
   "added2Next": "Playing next",
   "homeLayout": "Home layout",
   "homeTopButtons": "Top buttons",
