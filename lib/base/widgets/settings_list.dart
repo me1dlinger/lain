@@ -1222,7 +1222,7 @@ Future<void> showCacheDetailDialog(
                   return ListView(
                     children: [
                       for (final cached in songs)
-                        cachedSongTile(context, l10n, cached),
+                        _cachedSongTile(context, l10n, cached),
                       if (lists.isNotEmpty) ...[
                         const Divider(height: 12),
                         ListTile(
@@ -1279,7 +1279,7 @@ Future<void> showCacheDetailDialog(
 
 /// One cached song: what is on disk (song / cover / lyrics), how big it is, a
 /// detail view, and a delete that asks first.
-Widget cachedSongTile(
+Widget _cachedSongTile(
   BuildContext context,
   AppLocalizations l10n,
   CachedSong cached,
@@ -1307,7 +1307,7 @@ Widget cachedSongTile(
       overflow: TextOverflow.ellipsis,
     ),
     subtitle: Text(
-      '${cachedTags(l10n, cached)} · '
+      '${_cachedTags(l10n, cached)} · '
       '${(cached.size / (1024 * 1024)).toStringAsFixed(1)}MB',
     ),
     onTap: () => showCachedSongDialog(context, l10n, cached),
@@ -1325,7 +1325,7 @@ Widget cachedSongTile(
 }
 
 /// Which parts of a song are cached, as short tags - only the ones present.
-String cachedTags(AppLocalizations l10n, CachedSong cached) {
+String _cachedTags(AppLocalizations l10n, CachedSong cached) {
   final tags = <String>[
     if (cached.hasCover) l10n.cacheTagCover,
     if (cached.hasLyric) l10n.cacheTagLyric,

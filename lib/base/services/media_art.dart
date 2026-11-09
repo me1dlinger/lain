@@ -1,9 +1,68 @@
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/utils/path.dart';
+
+/// What a background isolate needs to make the small copy.
+class MediaArtRequest {
+  final Uint8List bytes;
+  final int maxSide;
+  final int quality;
+
+  const MediaArtRequest({
+    required this.bytes,
+    required this.maxSide,
+    required this.quality,
+  });
+}
+
+/// The encoded copy, or null when the bytes are not an image at all.
+class MediaArtResult {
+  final Uint8List? bytes;
+  final int width;
+  final int height;
+
+  const MediaArtResult(this.bytes, this.width, this.height);
+}
+
+/// Decodes, downscales and re-encodes one cover.
+///
+/// Top-level (and run through [compute]) on purpose: a multi-megabyte cover
+/// takes long enough to decode that doing it on the UI isolate would hitch the
+/// app, and this runs for prefetched tracks too.
+MediaArtResult downscaleMediaArt(MediaArtRequest request) {
+  final decoded = img.decodeImage(request.bytes);
+  if (decoded == null) {
+    return const MediaArtResult(null, 0, 0);
+  }
+
+  final longest = decoded.width > decoded.height
+      ? decoded.width
+      : decoded.height;
+  if (longest <= request.maxSide) {
+    final encoded = img.encodeJpg(decoded, quality: request.quality);
+    return MediaArtResult(encoded, decoded.width, decoded.height);
+  }
+
+  final scale = request.maxSide / longest;
+  final width = (decoded.width * scale).round();
+  final height = (decoded.height * scale).round();
+  final fitted = img.copyResize(
+    decoded,
+    width: width,
+    height: height,
+    interpolation: img.Interpolation.average,
+  );
+  return MediaArtResult(
+    img.encodeJpg(fitted, quality: request.quality),
+    width,
+    height,
+  );
+}
 
 /// A small copy of a cached cover, for the media session.
 ///
@@ -57,17 +116,23 @@ class MediaArt {
         }
       }
 
-      final decoded = img.decodeImage(await source.readAsBytes());
-      if (decoded == null) {
+      final result = await compute(
+        downscaleMediaArt,
+        MediaArtRequest(
+          bytes: await source.readAsBytes(),
+          maxSide: maxSide,
+          quality: quality,
+        ),
+      );
+      if (result.bytes == null) {
         return null;
       }
 
-      final resized = _fit(decoded);
       await target.create(recursive: true);
-      await target.writeAsBytes(img.encodeJpg(resized, quality: quality));
+      await target.writeAsBytes(result.bytes!);
       _ready[coverPath] = target.path;
       logger.output(
-        '[media] art ${resized.width}x${resized.height} '
+        '[media] art ${result.width}x${result.height} '
         '${await target.length()}B for $coverPath',
       );
       return target.path;
@@ -77,20 +142,6 @@ class MediaArt {
     } finally {
       _pending.remove(coverPath);
     }
-  }
-
-  img.Image _fit(img.Image decoded) {
-    final longest = decoded.width > decoded.height ? decoded.width : decoded.height;
-    if (longest <= maxSide) {
-      return decoded;
-    }
-    final scale = maxSide / longest;
-    return img.copyResize(
-      decoded,
-      width: (decoded.width * scale).round(),
-      height: (decoded.height * scale).round(),
-      interpolation: img.Interpolation.average,
-    );
   }
 
   /// Kept beside the covers, under the cover's own file name, so clearing the

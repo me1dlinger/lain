@@ -273,9 +273,12 @@ class Library {
     await _accumulateCache();
 
     // Warm the playlist-level lists (a few hundred songs at most) so the media
-    // session has artwork and lyrics ready without the user asking. Idempotent,
-    // so it costs nothing the second time round.
-    unawaited(precachePlaylists());
+    // session has artwork and lyrics ready without the user asking. Phones only:
+    // it exists for what a head unit shows, and a desktop has nothing to feed.
+    // Idempotent, so it costs nothing the second time round.
+    if (isMobile) {
+      unawaited(precachePlaylists());
+    }
   }
 
   /// A server's `created` value is not part of the metadata database either;

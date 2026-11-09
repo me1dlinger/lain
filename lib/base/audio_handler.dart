@@ -725,7 +725,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
   /// Warms the artwork and lyrics of the tracks either side of the current one,
   /// so going next or previous shows both at once instead of after a download.
+  ///
+  /// Only worth doing on a phone, where something other than this app displays
+  /// them (a head unit); on a desktop it would just do work for nothing.
   void _prefetchNeighbours() {
+    if (!isMobile) {
+      return;
+    }
     for (final delta in const [1, -1]) {
       final neighbour = currentIndex + delta;
       if (neighbour < 0 || neighbour >= playQueue.length) {
@@ -917,11 +923,12 @@ class MyAudioHandler extends BaseAudioHandler {
     _publishedLyric = null;
     updateServiceMediaItem(currentSong);
 
-    // Lyrics and the artwork are what a head unit shows, so both are fetched
-    // before the stream starts: a track that plays for fifteen seconds with
-    // nothing on screen is worse than a short wait. The neighbouring tracks were
-    // preheated, so this normally returns at once.
-    final prepared = await _prepareForPlayback(currentSong);
+    // Lyrics and the artwork are what a head unit shows, so on a phone both are
+    // fetched before the stream starts: a track that plays for fifteen seconds
+    // with nothing on screen is worse than a short wait. The neighbouring tracks
+    // were preheated, so this normally returns at once. On a desktop there is no
+    // head unit to keep waiting for, so playback is not held back at all.
+    final prepared = isMobile ? await _prepareForPlayback(currentSong) : true;
 
     // The artwork's colour is cosmetic, so it is computed on its own and never
     // holds the stream back.
