@@ -308,7 +308,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget cleanCacheListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(cacheImage, size: iconSize),
-      title: Text(l10n.clearCache),
+      title: Text(l10n.viewCache),
       onTap: () => showCacheDetailDialog(context, l10n),
       trailing: ValueListenableBuilder(
         valueListenable: cacheSizeNotifier,
@@ -1134,8 +1134,9 @@ String _cacheKindLabel(AppLocalizations l10n, CacheKind kind) {
   }
 }
 
-/// Per-source cache contents: what is on disk, how big it is, and a way to drop
-/// individual files instead of only being able to wipe everything.
+/// Per-source cache contents: one row per song, showing which parts are on
+/// disk, with a detail view (cover and lyrics) and a way to drop a single
+/// song's files or the whole cache.
 Future<void> showCacheDetailDialog(
   BuildContext context,
   AppLocalizations l10n,
@@ -1153,7 +1154,7 @@ Future<void> showCacheDetailDialog(
     context: context,
     child: SizedBox(
       width: 340,
-      height: 460,
+      height: 480,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1165,36 +1166,44 @@ Future<void> showCacheDetailDialog(
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: ValueListenableBuilder(
+                    valueListenable: cacheEntriesNotifier,
+                    builder: (context, entries, child) {
+                      return Text(
+                        '${entries.length} · ${_cacheMb(entries)}',
+                        style: TextStyle(fontSize: 12),
+                      );
+                    },
+                  ),
+                ),
+                ValueListenableBuilder(
+                  valueListenable: precacheProgressNotifier,
+                  builder: (context, progress, child) {
+                    if (progress == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      '${progress.$1}/${progress.$2}',
+                      style: TextStyle(fontSize: 12),
+                    );
+                  },
+                ),
+              ],
+            ),
             ValueListenableBuilder(
-              valueListenable: cacheEntriesNotifier,
-              builder: (context, entries, child) {
-                final songs = entries.where((e) => e.kind == CacheKind.song);
-                final covers = entries.where((e) => e.kind == CacheKind.cover);
-                final lyrics = entries.where((e) => e.kind == CacheKind.lyric);
-                final lists = entries.where((e) => e.kind == CacheKind.list);
-
-                Widget line(String label, Iterable<CacheEntry> group) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 1),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(label)),
-                        Text('${group.length} · ${_cacheMb(group)}'),
-                      ],
-                    ),
-                  );
+              valueListenable: precacheProgressNotifier,
+              builder: (context, progress, child) {
+                if (progress == null) {
+                  return const SizedBox.shrink();
                 }
-
-                return Column(
-                  children: [
-                    line(l10n.cacheSongs, songs),
-                    line(l10n.cacheCovers, covers),
-                    line(l10n.cacheLyrics, lyrics),
-                    line(l10n.cacheLists, lists),
-                    const Divider(height: 12),
-                    line(l10n.cacheTotal, entries),
-                  ],
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: LinearProgressIndicator(
+                    value: progress.$2 == 0 ? null : progress.$1 / progress.$2,
+                  ),
                 );
               },
             ),
@@ -1203,55 +1212,193 @@ Future<void> showCacheDetailDialog(
               child: ValueListenableBuilder(
                 valueListenable: cacheEntriesNotifier,
                 builder: (context, entries, child) {
-                  if (entries.isEmpty) {
+                  final songs = groupCacheBySong(entries);
+                  final lists = entries
+                      .where((entry) => entry.kind == CacheKind.list)
+                      .toList();
+                  if (songs.isEmpty && lists.isEmpty) {
                     return Center(child: Text(l10n.cacheEmpty));
                   }
-                  return ListView.builder(
-                    itemCount: entries.length,
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      final song = entry.song;
-                      return ListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          song == null ? entry.fileName : getTitle(song),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  return ListView(
+                    children: [
+                      for (final cached in songs)
+                        cachedSongTile(context, l10n, cached),
+                      if (lists.isNotEmpty) ...[
+                        const Divider(height: 12),
+                        ListTile(
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          title: Text(_cacheKindLabel(l10n, CacheKind.list)),
+                          subtitle: Text('${lists.length} · ${_cacheMb(lists)}'),
                         ),
-                        subtitle: Text(
-                          '${_cacheKindLabel(l10n, entry.kind)} · '
-                          '${(entry.size / (1024 * 1024)).toStringAsFixed(1)}MB',
-                        ),
-                        trailing: IconButton(
-                          tooltip: l10n.removeCache,
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () async {
-                            await library.deleteCacheEntry(entry);
-                          },
-                        ),
-                      );
-                    },
+                      ],
+                    ],
                   );
                 },
               ),
             ),
             const Divider(height: 12),
-            TextButton(
-              onPressed: () async {
-                if (!await showConfirmDialog(context, l10n.clear)) {
-                  return;
-                }
-                showCenterLoading();
-                layersManager.clearDataLayers();
-                audioHandler.clear();
-                await library.clearCache();
-                await library.clearPicture();
-                await library.clearLrcCache();
-                playlistManager.updateNotifier.value++;
-                removeCenterLoading();
-              },
-              child: Text(l10n.clear),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    if (!await showConfirmDialog(context, l10n.precacheAll)) {
+                      return;
+                    }
+                    showCenterLoading();
+                    await library.precacheSongs(library.songList);
+                    removeCenterLoading();
+                  },
+                  child: Text(l10n.precacheAll),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () async {
+                    if (!await showConfirmDialog(context, l10n.clear)) {
+                      return;
+                    }
+                    showCenterLoading();
+                    layersManager.clearDataLayers();
+                    audioHandler.clear();
+                    await library.clearCache();
+                    await library.clearPicture();
+                    await library.clearLrcCache();
+                    playlistManager.updateNotifier.value++;
+                    removeCenterLoading();
+                  },
+                  child: Text(l10n.clear),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// One cached song: what is on disk (song / cover / lyrics), how big it is, a
+/// detail view, and a delete that asks first.
+Widget cachedSongTile(
+  BuildContext context,
+  AppLocalizations l10n,
+  CachedSong cached,
+) {
+  final cover = cached.cover;
+  return ListTile(
+    dense: true,
+    visualDensity: VisualDensity.compact,
+    leading: cover == null
+        ? const Icon(Icons.music_note, size: 20)
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Image.file(
+              File(cover.path),
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) =>
+                  const Icon(Icons.music_note, size: 20),
+            ),
+          ),
+    title: Text(
+      getTitle(cached.song),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    subtitle: Text(
+      '${cachedTags(l10n, cached)} · '
+      '${(cached.size / (1024 * 1024)).toStringAsFixed(1)}MB',
+    ),
+    onTap: () => showCachedSongDialog(context, l10n, cached),
+    trailing: IconButton(
+      tooltip: l10n.removeCache,
+      icon: const Icon(Icons.delete_outline),
+      onPressed: () async {
+        if (!await showConfirmDialog(context, l10n.removeCache)) {
+          return;
+        }
+        await library.deleteCachedSong(cached);
+      },
+    ),
+  );
+}
+
+/// Which parts of a song are cached, as short tags - only the ones present.
+String cachedTags(AppLocalizations l10n, CachedSong cached) {
+  final tags = <String>[
+    if (cached.hasCover) l10n.cacheTagCover,
+    if (cached.hasLyric) l10n.cacheTagLyric,
+    if (cached.hasAudio) l10n.cacheTagAudio,
+  ];
+  return tags.isEmpty ? l10n.cacheEmpty : tags.join(' · ');
+}
+
+/// What one cached song actually holds: the cover image and the lyrics.
+Future<void> showCachedSongDialog(
+  BuildContext context,
+  AppLocalizations l10n,
+  CachedSong cached,
+) async {
+  final cover = cached.cover;
+  final lyric = cached.lyric;
+
+  var lyrics = '';
+  if (lyric != null) {
+    final file = File(lyric.path);
+    if (await file.exists()) {
+      lyrics = await file.readAsString();
+    }
+  }
+  if (!context.mounted) {
+    return;
+  }
+
+  showAnimationDialog(
+    context: context,
+    child: SizedBox(
+      width: 340,
+      height: 460,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Text(
+              getTitle(cached.song),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              getArtist(cached.song),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            if (cover != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  File(cover.path),
+                  height: 160,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => const SizedBox(
+                    height: 160,
+                    child: Icon(Icons.broken_image),
+                  ),
+                ),
+              )
+            else
+              Text('${l10n.cacheTagCover}: -'),
+            const SizedBox(height: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(
+                  lyrics.isEmpty ? l10n.noLyrics : lyrics,
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
             ),
           ],
         ),

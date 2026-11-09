@@ -530,16 +530,16 @@ abstract class AppLocalizations {
   /// **'Add to Queue'**
   String get add2Queue;
 
-  /// No description provided for @editMetadata.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Metadata'**
   /// No description provided for @edit.
   ///
   /// In en, this message translates to:
   /// **'Edit'**
   String get edit;
 
+  /// No description provided for @editMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Metadata'**
   String get editMetadata;
 
   /// No description provided for @add2Playlist.
@@ -1087,6 +1087,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Path'**
   String get serverPath;
+
   /// No description provided for @noData.
   ///
   /// In en, this message translates to:
@@ -1110,6 +1111,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'times'**
   String get timesUnit;
+
   /// No description provided for @rename.
   ///
   /// In en, this message translates to:
@@ -1164,6 +1166,12 @@ abstract class AppLocalizations {
   /// **'Download failed'**
   String get downloadFailed;
 
+  /// No description provided for @playFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback failed'**
+  String get playFailed;
+
   /// No description provided for @noDownloads.
   ///
   /// In en, this message translates to:
@@ -1173,7 +1181,7 @@ abstract class AppLocalizations {
   /// No description provided for @importPlaylist.
   ///
   /// In en, this message translates to:
-  /// **'Import playlist from a file'**
+  /// **'Import playlist'**
   String get importPlaylist;
 
   /// No description provided for @enterPath.
@@ -1211,6 +1219,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'List cache'**
   String get cacheLists;
+
+  /// No description provided for @viewCache.
+  ///
+  /// In en, this message translates to:
+  /// **'View Cache'**
+  String get viewCache;
+
+  /// No description provided for @cacheTagAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Song'**
+  String get cacheTagAudio;
+
+  /// No description provided for @cacheTagCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get cacheTagCover;
+
+  /// No description provided for @cacheTagLyric.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics'**
+  String get cacheTagLyric;
+
+  /// No description provided for @precacheAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache Every Song'**
+  String get precacheAll;
 
   /// No description provided for @added2Next.
   ///
@@ -1337,8 +1375,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Local music'**
   String get localMusic;
-
-
 
   /// No description provided for @serverAddress.
   ///

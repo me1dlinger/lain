@@ -14,7 +14,12 @@ class PictureLoadScheduler {
   final Set<String> _scheduled = {};
   final Set<int> _needRun = {};
 
-  Future<void> load(String id, Future<void> Function() loader, int? widgetId) {
+  Future<void> load(
+    String id,
+    Future<void> Function() loader,
+    int? widgetId, {
+    bool priority = false,
+  }) {
     final completer = _pictureCompleterMap.putIfAbsent(
       id,
       () => Completer<void>(),
@@ -23,18 +28,24 @@ class PictureLoadScheduler {
     if (widgetId != null) {
       _needRun.add(widgetId);
     }
-    _queue.add(
-      _Task(widgetId, () async {
-        if (!_scheduled.contains(id)) {
-          _scheduled.add(id);
+    final task = _Task(widgetId, () async {
+      if (!_scheduled.contains(id)) {
+        _scheduled.add(id);
 
-          await loader();
-          completer.complete();
-        }
-        _running--;
-        _schedule();
-      }),
-    );
+        await loader();
+        completer.complete();
+      }
+      _running--;
+      _schedule();
+    });
+
+    // The now-playing artwork must not queue behind the thumbnails of a list
+    // the user is scrolling: it goes to the front.
+    if (priority) {
+      _queue.insert(0, task);
+    } else {
+      _queue.add(task);
+    }
 
     _schedule();
 

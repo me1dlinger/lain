@@ -12,6 +12,9 @@ import 'package:sylvakru/base/extensions/metadata_extension.dart';
 import 'package:sylvakru/base/services/background_task_service.dart';
 import 'package:sylvakru/base/services/file_time.dart';
 import 'package:sylvakru/base/services/logger.dart';
+import 'package:sylvakru/base/services/lyric.dart';
+import 'package:sylvakru/base/services/media_art.dart';
+import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/services/picture_load_scheduler.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
@@ -54,6 +57,73 @@ class CacheEntry {
 
 /// Everything currently on disk, largest first.
 final ValueNotifier<List<CacheEntry>> cacheEntriesNotifier = ValueNotifier([]);
+
+/// How far a precache run has got, or null when none is running: (done, total).
+final precacheProgressNotifier = ValueNotifier<(int, int)?>(null);
+
+/// The cached files of one song, as a single row: its audio, its cover and its
+/// lyrics are three files on disk, but one entry to the user.
+class CachedSong {
+  final MyAudioMetadata song;
+  final CacheEntry? audio;
+  final CacheEntry? cover;
+  final CacheEntry? lyric;
+
+  const CachedSong({required this.song, this.audio, this.cover, this.lyric});
+
+  bool get hasAudio => audio != null;
+  bool get hasCover => cover != null;
+  bool get hasLyric => lyric != null;
+
+  int get size => (audio?.size ?? 0) + (cover?.size ?? 0) + (lyric?.size ?? 0);
+
+  List<CacheEntry> get files =>
+      [audio, cover, lyric].whereType<CacheEntry>().toList();
+
+  DateTime get modified {
+    var newest = DateTime.fromMillisecondsSinceEpoch(0);
+    for (final entry in files) {
+      if (entry.modified.isAfter(newest)) {
+        newest = entry.modified;
+      }
+    }
+    return newest;
+  }
+
+  CachedSong withPart(CacheKind kind, CacheEntry entry) {
+    return CachedSong(
+      song: song,
+      audio: kind == CacheKind.song ? entry : audio,
+      cover: kind == CacheKind.cover ? entry : cover,
+      lyric: kind == CacheKind.lyric ? entry : lyric,
+    );
+  }
+}
+
+/// Groups the raw cache files per song, largest first, so the cache view shows
+/// one row per song with the parts that are actually on disk.
+List<CachedSong> groupCacheBySong(List<CacheEntry> entries) {
+  final bySong = <String, CachedSong>{};
+  final order = <String>[];
+
+  for (final entry in entries) {
+    final song = entry.song;
+    if (song == null) {
+      continue;
+    }
+    final existing = bySong[song.id];
+    if (existing == null) {
+      bySong[song.id] = CachedSong(song: song).withPart(entry.kind, entry);
+      order.add(song.id);
+    } else {
+      bySong[song.id] = existing.withPart(entry.kind, entry);
+    }
+  }
+
+  final songs = [for (final id in order) bySong[id]!];
+  songs.sort((a, b) => b.size.compareTo(a.size));
+  return songs;
+}
 
 class Library {
   MetadataDB? _metadataDB;
@@ -201,6 +271,11 @@ class Library {
     }
 
     await _accumulateCache();
+
+    // Warm the playlist-level lists (a few hundred songs at most) so the media
+    // session has artwork and lyrics ready without the user asking. Idempotent,
+    // so it costs nothing the second time round.
+    unawaited(precachePlaylists());
   }
 
   /// A server's `created` value is not part of the metadata database either;
@@ -256,17 +331,34 @@ class Library {
     int totalOf() => totalBytes;
 
     // Cache files are named md5(song id) / md5(cover id), so map them back to
-    // the songs to show something readable in the cache detail view.
+    // the songs: a cover belongs to every song that uses it, and the first one
+    // is the row it is shown on (the total is still counted once).
     final byHash = <String, MyAudioMetadata>{};
+    final byCover = <String, MyAudioMetadata>{};
     for (final song in songList) {
-      byHash[md5.convert(utf8.encode(song.id)).toString()] = song;
+      byHash.putIfAbsent(
+        md5.convert(utf8.encode(song.id)).toString(),
+        () => song,
+      );
+      final coverId = song.picture.id;
+      if (coverId.isNotEmpty) {
+        byCover.putIfAbsent(
+          md5.convert(utf8.encode(coverId)).toString(),
+          () => song,
+        );
+      }
     }
 
-    Future<void> collect(String dirPath, CacheKind kind) async {
+    Future<void> collect(
+      String dirPath,
+      CacheKind kind, [
+      Map<String, MyAudioMetadata>? index,
+    ]) async {
       final dir = Directory(dirPath);
       if (!await dir.exists()) {
         return;
       }
+      final lookup = index ?? byHash;
       await for (final file in dir.list()) {
         if (file is! File || file.path.endsWith('.part')) {
           continue;
@@ -282,14 +374,14 @@ class Library {
             path: file.path,
             size: stat.size,
             modified: stat.modified,
-            song: byHash[name],
+            song: lookup[name],
           ),
         );
       }
     }
 
     await collect(getCachesPath(sourceType), CacheKind.song);
-    await collect(getPicturesPath(sourceType), CacheKind.cover);
+    await collect(getPicturesPath(sourceType), CacheKind.cover, byCover);
     await collect(getLrcPath(sourceType), CacheKind.lyric);
 
     // And the lists themselves: the database the library, artist, album and
@@ -371,6 +463,88 @@ class Library {
     }
   }
 
+  /// Removes every cached file of one song - its audio, cover and lyrics - as
+  /// one action, since the cache view shows them as a single row.
+  Future<void> deleteCachedSong(CachedSong cached) async {
+    for (final entry in cached.files) {
+      final file = File(entry.path);
+      if (await file.exists()) {
+        final size = await file.length();
+        await file.delete();
+        cacheSizeNotifier.value = (cacheSizeNotifier.value -
+                size / (1024 * 1024))
+            .clamp(0, double.infinity);
+      }
+      if (entry.kind == CacheKind.song) {
+        entry.song?.cacheExist = false;
+      } else if (entry.kind == CacheKind.lyric) {
+        entry.song?.parsedLyrics = null;
+      } else if (entry.kind == CacheKind.list) {
+        _forgetSyncIfListsAreGone(entry);
+      }
+    }
+
+    // The downscaled copy belongs to the cover it was made from.
+    final cover = cached.cover;
+    if (cover != null) {
+      final small = File(mediaArt.targetPathFor(cover.path));
+      if (await small.exists()) {
+        await small.delete();
+      }
+    }
+
+    await _accumulateCache();
+  }
+
+  /// Fetches the artwork and lyrics of [songs] and writes the downscaled cover
+  /// copies the media session publishes.
+  ///
+  /// Idempotent: a cover already on disk and lyrics already parsed are skipped,
+  /// so repeating a run - or running it over a list that overlaps an earlier
+  /// one - costs nothing.
+  Future<void> precacheSongs(Iterable<MyAudioMetadata> songs) async {
+    final list = songs.toList();
+    if (list.isEmpty) {
+      return;
+    }
+    precacheProgressNotifier.value = (0, list.length);
+    try {
+      for (var i = 0; i < list.length; i++) {
+        final song = list[i];
+        try {
+          if (!song.picture.isLoaded) {
+            await loadPictureSafe(song.picture);
+          }
+          await setParsedLyrics(song);
+          final path = song.picture.path;
+          if (path.isNotEmpty && File(path).existsSync()) {
+            await mediaArt.smallFor(path);
+          }
+        } catch (e) {
+          logger.output('[cache] precache failed for ${song.id}: $e');
+        }
+        precacheProgressNotifier.value = (i + 1, list.length);
+      }
+    } finally {
+      precacheProgressNotifier.value = null;
+      await _accumulateCache();
+    }
+  }
+
+  /// The default precache: the songs of the playlists, favourites included -
+  /// a few hundred at most - so playing from a list needs no waiting. Run after
+  /// a sync; the whole library is only cached when the user asks for it.
+  Future<void> precachePlaylists() async {
+    final songs = <MyAudioMetadata>{};
+    for (final playlist in playlistManager.playlists) {
+      songs.addAll(playlist.songList);
+    }
+    if (songs.isEmpty) {
+      return;
+    }
+    await precacheSongs(songs);
+  }
+
   Future<void> tryAddCache(MyAudioMetadata song) async {
     if (sourceType == .local || song.cacheExist) {
       return;
@@ -426,6 +600,7 @@ class Library {
       await pictureDir.delete(recursive: true);
     }
     pictureLoadScheduler.clear();
+    mediaArt.clear();
     for (final picture in globalPictureList) {
       picture.reset();
     }

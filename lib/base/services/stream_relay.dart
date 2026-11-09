@@ -24,8 +24,22 @@ class _RelayTarget {
 class StreamRelay {
   Future<HttpServer>? _starting;
   Future<HttpServer>? _startingLan;
+  Future<void>? _warmingUp;
+  DateTime? _lanLookupFailedAt;
   HttpServer? _lanServer;
   String? _baseUrl;
+
+  /// The LAN-facing base URL, once [warmUp] has resolved it. Kept so a cover
+  /// URL can be built without awaiting anything.
+  String? _lanBaseUrl;
+
+  String? get lanBaseUrl => _lanBaseUrl;
+
+  /// Cover file path (or remote URL) -> its relay token. Keyed so the same
+  /// artwork always gets the same URL: the car can keep using it, and
+  /// re-publishing a track does not leak a token on every publish.
+  final Map<String, String> _coverTokenByKey = {};
+
   final _targets = <String, _RelayTarget>{};
   final _covers = <String, _RelayTarget>{};
   final _client = HttpClient();
@@ -62,22 +76,92 @@ class StreamRelay {
     String? filePath,
     Map<String, String>? headers,
   }) async {
-    final address = await _lanAddress();
-    if (address == null) {
+    await warmUp();
+    return coverUrlSync(url: url, filePath: filePath, headers: headers);
+  }
+
+  /// Starts both servers and resolves this device's LAN address, once.
+  ///
+  /// Called early (at startup) so that from then on [coverUrlSync] can answer
+  /// without awaiting anything - which is what lets a track's artwork be
+  /// published in the same frame as the track, instead of a second later.
+  Future<void> warmUp() async {
+    await _ensureStarted();
+    if (_lanBaseUrl != null) {
+      return;
+    }
+    // Not resolved yet, and asking again on every publish would list the
+    // interfaces over and over: retry occasionally instead.
+    final failed = _lanLookupFailedAt;
+    if (failed != null &&
+        DateTime.now().difference(failed) < const Duration(seconds: 30)) {
+      return;
+    }
+    final running = _warmingUp;
+    if (running != null) {
+      return running;
+    }
+    final warming = _warmUpLan();
+    _warmingUp = warming;
+    try {
+      await warming;
+    } finally {
+      _warmingUp = null;
+    }
+  }
+
+  Future<void> _warmUpLan() async {
+    try {
+      final address = await _lanAddress();
+      if (address == null) {
+        logger.output('[relay] no LAN address, covers stay on loopback');
+        _lanLookupFailedAt = DateTime.now();
+        return;
+      }
+      final server = await _ensureLanStarted();
+      _lanBaseUrl = 'http://$address:${server.port}';
+      logger.output('[relay] LAN covers served from $_lanBaseUrl');
+    } catch (e) {
+      logger.output('[relay] LAN cover server failed: $e');
+      _lanLookupFailedAt = DateTime.now();
+    }
+  }
+
+  /// A cover URL a head unit can fetch, resolved *synchronously*.
+  ///
+  /// Null when the relay has not warmed up yet or this device has no LAN
+  /// address; the caller then resolves it asynchronously and re-publishes.
+  String? coverUrlSync({
+    String? url,
+    String? filePath,
+    Map<String, String>? headers,
+  }) {
+    final base = _lanBaseUrl;
+    if (base == null) {
       return null;
     }
-
-    final server = await _ensureLanStarted();
-    final token = _addCover(url, headers, filePath);
-    return 'http://$address:${server.port}/cover/$token';
+    final key = filePath ?? url ?? '';
+    if (key.isEmpty) {
+      return null;
+    }
+    final token = _coverTokenByKey.putIfAbsent(
+      key,
+      () => _addCover(url, headers, filePath),
+    );
+    return '$base/cover/$token';
   }
 
   /// Registers a cover and returns its token. Kept in the long term, unlike the
   /// stream targets: the media session publishes one per song and re-publishes
   /// the same URL when the user goes back to a track.
   String _addCover(String? url, Map<String, String>? headers, String? filePath) {
-    if (_covers.length > 64) {
-      _covers.remove(_covers.keys.first);
+    // Generous: a token per distinct artwork, kept so the car can re-fetch the
+    // track it is showing without a round trip. Each entry is a couple of
+    // strings.
+    if (_covers.length > 512) {
+      final oldest = _covers.keys.first;
+      _covers.remove(oldest);
+      _coverTokenByKey.removeWhere((_, token) => token == oldest);
     }
 
     final token = '${DateTime.now().microsecondsSinceEpoch}-${_counter++}';

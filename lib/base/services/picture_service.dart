@@ -60,7 +60,11 @@ class MyPicture {
   }
 }
 
-Future<void> loadPictureSafe(MyPicture picture, {int? widgetId}) async {
+Future<void> loadPictureSafe(
+  MyPicture picture, {
+  int? widgetId,
+  bool priority = false,
+}) async {
   if (picture.isLoaded) {
     return;
   }
@@ -68,6 +72,7 @@ Future<void> loadPictureSafe(MyPicture picture, {int? widgetId}) async {
     picture.id,
     () => _loadPicture(picture),
     widgetId,
+    priority: priority,
   );
 }
 

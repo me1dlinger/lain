@@ -239,9 +239,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get add2Queue => '添加到播放列表';
 
   @override
-  @override
   String get edit => '编辑';
 
+  @override
   String get editMetadata => '编辑元数据';
 
   @override
@@ -516,6 +516,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverPath => '路径';
+
   @override
   String get noData => '无数据';
 
@@ -527,6 +528,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get timesUnit => '次';
+
   @override
   String get rename => '重命名';
 
@@ -555,6 +557,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadFailed => '下载失败';
 
   @override
+  String get playFailed => '播放失败';
+
+  @override
   String get noDownloads => '还没有下载记录';
 
   @override
@@ -577,6 +582,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cacheLists => '列表缓存';
+
+  @override
+  String get viewCache => '查看缓存';
+
+  @override
+  String get cacheTagAudio => '歌曲';
+
+  @override
+  String get cacheTagCover => '封面';
+
+  @override
+  String get cacheTagLyric => '歌词';
+
+  @override
+  String get precacheAll => '缓存全部歌曲';
 
   @override
   String get added2Next => '已添加到下一首播放';
@@ -640,8 +660,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get localMusic => '本地音乐';
-
-
 
   @override
   String get serverAddress => '服务器地址';

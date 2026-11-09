@@ -239,9 +239,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get add2Queue => 'Add to Queue';
 
   @override
-  @override
   String get edit => 'Edit';
 
+  @override
   String get editMetadata => 'Edit Metadata';
 
   @override
@@ -516,6 +516,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverPath => 'Path';
+
   @override
   String get noData => 'No data';
 
@@ -527,6 +528,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timesUnit => 'times';
+
   @override
   String get rename => 'Rename';
 
@@ -555,6 +557,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadFailed => 'Download failed';
 
   @override
+  String get playFailed => 'Playback failed';
+
+  @override
   String get noDownloads => 'Nothing downloaded yet';
 
   @override
@@ -577,6 +582,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cacheLists => 'List cache';
+
+  @override
+  String get viewCache => 'View Cache';
+
+  @override
+  String get cacheTagAudio => 'Song';
+
+  @override
+  String get cacheTagCover => 'Cover';
+
+  @override
+  String get cacheTagLyric => 'Lyrics';
+
+  @override
+  String get precacheAll => 'Cache Every Song';
 
   @override
   String get added2Next => 'Playing next';
@@ -640,8 +660,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localMusic => 'Local music';
-
-
 
   @override
   String get serverAddress => 'Server Address';
