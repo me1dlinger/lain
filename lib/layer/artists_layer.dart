@@ -46,6 +46,17 @@ class _ArtistsLayerState extends CollectionListState {
     }
     currentPictureList = list.map((e) => e.picture).toList();
     currentTextList = list.map((e) => e.name).toList();
+    // List view carries what the list of artists actually knows: how many
+    // albums and songs each has, and how often they were played.
+    final l10n = AppLocalizations.of(context);
+    currentSubtitleList = list.map((e) {
+      final parts = <String>[
+        if (e.albumCount > 0) l10n.albumCount(e.albumCount),
+        l10n.songCount(e.songList.length),
+        if (e.playCount > 0) '${e.playCount} ${l10n.times}',
+      ];
+      return parts.join(' · ');
+    }).toList();
     currentOnTapList = list
         .map(
           (e) => () {
@@ -80,6 +91,7 @@ class _ArtistsLayerState extends CollectionListState {
         (l10n.sortBySongCount, 2),
         (l10n.sortBySize, 3),
         (l10n.sortByPlayCount, 4),
+        (l10n.sortByFavorite, 5),
       ];
     };
 

@@ -1958,6 +1958,24 @@ abstract class AppLocalizations {
   /// **'Song Count'**
   String get sortBySongCount;
 
+  /// No description provided for @sortByFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get sortByFavorite;
+
+  /// No description provided for @randomSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get randomSort;
+
+  /// No description provided for @favoriteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update favorites'**
+  String get favoriteFailed;
+
   /// No description provided for @totalDuration.
   ///
   /// In en, this message translates to:
@@ -1981,6 +1999,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Biography'**
   String get biography;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @songUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs'**
+  String get songUnit;
+
+  /// No description provided for @contributingArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributing Artists'**
+  String get contributingArtists;
 
   /// No description provided for @addToFavorites.
   ///

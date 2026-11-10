@@ -299,6 +299,11 @@ class LayersManager {
     return null;
   }
 
+  /// Visibility of the root page named [label], for a detail that has to keep
+  /// the page it is mounted on out of sight. Null when the label names no page.
+  ValueNotifier<bool>? rootVisibleNotifierOf(String label) =>
+      _rootTargetOf(label)?.$2;
+
   void pushDetail(String label, dynamic detail, {String? mountOn}) async {
     if (viewModeNotifier.value == .bigPicture) {
       return;
@@ -328,14 +333,24 @@ class LayersManager {
     late GlobalKey<NavigatorState> rootKey;
     late ValueNotifier<bool> visibleNotifier;
     late Widget detailLayer;
+    // When the detail is mounted on another page, that page's label travels
+    // with it: the detail's own back button has to pop the very layer the route
+    // was pushed onto, not the list it belongs to.
+    final ownMountLabel = mountedOn != null ? mountLabel : null;
     if (label == 'artists') {
       rootKey = artistsKey;
       visibleNotifier = artistsVisibleNotifier;
-      detailLayer = SingleArtistLayer(artist: detail);
+      detailLayer = SingleArtistLayer(
+        artist: detail,
+        mountedOnLabel: ownMountLabel,
+      );
     } else if (label == 'albums') {
       rootKey = albumsKey;
       visibleNotifier = albumsVisibleNotifier;
-      detailLayer = SingleAlbumLayer(album: detail);
+      detailLayer = SingleAlbumLayer(
+        album: detail,
+        mountedOnLabel: ownMountLabel,
+      );
     } else if (label == 'folders') {
       rootKey = foldersKey;
       visibleNotifier = foldersVisibleNotifier;
@@ -452,6 +467,10 @@ class LayersManager {
     if ((rootKey.currentState?.canPop() ?? false) && executePop) {
       rootKey.currentState?.pop();
     }
+    // Put whatever this detail was opened over back in place, so that page's
+    // own back button still has something to pop (e.g. an album opened from a
+    // song list returns to the song list, not to nowhere).
+    detailWidgetMap[rootLayer] = parentLayer;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       visibleNotifier.value = true;
     });

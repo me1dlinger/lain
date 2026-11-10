@@ -365,10 +365,16 @@
   "sortByYear": "Year",
   "sortByAlbumCount": "Album Count",
   "sortBySongCount": "Song Count",
+  "sortByFavorite": "Favorites",
+  "randomSort": "Shuffle",
+  "favoriteFailed": "Could not update favorites",
   "totalDuration": "Total Duration",
   "albumInfo": "Album Info",
   "artistInfo": "Artist Info",
   "biography": "Biography",
+  "description": "Description",
+  "songUnit": "Songs",
+  "contributingArtists": "Contributing Artists",
   "addToFavorites": "Add to Favorites",
   "removeFromFavorites": "Remove from Favorites"
 }

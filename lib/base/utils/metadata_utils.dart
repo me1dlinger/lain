@@ -118,8 +118,8 @@ void sortSongList(
         if (tmp != 0) {
           return tmp;
         }
-        final albumA = artistAlbumManager.albumMap[getAlbum(a)];
-        final albumB = artistAlbumManager.albumMap[getAlbum(b)];
+        final albumA = artistAlbumManager.albumOf(a);
+        final albumB = artistAlbumManager.albumOf(b);
         if (albumA == null || albumB == null) {
           final albumTmp = a.compareAlbum.compareTo(b.compareAlbum);
           if (albumTmp != 0) {
@@ -154,8 +154,8 @@ void sortSongList(
         if (tmp != 0) {
           return tmp;
         }
-        final albumA = artistAlbumManager.albumMap[getAlbum(a)];
-        final albumB = artistAlbumManager.albumMap[getAlbum(b)];
+        final albumA = artistAlbumManager.albumOf(a);
+        final albumB = artistAlbumManager.albumOf(b);
         if (albumA == null || albumB == null) {
           final albumTmp = a.compareAlbum.compareTo(b.compareAlbum);
           if (albumTmp != 0) {

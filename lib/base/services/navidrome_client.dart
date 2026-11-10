@@ -381,14 +381,17 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
-  Future<Set<String>> getStarredIds({required bool isArtist}) async {
+  Future<Map<String, DateTime?>> getStarredIds({required bool isArtist}) async {
     final response = await safeRequest('/rest/getStarred2.view');
     if (response == null) {
       return {};
     }
     final items = normalize(response['starred2'][isArtist ? 'artist' : 'album']);
     return {
-      for (final item in items ?? []) item['id'].toString(),
+      for (final item in items ?? [])
+        item['id'].toString(): item['starred'] != null
+            ? DateTime.tryParse(item['starred'].toString())
+            : null,
     };
   }
 

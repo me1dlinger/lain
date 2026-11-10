@@ -356,6 +356,10 @@ extension _SongListPage on _SongListState {
 
   Widget pageHeader() {
     final l10n = AppLocalizations.of(context);
+    if (album != null) {
+      return albumHeader(context, l10n);
+    }
+
     final size = MediaQuery.of(context).size;
     final shortSide = size.shortestSide;
 
@@ -384,13 +388,7 @@ extension _SongListPage on _SongListState {
                     subtitle: ValueListenableBuilder(
                       valueListenable: currentSongListNotifier,
                       builder: (context, currentSongList, child) {
-                        String prefix = getSourceTypeDisplayName(
-                          l10n,
-                          sourceType,
-                        );
-                        return Text(
-                          "$prefix: ${l10n.songCount(currentSongList.length)}",
-                        );
+                        return Text(l10n.songCount(currentSongList.length));
                       },
                     ),
                   ),
@@ -417,8 +415,233 @@ extension _SongListPage on _SongListState {
           ],
         ),
         entityDetails(context),
+        _descriptionSection(context, l10n),
         SizedBox(height: 20),
       ],
+    );
+  }
+
+  /// Album page: a large cover, then the album's information - name, artist,
+  /// year, quality, the play buttons and the song/time/year figures - with the
+  /// description underneath. The song list follows this header.
+  Widget albumHeader(BuildContext context, AppLocalizations l10n) {
+    final width = MediaQuery.of(context).size.width;
+    final coverSize = math.min(width * 0.62, 320.0);
+    final textColor = colorManager.getSpecificTextColor();
+    final muted = textColor.withAlpha(150);
+    final songs = currentSongListNotifier.value.isNotEmpty
+        ? currentSongListNotifier.value
+        : album!.songList;
+    final first = songs.isNotEmpty ? songs.first : null;
+    final year = album!.maxYear;
+    final quality = first == null ? null : _qualityText(first);
+    final artist = first == null ? null : getArtist(first);
+
+    return Column(
+      children: [
+        const SizedBox(height: 14),
+        Center(child: mainCover(coverSize)),
+        const SizedBox(height: 22),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              Text(
+                getTitleText(l10n),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (artist != null && artist.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  artist,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 15, color: muted),
+                ),
+              ],
+              if (year != null) ...[
+                const SizedBox(height: 4),
+                Text('$year', style: TextStyle(fontSize: 13, color: muted)),
+              ],
+              if (quality != null) ...[
+                const SizedBox(height: 4),
+                Text(quality, style: TextStyle(fontSize: 13, color: muted)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Expanded(
+                child: _pillButton(
+                  icon: Icons.play_arrow_rounded,
+                  label: l10n.playAll,
+                  filled: true,
+                  onTap: () {
+                    tryVibrate();
+                    audioHandler.setPlayQueue(songs, 0);
+                  },
+                  onLongPress: () {
+                    vibrateGestureFeedback();
+                    audioHandler.setPlayQueue(songs, 1);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _pillButton(
+                  icon: Icons.shuffle_rounded,
+                  label: l10n.shuffle,
+                  filled: false,
+                  onTap: () {
+                    tryVibrate();
+                    audioHandler.setPlayQueue(songs, 1);
+                  },
+                ),
+              ),
+              if (canFavorite) ...[
+                const SizedBox(width: 8),
+                favoriteButton(),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _albumStatsRow(context, songs, l10n, year),
+        const SizedBox(height: 6),
+        _descriptionSection(context, l10n),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+
+  /// "24 bits 48000 Hz"-style quality line from the first song's sample rate
+  /// and bitrate; null when the source reports neither.
+  String? _qualityText(MyAudioMetadata song) {
+    final parts = <String>[];
+    final rate = song.samplerate;
+    if (rate != null && rate > 0) {
+      parts.add('${(rate / 1000).toStringAsFixed(rate % 1000 == 0 ? 0 : 1)} kHz');
+    }
+    final bitrate = song.bitrate;
+    if (bitrate != null && bitrate > 0) {
+      parts.add('$bitrate kbps');
+    }
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  Widget _pillButton({
+    required IconData icon,
+    required String label,
+    required bool filled,
+    required VoidCallback onTap,
+    VoidCallback? onLongPress,
+  }) {
+    return SizedBox(
+      height: 46,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        onLongPress: onLongPress,
+        icon: Icon(icon, size: 22),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: filled ? buttonColor.value : null,
+          foregroundColor: filled ? null : colorManager.getSpecificTextColor(),
+          elevation: filled ? 2 : 0,
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+        ),
+      ),
+    );
+  }
+
+  /// Song count, total playing time and year, the three figures under the play
+  /// buttons of an album page.
+  Widget _albumStatsRow(
+    BuildContext context,
+    List<MyAudioMetadata> songs,
+    AppLocalizations l10n,
+    int? year,
+  ) {
+    var duration = Duration.zero;
+    for (final song in songs) {
+      duration += song.duration ?? Duration.zero;
+    }
+    final textColor = colorManager.getSpecificTextColor();
+    Widget cell(String value, String label) {
+      return Expanded(
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: textColor.withAlpha(150),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          cell('${songs.length}', l10n.songUnit),
+          cell(formatDuration(duration), l10n.duration),
+          if (year != null) cell('$year', l10n.year),
+        ],
+      ),
+    );
+  }
+
+  /// The album description / artist biography, truncated to a few lines, that
+  /// opens a full-text popup when tapped.
+  Widget _descriptionSection(BuildContext context, AppLocalizations l10n) {
+    final description = album != null ? albumDescription : artist?.biography;
+    if (description == null || description.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => showFullTextDialog(
+          context,
+          album != null ? l10n.description : l10n.biography,
+          description,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            description,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              color: colorManager.getSpecificTextColor().withAlpha(190),
+              height: 1.4,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -449,8 +672,9 @@ extension _SongListPage on _SongListState {
     );
   }
 
-  /// Year, counts, total playing time and size of the album/artist, then its
-  /// description. Nothing is shown for a plain song list.
+  /// Year, counts, total playing time and size of the album/artist. Nothing is
+  /// shown for a plain song list; the description is shown by
+  /// _descriptionSection, so it can be tapped open.
   Widget entityDetails(
     BuildContext context, {
     EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(20, 6, 20, 0),
@@ -482,27 +706,12 @@ extension _SongListPage on _SongListState {
     if (target.size > 0) {
       parts.add(formatSize(target.size));
     }
-    final description = album != null ? albumDescription : artist!.biography;
     final textColor = colorManager.getSpecificTextColor();
     return Padding(
       padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            parts.join(' · '),
-            style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
-          ),
-          if (description != null && description.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: textColor.withAlpha(180)),
-            ),
-          ],
-        ],
+      child: Text(
+        parts.join(' · '),
+        style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
       ),
     );
   }
@@ -638,8 +847,88 @@ extension _SongListPage on _SongListState {
             );
           },
         ),
+        if (album != null)
+          SliverToBoxAdapter(child: contributingArtistsSection(context)),
         SliverToBoxAdapter(child: SizedBox(height: 90)),
       ],
+    );
+  }
+
+  /// The artists credited on this album, as rows with their own cover, how many
+  /// of the album's songs they are on, and a play button.
+  Widget contributingArtistsSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final songs = <String, List<MyAudioMetadata>>{};
+    for (final song in album!.songList) {
+      for (final name in getArtists(getArtist(song))) {
+        songs.putIfAbsent(name, () => []).add(song);
+      }
+    }
+    if (songs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 4),
+          child: Text(
+            l10n.contributingArtists,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+        ),
+        for (final entry in songs.entries)
+          _albumArtistRow(context, entry.key, entry.value),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _albumArtistRow(
+    BuildContext context,
+    String name,
+    List<MyAudioMetadata> songs,
+  ) {
+    final artist = artistAlbumManager.artistMap[name];
+    final textColor = colorManager.getSpecificTextColor();
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: CoverArtWidget(
+        size: 44,
+        borderRadius: 22,
+        picture: artist?.picture,
+      ),
+      title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        AppLocalizations.of(context).songCount(songs.length),
+        style: const TextStyle(fontSize: 12),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.play_arrow_rounded, color: textColor),
+            onPressed: () {
+              tryVibrate();
+              audioHandler.setPlayQueue(songs, 0);
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.queue_music_rounded, color: textColor),
+            onPressed: () {
+              tryVibrate();
+              for (final song in songs) {
+                audioHandler.add2Last(song);
+              }
+            },
+          ),
+        ],
+      ),
+      onTap: artist == null
+          ? null
+          : () {
+              layersManager.pushDetailIfNeed(artist, mountOn: rootLabel);
+            },
     );
   }
 

@@ -283,6 +283,16 @@ class Config {
     }
 
     final current = streamClient?.baseUrl ?? webdavClient?.baseUrl;
+
+    // Leave a working address alone. Checking the current one first is what
+    // stops the app from hopping to another address - the LAN one - merely
+    // because a single request timed out on a public network that is fine.
+    if (current != null && current.isNotEmpty) {
+      if (await _probe(server, current)) {
+        return false;
+      }
+    }
+
     for (final address in server.addresses) {
       if (address == current) {
         continue;

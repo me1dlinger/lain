@@ -422,6 +422,47 @@ void tryVibrate() {
   }
 }
 
+/// Shows [text] in full, scrollable; tapping anywhere (the text, the pane or
+/// the barrier) closes it.
+Future<void> showFullTextDialog(
+  BuildContext context,
+  String title,
+  String text,
+) {
+  return showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return GestureDetector(
+        onTap: () => Navigator.pop(dialogContext),
+        child: Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(text, style: const TextStyle(height: 1.5)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 /// Adds or removes an album/artist from favourites, on the server for a source
 /// that can star a whole album or artist, and in the local store otherwise.
 Future<void> toggleEntityFavorite(ArtistAlbumBase entity) async {
@@ -443,16 +484,17 @@ Future<void> toggleEntityFavorite(ArtistAlbumBase entity) async {
 
   final id = entity.sourceId;
   if (id == null || streamClient?.supportsEntityFavorites != true) {
-    showCenterMessage(getAppLocalizations().playFailed, duration: 2000);
+    showCenterMessage(getAppLocalizations().favoriteFailed, duration: 2000);
     return;
   }
 
   final ok = await streamClient!.setStarred(id, target);
   if (!ok) {
-    showCenterMessage(getAppLocalizations().playFailed, duration: 2000);
+    showCenterMessage(getAppLocalizations().favoriteFailed, duration: 2000);
     return;
   }
   entity.starredNotifier.value = target;
+  entity.starredAt = target ? DateTime.now() : null;
 }
 
 /// Feedback for a gesture that changed what something does (a long press that
@@ -1334,7 +1376,7 @@ void goToAlbum(MyAudioMetadata song, {BuildContext? context}) async {
   await Future.delayed(Duration(milliseconds: 250));
 
   Album? album;
-  album = artistAlbumManager.albumMap[getAlbum(song)];
+  album = artistAlbumManager.albumOf(song);
   if (album == null) {
     showCenterMessage('Get album failed');
     return;
@@ -1364,7 +1406,7 @@ void goToAlbum(MyAudioMetadata song, {BuildContext? context}) async {
   final mountOn = currentRootLabel.value;
   if (isNotStreamSource) {
     await layersManager.pushDetailIfNeed(
-      artistAlbumManager.albumMap[getAlbum(song)],
+      artistAlbumManager.albumOf(song),
       mountOn: mountOn,
     );
   } else {

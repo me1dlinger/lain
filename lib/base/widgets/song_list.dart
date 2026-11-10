@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:material_ui/material_ui.dart';
@@ -62,6 +63,11 @@ class SongList extends StatefulWidget {
 
   final bool isHomeDetail;
 
+  /// Label of the page this detail is mounted on, when it is not its own list
+  /// (e.g. viewing an album from a song list). The back button then returns to
+  /// that page.
+  final String? mountedOnLabel;
+
   const SongList({
     super.key,
     this.playlist,
@@ -73,6 +79,7 @@ class SongList extends StatefulWidget {
     this.isRecentlyAdded = false,
     this.isRoot = true,
     this.isHomeDetail = false,
+    this.mountedOnLabel,
   });
 
   @override
@@ -207,7 +214,7 @@ class _SongListState extends State<SongList> {
   List<Album> artistAlbums(List<MyAudioMetadata> songs) {
     final albums = <Album>[];
     for (final song in songs) {
-      final album = artistAlbumManager.albumMap[getAlbum(song)];
+      final album = artistAlbumManager.albumOf(song);
       if (album != null && !albums.contains(album)) {
         albums.add(album);
       }
@@ -488,6 +495,20 @@ class _SongListState extends State<SongList> {
       rootLabel = 'home';
       backToRoot = () {
         layersManager.popDetail('home');
+      };
+    }
+
+    // Opened from another page (a song list): that page owns this detail, so
+    // the back button returns to it instead of the album/artist list, which is
+    // not even shown underneath.
+    final mountLabel = widget.mountedOnLabel;
+    if (mountLabel != null && mountLabel.isNotEmpty) {
+      rootLabel = mountLabel;
+      rootVisibleNotifier =
+          layersManager.rootVisibleNotifierOf(mountLabel) ??
+          rootVisibleNotifier;
+      backToRoot = () {
+        layersManager.popDetail(mountLabel);
       };
     }
     rootVisibleNotifier?.addListener(updateHideOthers);

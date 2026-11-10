@@ -13,6 +13,24 @@ import 'package:sylvakru/layer/layers_manager.dart';
 
 final artistAlbumManager = ArtistAlbumManager();
 
+/// Identity of a song's album: the server's album id when it has one, the album
+/// name otherwise. Two artists can each have an album of the same name, and
+/// only the id tells them apart - keying by name merged their songs.
+String albumKeyOf(MyAudioMetadata song) {
+  final id = song.albumId;
+  return (id != null && id.isNotEmpty) ? 'id:$id' : 'name:${getAlbum(song)}';
+}
+
+/// Rank used by the "favourites" order: 0 when not a favourite, otherwise the
+/// time it was starred (1 when the source reports none). A descending sort then
+/// lists favourites first, the most recently starred on top.
+int _starredRank(ArtistAlbumBase entity) {
+  if (!entity.starredNotifier.value) {
+    return 0;
+  }
+  return entity.starredAt?.millisecondsSinceEpoch ?? 1;
+}
+
 /// Artist biographies and images, kept across pages and visits. Only a
 /// Navidrome server provides them, and only its information is cached here -
 /// never a Feiniu cover, which its own page fetches.
@@ -122,14 +140,16 @@ class ArtistAlbumManager {
       final albumIds =
           await streamClient?.getStarredIds(isArtist: false) ?? const {};
       for (final album in albumList) {
-        album.starredNotifier.value =
-            album.sourceId != null && albumIds.contains(album.sourceId);
+        final id = album.sourceId;
+        album.starredNotifier.value = id != null && albumIds.containsKey(id);
+        album.starredAt = id == null ? null : albumIds[id];
       }
       final artistIds =
           await streamClient?.getStarredIds(isArtist: true) ?? const {};
       for (final artist in artistList) {
-        artist.starredNotifier.value =
-            artist.sourceId != null && artistIds.contains(artist.sourceId);
+        final id = artist.sourceId;
+        artist.starredNotifier.value = id != null && artistIds.containsKey(id);
+        artist.starredAt = id == null ? null : artistIds[id];
       }
     } else if (isNotStreamSource) {
       for (final album in albumList) {
@@ -145,12 +165,13 @@ class ArtistAlbumManager {
 
   void _processSong(MyAudioMetadata song) {
     final albumName = getAlbum(song);
+    final key = albumKeyOf(song);
 
-    Album? album = albumMap[albumName];
+    Album? album = albumMap[key];
     if (album == null) {
       album = Album(name: albumName);
       albumList.add(album);
-      albumMap[albumName] = album;
+      albumMap[key] = album;
     }
 
     if (song.year != null && album.year == null) {
@@ -170,6 +191,10 @@ class ArtistAlbumManager {
     }
   }
 
+  /// The album a song belongs to, told apart by the server's album id so that
+  /// two artists each having an album of the same name stay separate.
+  Album? albumOf(MyAudioMetadata song) => albumMap[albumKeyOf(song)];
+
   void sortArtists() {
     final ascending = artistsIsAscendingNotifier.value;
     int compare(Artist a, Artist b) {
@@ -182,6 +207,8 @@ class ArtistAlbumManager {
           return a.size.compareTo(b.size);
         case 4: // play count
           return a.playCount.compareTo(b.playCount);
+        case 5: // favourites: starred first, most recently starred first
+          return _starredRank(a).compareTo(_starredRank(b));
         default: // name
           return a.compareName.compareTo(b.compareName);
       }
@@ -210,6 +237,8 @@ class ArtistAlbumManager {
           return a.size.compareTo(b.size);
         case 4: // latest year
           return (a.maxYear ?? 0).compareTo(b.maxYear ?? 0);
+        case 5: // favourites: starred first, most recently starred first
+          return _starredRank(a).compareTo(_starredRank(b));
         default: // name
           return a.compareName.compareTo(b.compareName);
       }
@@ -296,6 +325,10 @@ abstract class ArtistAlbumBase {
   /// Whether this album/artist is a favourite, driven by the server's starred
   /// list. Only meaningful for a source that can star a whole album or artist.
   final starredNotifier = ValueNotifier<bool>(false);
+
+  /// When the album/artist was marked as a favourite, for the "favourites"
+  /// order; null when the source does not report it.
+  DateTime? starredAt;
 }
 
 class Artist extends ArtistAlbumBase {

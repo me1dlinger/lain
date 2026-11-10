@@ -355,15 +355,6 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
       Row(
         mainAxisAlignment: .center,
         children: [
-          Text(
-            getSourceTypeDisplayName(AppLocalizations.of(context), sourceType),
-          ),
-        ],
-      ),
-      SizedBox(height: 10),
-      Row(
-        mainAxisAlignment: .center,
-        children: [
           IconButton(
             onPressed: () async {
               await audioHandler.setPlayQueue(currentSongList, 1);

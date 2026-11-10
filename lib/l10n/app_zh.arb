@@ -313,6 +313,9 @@
   "albumInfo": "专辑信息",
   "artistInfo": "艺术家信息",
   "biography": "艺术家简介",
+  "description": "简介",
+  "songUnit": "歌曲",
+  "contributingArtists": "参与创作的艺术家",
   "addToFavorites": "添加到我喜欢的",
   "removeFromFavorites": "取消喜欢"
 }

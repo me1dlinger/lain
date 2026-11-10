@@ -77,6 +77,7 @@ class _AlbumsLayerState extends CollectionListState {
         (l10n.sortByPlayCount, 2),
         (l10n.sortBySize, 3),
         (l10n.sortByYear, 4),
+        (l10n.sortByFavorite, 5),
       ];
     };
 

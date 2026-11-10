@@ -156,22 +156,19 @@ extension _SongListPanel on _SongListState {
                     subtitle: ValueListenableBuilder(
                       valueListenable: currentSongListNotifier,
                       builder: (context, currentSongList, child) {
-                        String prefix = getSourceTypeDisplayName(
-                          l10n,
-                          sourceType,
-                        );
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              "$prefix: ${l10n.songCount(currentSongList.length)}",
+                              l10n.songCount(currentSongList.length),
                               style: const TextStyle(fontSize: 12),
                             ),
                             entityDetails(
                               context,
                               padding: const EdgeInsets.only(top: 6),
                             ),
+                            _descriptionSection(context, l10n),
                           ],
                         );
                       },

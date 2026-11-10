@@ -68,8 +68,13 @@ abstract class StreamClient {
     }
   }
 
-  /// Sends a GET request; when it fails because the server is unreachable, the
-  /// request is retried once against the server's other address.
+  /// Sends a GET request. When the current address fails, the same request is
+  /// tried against the server's other address and the app only moves there if
+  /// *that* request actually succeeds.
+  ///
+  /// Switching on the bare failure - as this used to - meant one flaky timeout
+  /// against a perfectly good public address moved the whole app back to the
+  /// LAN address, where the next request failed and moved it again.
   @protected
   Future<Response<dynamic>> getWithFailover(
     String path, {
@@ -83,15 +88,41 @@ abstract class StreamClient {
         options: options,
       );
     } catch (error) {
-      if (!isNetworkFailure(error) || !switchToAlternative()) {
+      final other = alternativeBaseUrl;
+      if (!isNetworkFailure(error) ||
+          other == null ||
+          other.isEmpty ||
+          other == baseUrl) {
         rethrow;
       }
-      logger.output('[${runtimeType}] switched to $baseUrl');
-      return await dio.get(
-        path,
-        queryParameters: queryParameters,
-        options: options,
+
+      final otherUrl = normalizeBaseUrl(other);
+      final probe = Dio(
+        BaseOptions(
+          baseUrl: otherUrl,
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 15),
+        ),
       );
+      final Response<dynamic> response;
+      try {
+        response = await probe.get(
+          path,
+          queryParameters: queryParameters,
+          options: options,
+        );
+      } catch (_) {
+        // The other address does not answer either: this is not an address
+        // problem, so keep the current one and let the caller see the error.
+        rethrow;
+      }
+
+      alternativeBaseUrl = baseUrl;
+      baseUrl = otherUrl;
+      dio.options.baseUrl = otherUrl;
+      logger.output('[${runtimeType}] switched to $baseUrl');
+      return response;
     }
   }
 
@@ -149,8 +180,10 @@ abstract class StreamClient {
   /// Stars or unstars an album or an artist.
   Future<bool> setStarred(String id, bool starred) async => false;
 
-  /// Ids of the starred albums, or of the starred artists.
-  Future<Set<String>> getStarredIds({required bool isArtist}) async => {};
+  /// Ids of the starred albums, or of the starred artists, each with the time it
+/// was starred (null when the server does not report one).
+  Future<Map<String, DateTime?>> getStarredIds({required bool isArtist}) async =>
+      {};
 
   /// The album's description/notes, or null when the source has none.
   Future<String?> getAlbumNotes(String albumId) async => null;

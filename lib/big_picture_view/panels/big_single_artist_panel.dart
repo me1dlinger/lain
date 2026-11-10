@@ -185,7 +185,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                     Row(
                       children: [
                         Text(
-                          '${getSourceTypeDisplayName(l10n, sourceType)}: ${widget.artist.albumList.length} ${l10n.albums}, ${l10n.songCount(widget.artist.songList.length)}',
+                          '${widget.artist.albumList.length} ${l10n.albums}, ${l10n.songCount(widget.artist.songList.length)}',
                         ),
                       ],
                     ),

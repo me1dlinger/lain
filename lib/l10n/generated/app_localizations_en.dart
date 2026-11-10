@@ -964,6 +964,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortBySongCount => 'Song Count';
 
   @override
+  String get sortByFavorite => 'Favorites';
+
+  @override
+  String get randomSort => 'Shuffle';
+
+  @override
+  String get favoriteFailed => 'Could not update favorites';
+
+  @override
   String get totalDuration => 'Total Duration';
 
   @override
@@ -974,6 +983,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get biography => 'Biography';
+
+  @override
+  String get description => 'Description';
+
+  @override
+  String get songUnit => 'Songs';
+
+  @override
+  String get contributingArtists => 'Contributing Artists';
 
   @override
   String get addToFavorites => 'Add to Favorites';

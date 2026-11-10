@@ -955,6 +955,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortBySongCount => '歌曲数量';
 
   @override
+  String get sortByFavorite => 'Favorites';
+
+  @override
+  String get randomSort => 'Shuffle';
+
+  @override
+  String get favoriteFailed => 'Could not update favorites';
+
+  @override
   String get totalDuration => '总时长';
 
   @override
@@ -965,6 +974,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get biography => '艺术家简介';
+
+  @override
+  String get description => '简介';
+
+  @override
+  String get songUnit => '歌曲';
+
+  @override
+  String get contributingArtists => '参与创作的艺术家';
 
   @override
   String get addToFavorites => '添加到我喜欢的';

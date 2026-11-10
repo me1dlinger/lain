@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/config.dart';
+import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
@@ -34,6 +35,7 @@ import 'package:sylvakru/base/data/stream_quality.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 import 'package:sylvakru/base/data/library.dart';
+import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/layer/premium_layer.dart';
 import 'package:sylvakru/portrait_view/portrait_view.dart';
@@ -1134,9 +1136,9 @@ String _cacheKindLabel(AppLocalizations l10n, CacheKind kind) {
   }
 }
 
-/// Per-source cache contents: one row per song, showing which parts are on
-/// disk, with a detail view (cover and lyrics) and a way to drop a single
-/// song's files or the whole cache.
+/// Cache contents of the current source, in tabs: the cached songs, how much of
+/// each playlist is cached, and the artists (songs and cover). One place to see
+/// what is on disk, and to precache or clear it.
 Future<void> showCacheDetailDialog(
   BuildContext context,
   AppLocalizations l10n,
@@ -1150,20 +1152,47 @@ Future<void> showCacheDetailDialog(
     return;
   }
 
-  showAnimationDialog(
-    context: context,
-    child: SizedBox(
-      width: 340,
-      height: 480,
+  showAnimationDialog(context: context, child: const _CacheDetailView());
+}
+
+class _CacheDetailView extends StatefulWidget {
+  const _CacheDetailView();
+
+  @override
+  State<_CacheDetailView> createState() => _CacheDetailViewState();
+}
+
+class _CacheDetailViewState extends State<_CacheDetailView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tab = TabController(length: 3, vsync: this);
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      width: 360,
+      height: 520,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             SizedBox(
-              height: 32,
-              child: Text(
-                l10n.cacheDetails,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              height: 30,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.cacheDetails,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             Row(
@@ -1173,8 +1202,8 @@ Future<void> showCacheDetailDialog(
                     valueListenable: cacheEntriesNotifier,
                     builder: (context, entries, child) {
                       return Text(
-                        '${entries.length} · ${_cacheMb(entries)}',
-                        style: TextStyle(fontSize: 12),
+                        '${entries.length} - ${_cacheMb(entries)}',
+                        style: const TextStyle(fontSize: 12),
                       );
                     },
                   ),
@@ -1187,7 +1216,7 @@ Future<void> showCacheDetailDialog(
                     }
                     return Text(
                       '${progress.$1}/${progress.$2}',
-                      style: TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12),
                     );
                   },
                 ),
@@ -1207,34 +1236,22 @@ Future<void> showCacheDetailDialog(
                 );
               },
             ),
-            const SizedBox(height: 6),
+            TabBar(
+              controller: _tab,
+              tabs: [
+                Tab(text: l10n.songUnit),
+                Tab(text: l10n.playlists),
+                Tab(text: l10n.artists),
+              ],
+            ),
             Expanded(
-              child: ValueListenableBuilder(
-                valueListenable: cacheEntriesNotifier,
-                builder: (context, entries, child) {
-                  final songs = groupCacheBySong(entries);
-                  final lists = entries
-                      .where((entry) => entry.kind == CacheKind.list)
-                      .toList();
-                  if (songs.isEmpty && lists.isEmpty) {
-                    return Center(child: Text(l10n.cacheEmpty));
-                  }
-                  return ListView(
-                    children: [
-                      for (final cached in songs)
-                        _cachedSongTile(context, l10n, cached),
-                      if (lists.isNotEmpty) ...[
-                        const Divider(height: 12),
-                        ListTile(
-                          dense: true,
-                          visualDensity: VisualDensity.compact,
-                          title: Text(_cacheKindLabel(l10n, CacheKind.list)),
-                          subtitle: Text('${lists.length} · ${_cacheMb(lists)}'),
-                        ),
-                      ],
-                    ],
-                  );
-                },
+              child: TabBarView(
+                controller: _tab,
+                children: [
+                  _songsTab(l10n),
+                  _playlistsTab(l10n),
+                  _artistsTab(l10n),
+                ],
               ),
             ),
             const Divider(height: 12),
@@ -1273,10 +1290,109 @@ Future<void> showCacheDetailDialog(
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
+  Widget _songsTab(AppLocalizations l10n) {
+    return ValueListenableBuilder(
+      valueListenable: cacheEntriesNotifier,
+      builder: (context, entries, child) {
+        final songs = groupCacheBySong(entries);
+        if (songs.isEmpty) {
+          return Center(child: Text(l10n.cacheEmpty));
+        }
+        return ListView(
+          children: [
+            for (final cached in songs) _cachedSongTile(context, l10n, cached),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _playlistsTab(AppLocalizations l10n) {
+    return ValueListenableBuilder(
+      valueListenable: cacheEntriesNotifier,
+      builder: (context, entries, child) {
+        final playlists = playlistManager.playlists
+            .where((playlist) => playlist.name != '_sylvakru_play_queue_')
+            .toList();
+        if (playlists.isEmpty) {
+          return Center(child: Text(l10n.cacheEmpty));
+        }
+        return ListView(
+          children: [
+            for (final playlist in playlists)
+              _cacheGroupTile(
+                l10n: l10n,
+                title: playlist.name,
+                songs: playlist.songList,
+                onPrecache: () => library.precacheSongs(playlist.songList),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _artistsTab(AppLocalizations l10n) {
+    return ValueListenableBuilder(
+      valueListenable: cacheEntriesNotifier,
+      builder: (context, entries, child) {
+        final artists = artistAlbumManager.artistList;
+        if (artists.isEmpty) {
+          return Center(child: Text(l10n.cacheEmpty));
+        }
+        return ListView(
+          children: [
+            for (final artist in artists)
+              _cacheGroupTile(
+                l10n: l10n,
+                title: artist.name,
+                songs: artist.songList,
+                coverCached: artist.picture.isExist,
+                onPrecache: () => library.precacheSongs(artist.songList),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// A row for a playlist or an artist: how many of its songs (and, when it has
+  /// one, its cover) are cached, and a button to cache them all.
+  Widget _cacheGroupTile({
+    required AppLocalizations l10n,
+    required String title,
+    required List<MyAudioMetadata> songs,
+    required VoidCallback onPrecache,
+    bool? coverCached,
+  }) {
+    final cachedSongs = songs.where((song) => song.cacheExist).length;
+    final parts = <String>[
+      '${l10n.songCount(cachedSongs)} / ${l10n.songCount(songs.length)}',
+      if (coverCached == true) l10n.cacheTagCover,
+    ];
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(parts.join(' - ')),
+      trailing: IconButton(
+        tooltip: l10n.precacheAll,
+        icon: const Icon(Icons.download_rounded),
+        onPressed: () async {
+          if (!await showConfirmDialog(context, l10n.precacheAll)) {
+            return;
+          }
+          showCenterLoading();
+          onPrecache();
+          removeCenterLoading();
+        },
+      ),
+    );
+  }
+}
 /// One cached song: what is on disk (song / cover / lyrics), how big it is, a
 /// detail view, and a delete that asks first.
 Widget _cachedSongTile(

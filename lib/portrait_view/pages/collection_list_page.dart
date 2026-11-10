@@ -111,7 +111,7 @@ extension _CollectionListPage on CollectionListState {
                   },
                 ),
 
-                if (randomizeNotifier != null)
+                if (randomizeNotifier != null && sortKeyOptions == null)
                   ListTile(
                     leading: ImageIcon(sequenceImage),
                     title: Text(
@@ -140,6 +140,10 @@ extension _CollectionListPage on CollectionListState {
                   ]),
                   builder: (_, _) {
                     if (isAscendingNotifier == null) {
+                      return SizedBox();
+                    }
+                    // Albums and artists fold this into their sort dialog.
+                    if (sortKeyOptions != null) {
                       return SizedBox();
                     }
                     if (randomizeNotifier?.value ?? false) {
@@ -198,7 +202,12 @@ extension _CollectionListPage on CollectionListState {
               ),
             ),
             title: Text(text, style: .new(overflow: .ellipsis)),
-            subtitle: currentSubCountList == null
+            subtitle: currentSubtitleList != null
+                ? Text(
+                    currentSubtitleList![index],
+                    style: const TextStyle(fontSize: 12),
+                  )
+                : currentSubCountList == null
                 ? null
                 : Text(
                     AppLocalizations.of(
