@@ -351,13 +351,28 @@ class Artist extends ArtistAlbumBase {
   MyPicture? _picture;
 
   /// The artist's own image when the source serves one (Navidrome does, via the
-  /// same cover-art endpoint), and the first album's cover otherwise.
+  /// same cover-art endpoint), and the first album's cover otherwise. When the
+  /// server has no artist image, the artist's external `largeImageUrl` is
+  /// fetched as a last resort, into the same on-disk cover cache.
   @override
   MyPicture get picture {
     if (isStreamSource) {
       final id = sourceId;
       if (id != null) {
-        return _picture ??= MyPicture.form(id);
+        final cached = _picture ??= MyPicture.form(id);
+        cached.remoteResolver ??= () async {
+          // The server's own API first (it reports an image even when the
+          // Subsonic endpoint does not), then the Subsonic artist info.
+          var url = await streamClient?.getArtistImageUrl(id);
+          if (url == null || url.isEmpty) {
+            url = (await streamClient?.getArtistInfo(id))?.imageUrl;
+          }
+          if (url == null || url.isEmpty) {
+            return null;
+          }
+          return fetchRemoteImageBytes(url);
+        };
+        return cached;
       }
     }
     return super.picture;

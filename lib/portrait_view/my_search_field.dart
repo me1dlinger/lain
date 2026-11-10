@@ -33,6 +33,12 @@ class _MySearchFieldState extends State<MySearchField> {
     focusNode.addListener(() {
       isTyping = focusNode.hasFocus;
     });
+    // A page keeps its query when it is left and come back to, but this widget
+    // is built anew: without this the list stays filtered while the field shows
+    // only the collapsed search icon, and the filter looks like it vanished.
+    if (widget.textController.text.isNotEmpty) {
+      isSearchNotifier.value = true;
+    }
     super.initState();
   }
 

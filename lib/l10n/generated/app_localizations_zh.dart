@@ -985,6 +985,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contributingArtists => '参与创作的艺术家';
 
   @override
+  String get noResults => '没有找到结果';
+
+  @override
   String get addToFavorites => '添加到我喜欢的';
 
   @override

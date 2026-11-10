@@ -426,6 +426,52 @@ class NavidromeClient extends StreamClient {
     );
   }
 
+  /// Token of Navidrome's own API, obtained once. It is a different scheme from
+  /// Subsonic (a bearer token from /auth/login) and is only needed for the
+  /// artist image, which the Subsonic endpoint leaves out when the server has
+  /// no local one.
+  String? _nativeToken;
+
+  Future<String?> _nativeTokenIfAvailable() async {
+    final cached = _nativeToken;
+    if (cached != null) {
+      return cached;
+    }
+    try {
+      final response = await Dio().post(
+        '$baseUrl/auth/login',
+        data: {'username': username, 'password': password},
+        options: Options(contentType: 'application/json'),
+      );
+      final token = response.data?['token']?.toString();
+      _nativeToken = (token == null || token.isEmpty) ? null : token;
+    } catch (e) {
+      logger.output('[Navidrome] native login: $e');
+      _nativeToken = null;
+    }
+    return _nativeToken;
+  }
+
+  @override
+  Future<String?> getArtistImageUrl(String artistId) async {
+    final token = await _nativeTokenIfAvailable();
+    if (token == null) {
+      return null;
+    }
+    try {
+      final response = await Dio().get(
+        '$baseUrl/api/artist/$artistId',
+        options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
+      );
+      final url = (response.data?['largeImageUrl'] ?? response.data?['imageUrl'])
+          ?.toString();
+      return (url == null || url.isEmpty) ? null : url;
+    } catch (e) {
+      logger.output('[Navidrome] artist image $artistId: $e');
+      return null;
+    }
+  }
+
   @override
   Future<String> getLyricsById(String songId) async {
     final response = await safeRequest(

@@ -264,6 +264,12 @@ class Config {
 
     final client = _buildStreamClient(server, address);
     client.alternativeBaseUrl = alternative;
+    // An in-flight failover moves the live client; keep the server record (and
+    // the settings page) naming the address that is really being used.
+    client.onAddressChanged = (url) {
+      server.lastGoodUrl = url;
+      unawaited(save());
+    };
     streamClient = client;
     webdavClient = null;
   }

@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
@@ -24,6 +25,12 @@ class MyPicture {
   String path = '';
   Color? color;
   Color? lowerLuminance;
+
+  /// Last-resort source of this picture's bytes, used when the normal path
+  /// yields nothing - an artist whose server has no image but whose external
+  /// info does (a `largeImageUrl`). Kept here so the bytes land in the same
+  /// on-disk cache as every other cover.
+  Future<Uint8List?> Function()? remoteResolver;
 
   final changeNotifier = ValueNotifier(0);
 
@@ -60,6 +67,22 @@ class MyPicture {
   }
 }
 
+/// Fetches an absolute image URL, used for an artist's external
+/// `largeImageUrl` when the server itself has no artist image.
+Future<Uint8List?> fetchRemoteImageBytes(String url) async {
+  try {
+    final response = await http
+        .get(Uri.parse(url))
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+      return response.bodyBytes;
+    }
+  } catch (e) {
+    logger.output('image $url: $e');
+  }
+  return null;
+}
+
 Future<void> loadPictureSafe(
   MyPicture picture, {
   int? widgetId,
@@ -77,9 +100,8 @@ Future<void> loadPictureSafe(
 }
 
 Future<void> _loadPicture(MyPicture picture) async {
+  Uint8List? bytes;
   try {
-    Uint8List? bytes;
-
     switch (sourceType) {
       case .local:
         bytes = await readPictureAsync(picture.id);
@@ -99,17 +121,32 @@ Future<void> _loadPicture(MyPicture picture) async {
         bytes = await streamClient?.getPictureBytes(picture.id);
         break;
     }
+  } catch (e) {
+    // A server that has no image for this id may answer with an error; that is
+    // not a reason to skip the fallback below.
+    logger.output(e.toString());
+  }
 
-    if (bytes != null) {
+  // Last resort: an artist's external image, fetched into the same cache.
+  if (bytes == null && picture.remoteResolver != null) {
+    try {
+      bytes = await picture.remoteResolver!();
+    } catch (e) {
+      logger.output(e.toString());
+    }
+  }
+
+  if (bytes != null) {
+    try {
       File pictureFile = File(picture.path);
       if (!await pictureFile.exists()) {
         await pictureFile.create(recursive: true);
       }
       await pictureFile.writeAsBytes(bytes);
       picture.isExist = true;
+    } catch (e) {
+      logger.output(e.toString());
     }
-  } catch (e) {
-    logger.output(e.toString());
   }
   picture.isLoaded = true;
 }

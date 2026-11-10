@@ -24,7 +24,10 @@ String getArtist(MyAudioMetadata? song) {
 
 List<String> getArtists(String artist) {
   List<String> artists = [];
-  for (String artistName in artist.split(RegExp(r'[/&,]'))) {
+  // '&' is part of an artist's own name as often as it separates two of them
+  // ("MYTH & ROID", "AI MyGO & Ave Mujica"), and Navidrome keeps those as one
+  // artist, so it must not split here.
+  for (String artistName in artist.split(RegExp(r'[/,]'))) {
     final tmp = artistName.trim();
     if (tmp.isEmpty) {
       return [artist];

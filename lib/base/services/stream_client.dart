@@ -19,6 +19,10 @@ abstract class StreamClient {
   /// fails because the current address is not reachable.
   String? alternativeBaseUrl;
 
+  /// Called when the client moves to the alternative address, so the server
+  /// record and the settings page can name the address actually in use.
+  void Function(String url)? onAddressChanged;
+
   @protected
   late final Dio dio;
 
@@ -121,6 +125,7 @@ abstract class StreamClient {
       alternativeBaseUrl = baseUrl;
       baseUrl = otherUrl;
       dio.options.baseUrl = otherUrl;
+      onAddressChanged?.call(otherUrl);
       logger.output('[${runtimeType}] switched to $baseUrl');
       return response;
     }
@@ -192,4 +197,8 @@ abstract class StreamClient {
   Future<({String? biography, String? imageUrl})?> getArtistInfo(
     String artistId,
   ) async => null;
+
+  /// An artist's image URL from the source's own API, for a server that reports
+  /// one its Subsonic endpoint omits. Null when there is none.
+  Future<String?> getArtistImageUrl(String artistId) async => null;
 }

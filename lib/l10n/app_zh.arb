@@ -316,6 +316,7 @@
   "description": "简介",
   "songUnit": "歌曲",
   "contributingArtists": "参与创作的艺术家",
+  "noResults": "没有找到结果",
   "addToFavorites": "添加到我喜欢的",
   "removeFromFavorites": "取消喜欢"
 }

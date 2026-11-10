@@ -25,6 +25,7 @@ import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:sylvakru/portrait_view/global_search_page.dart';
 import 'package:sylvakru/portrait_view/my_search_field.dart';
 
 part '../landscape_view/panels/home_panel.dart';

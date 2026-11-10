@@ -2018,6 +2018,12 @@ abstract class AppLocalizations {
   /// **'Contributing Artists'**
   String get contributingArtists;
 
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get noResults;
+
   /// No description provided for @addToFavorites.
   ///
   /// In en, this message translates to:

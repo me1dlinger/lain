@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/config.dart';
+import 'package:sylvakru/base/services/stream_client.dart';
+import 'package:sylvakru/base/services/webdav_client.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/data/music_server.dart';
@@ -142,7 +144,14 @@ class _ServerListPageState extends State<ServerListPage> {
     Color textColor,
   ) {
     final active = server.id == config.activeServerId;
-    final address = server.currentUrl;
+    // The address in use is the live client's, not the recorded one: the app
+    // moves between the LAN and public addresses on its own, and the recorded
+    // value would keep showing the address it left.
+    final liveAddress = active
+        ? (streamClient?.baseUrl ?? webdavClient?.baseUrl)
+        : null;
+    final address = liveAddress ?? server.currentUrl;
+    final usingLan = server.hasLan && address == server.lanUrl.trim();
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
@@ -156,7 +165,7 @@ class _ServerListPageState extends State<ServerListPage> {
         [
           getSourceTypeDisplayName(l10n, server.type),
           if (active && address.isNotEmpty)
-            '${server.usingLan ? l10n.lanAddress : l10n.publicAddress}: $address'
+            '${usingLan ? l10n.lanAddress : l10n.publicAddress}: $address'
           else if (address.isNotEmpty)
             address,
         ].join(' · '),
