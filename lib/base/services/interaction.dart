@@ -11,11 +11,14 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/data/playlist.dart';
+import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/download_manager.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
+import 'package:sylvakru/base/services/stream_client.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/zoom_page_route.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/custom_text_field.dart';
@@ -417,6 +420,47 @@ void tryVibrate() {
   if (vibrationOnNoitifier.value) {
     HapticFeedback.heavyImpact();
   }
+}
+
+/// Adds or removes an album/artist from favourites, on the server for a source
+/// that can star a whole album or artist, and in the local store otherwise.
+Future<void> toggleEntityFavorite(ArtistAlbumBase entity) async {
+  final target = !entity.starredNotifier.value;
+
+  if (isNotStreamSource) {
+    final favorites = entity.isArtist
+        ? localArtistFavorites
+        : localAlbumFavorites;
+    if (target) {
+      favorites.add(entity.name);
+    } else {
+      favorites.remove(entity.name);
+    }
+    setting.save();
+    entity.starredNotifier.value = target;
+    return;
+  }
+
+  final id = entity.sourceId;
+  if (id == null || streamClient?.supportsEntityFavorites != true) {
+    showCenterMessage(getAppLocalizations().playFailed, duration: 2000);
+    return;
+  }
+
+  final ok = await streamClient!.setStarred(id, target);
+  if (!ok) {
+    showCenterMessage(getAppLocalizations().playFailed, duration: 2000);
+    return;
+  }
+  entity.starredNotifier.value = target;
+}
+
+/// Feedback for a gesture that changed what something does (a long press that
+/// switches a button to its other action, say). Deliberately not behind
+/// [vibrationOnNoitifier]: that setting is about incidental taps, and without
+/// this the user cannot tell the gesture was recognised.
+void vibrateGestureFeedback() {
+  HapticFeedback.mediumImpact();
 }
 
 class MenuItem {
@@ -1274,10 +1318,14 @@ void goToArtist(
       ),
     );
   } else {
+    // Straight to the artist's own page: the page it was opened from stays
+    // behind it, so going back returns there rather than to the artist list.
     showCenterLoading();
     await Future.delayed(Duration(milliseconds: 250));
-    layersManager.switchRootLayer('artists');
-    await layersManager.pushDetailIfNeed(artist);
+    await layersManager.pushDetailIfNeed(
+      artist,
+      mountOn: currentRootLabel.value,
+    );
     removeCenterLoading();
   }
 }
@@ -1310,15 +1358,17 @@ void goToAlbum(MyAudioMetadata song, {BuildContext? context}) async {
     return;
   }
 
-  layersManager.switchRootLayer('albums');
-
+  // Straight to the album's own page: the page it was opened from stays behind
+  // it, so going back returns there rather than to the album list.
   showCenterLoading();
+  final mountOn = currentRootLabel.value;
   if (isNotStreamSource) {
     await layersManager.pushDetailIfNeed(
       artistAlbumManager.albumMap[getAlbum(song)],
+      mountOn: mountOn,
     );
   } else {
-    await layersManager.pushDetailIfNeed(album);
+    await layersManager.pushDetailIfNeed(album, mountOn: mountOn);
   }
   removeCenterLoading();
 }

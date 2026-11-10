@@ -1247,7 +1247,7 @@ abstract class AppLocalizations {
   /// No description provided for @precacheAll.
   ///
   /// In en, this message translates to:
-  /// **'Cache Every Song'**
+  /// **'Cache Every Song\'s Info'**
   String get precacheAll;
 
   /// No description provided for @added2Next.
@@ -1909,6 +1909,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'is Not Connected'**
   String get notConnected;
+
+  /// No description provided for @sortType.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort By'**
+  String get sortType;
+
+  /// No description provided for @sortByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get sortByName;
+
+  /// No description provided for @sortByAddedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Added Time'**
+  String get sortByAddedTime;
+
+  /// No description provided for @sortByPlayCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Count'**
+  String get sortByPlayCount;
+
+  /// No description provided for @sortBySize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get sortBySize;
+
+  /// No description provided for @sortByYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get sortByYear;
+
+  /// No description provided for @sortByAlbumCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Album Count'**
+  String get sortByAlbumCount;
+
+  /// No description provided for @sortBySongCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Song Count'**
+  String get sortBySongCount;
+
+  /// No description provided for @totalDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Duration'**
+  String get totalDuration;
+
+  /// No description provided for @albumInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Album Info'**
+  String get albumInfo;
+
+  /// No description provided for @artistInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist Info'**
+  String get artistInfo;
+
+  /// No description provided for @biography.
+  ///
+  /// In en, this message translates to:
+  /// **'Biography'**
+  String get biography;
+
+  /// No description provided for @addToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Favorites'**
+  String get addToFavorites;
+
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Favorites'**
+  String get removeFromFavorites;
 }
 
 class _AppLocalizationsDelegate

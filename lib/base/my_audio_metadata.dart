@@ -40,6 +40,14 @@ class MyAudioMetadata {
   int playCount;
   DateTime? lastPlayed;
 
+  /// File size in bytes as the source reports it; null when it does not.
+  int? size;
+
+  /// The server's album/artist id for this song, used to star the album or the
+  /// artist as a whole. Null when the source has no such notion.
+  String? albumId;
+  String? artistId;
+
   late String compareTitle;
   late String compareArtist;
   late String compareAlbum;
@@ -55,6 +63,9 @@ class MyAudioMetadata {
     this.created,
     this.playCount = 0,
     this.lastPlayed,
+    this.size,
+    this.albumId,
+    this.artistId,
     this.lyricsTimeOffset = 0,
   }) {
     picture = MyPicture.form(isStreamSource ? coverId ?? id : path!);
@@ -136,6 +147,9 @@ class MyAudioMetadata {
           lastPlayed: song['played'] != null
               ? DateTime.parse(song['played'])
               : null,
+          size: (song['size'] as num?)?.toInt(),
+          albumId: song['albumId']?.toString(),
+          artistId: song['artistId']?.toString(),
         ),
       );
     }
@@ -174,6 +188,8 @@ class MyAudioMetadata {
           id: song['guid'],
           coverId: song['coverId'],
           path: audioSpec['path'],
+          size: (audioSpec['size'] as num?)?.toInt() ??
+              (song['size'] as num?)?.toInt(),
           // fnOS reports createdAt, which is what "added time" means for this
           // source; it is what the server sorts by with sort=createdAt,desc.
           created: created,
@@ -244,6 +260,17 @@ class MyAudioMetadata {
         lastPlayed: song['UserData']?['LastPlayedDate'] != null
             ? DateTime.parse(song['UserData']['LastPlayedDate'])
             : DateTime.fromMillisecondsSinceEpoch(0),
+
+        size: ((primarySource?['Size'] ?? song['Size']) as num?)?.toInt(),
+
+        albumId: song['AlbumId']?.toString(),
+
+        artistId: (song['ArtistItems'] as List?)?.isNotEmpty == true
+            ? song['ArtistItems'][0]['Id']?.toString()
+            : song['AlbumArtistIds'] is List &&
+                  (song['AlbumArtistIds'] as List).isNotEmpty
+            ? song['AlbumArtistIds'][0]?.toString()
+            : null,
       );
     });
     item.created ??= createdText ?? created;

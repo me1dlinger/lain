@@ -71,6 +71,18 @@ class _ArtistsLayerState extends CollectionListState {
 
     isListViewNotifier = artistsIsListViewNotifier;
 
+    sortKeyNotifier = artistsSortKeyNotifier;
+    sortKeyOptions = () {
+      final l10n = AppLocalizations.of(context);
+      return [
+        (l10n.sortByName, 0),
+        (l10n.sortByAlbumCount, 1),
+        (l10n.sortBySongCount, 2),
+        (l10n.sortBySize, 3),
+        (l10n.sortByPlayCount, 4),
+      ];
+    };
+
     updateCurrentList();
 
     artistAlbumManager.updateNotifier.addListener(updateCurrentList);

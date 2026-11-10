@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
+import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/widgets/collection_list.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/asset_images.dart';
@@ -67,6 +68,17 @@ class _AlbumsLayerState extends CollectionListState {
     useLargePictureNotifier = artistAlbumManager.getUseLargePictureNotifier(
       false,
     );
+    sortKeyNotifier = albumsSortKeyNotifier;
+    sortKeyOptions = () {
+      final l10n = AppLocalizations.of(context);
+      return [
+        (l10n.sortByName, 0),
+        (l10n.sortByAddedTime, 1),
+        (l10n.sortByPlayCount, 2),
+        (l10n.sortBySize, 3),
+        (l10n.sortByYear, 4),
+      ];
+    };
 
     updateCurrentList();
 

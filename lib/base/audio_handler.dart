@@ -6,6 +6,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sylvakru/base/data/config.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/services/background_task_service.dart';
@@ -161,6 +162,15 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _pubCoverPath;
   String? _pubSmallArtPath;
   String? _pubFetchArtUri;
+
+  // Set when a load aborted before it opened anything (nothing to show yet).
+  // The next play() retries the load instead of resuming a player that was
+  // never opened, which would otherwise leave the button dead.
+  bool _needsReload = false;
+
+  // Guards the single automatic retry of a failed stream open after switching
+  // between the home and away addresses.
+  bool _retriedAfterAddressSwitch = false;
 
   // Work already started for a song, so a burst of publishes does not queue the
   // same download or URI resolution twice.
@@ -928,7 +938,15 @@ class MyAudioHandler extends BaseAudioHandler {
     // with nothing on screen is worse than a short wait. The neighbouring tracks
     // were preheated, so this normally returns at once. On a desktop there is no
     // head unit to keep waiting for, so playback is not held back at all.
-    final prepared = isMobile ? await _prepareForPlayback(currentSong) : true;
+    //
+    // Streamed sources are the exception on a phone too: their artwork and
+    // lyrics arrive with the stream, and holding the stream back for them would
+    // stall the first play of every track. They are parsed in parallel instead.
+    final gatesPlayback = isMobile && isNotStreamSource;
+    final prepared = gatesPlayback ? await _prepareForPlayback(currentSong) : true;
+    if (!gatesPlayback) {
+      unawaited(setParsedLyrics(currentSong));
+    }
 
     // The artwork's colour is cosmetic, so it is computed on its own and never
     // holds the stream back.
@@ -945,6 +963,9 @@ class MyAudioHandler extends BaseAudioHandler {
     if (!prepared) {
       _mediaLog('not playing ${currentSong.id}: nothing to show yet');
       showCenterMessage(getAppLocalizations().playFailed, duration: 3000);
+      // Nothing was opened, so a later play() must load again rather than
+      // resume a player that was never given this track.
+      _needsReload = true;
       loadingSong = false;
       stop();
       return;
@@ -1008,8 +1029,22 @@ class MyAudioHandler extends BaseAudioHandler {
         _playLastSyncTime = DateTime.now();
       }
     } catch (error) {
+      logger.output('[media] ${currentSong.title} $error');
+      // Leaving home or arriving back changes which of the server's addresses
+      // answers; the one baked into the stream URL then fails. Re-probe the
+      // server once and, if another address works, reload the same track
+      // instead of stopping at an error the listener never asked for.
+      if (!_retriedAfterAddressSwitch &&
+          isStreamSource &&
+          await config.reProbeActiveServer()) {
+        _retriedAfterAddressSwitch = true;
+        _mediaLog('address switched, reloading ${currentSong.id}');
+        _onServerAddressChanged();
+        await load(start: start);
+        _retriedAfterAddressSwitch = false;
+        return;
+      }
       stop();
-      logger.output("[${currentSong.title}] $error");
     }
 
     updatePlaybackState(postion: Duration.zero);
@@ -1098,6 +1133,15 @@ class MyAudioHandler extends BaseAudioHandler {
     if (song != null) {
       updateServiceMediaItem(song, lyric: _currentLyricText());
     }
+  }
+
+  /// Drops every URI that was built against the server's previous address, so
+  /// covers are re-resolved against the one that now answers, and republishes
+  /// the media session (a head unit keeps showing the stale cover otherwise).
+  void _onServerAddressChanged() {
+    _pubFetchArtUri = null;
+    _coverUriCache.clear();
+    refreshServiceMediaItem();
   }
 
   /// Resolves the URI a head unit fetches for the current artwork, then
@@ -1308,6 +1352,11 @@ class MyAudioHandler extends BaseAudioHandler {
   @override
   Future<void> play() async {
     if (playQueue.isEmpty) return;
+    if (_needsReload) {
+      _needsReload = false;
+      await load();
+      return;
+    }
     _player.play();
 
     await updateIsPlaying(true);

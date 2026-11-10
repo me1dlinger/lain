@@ -369,6 +369,61 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
+  bool get supportsEntityFavorites => true;
+
+  @override
+  Future<bool> setStarred(String id, bool starred) async {
+    return await safeRequest(
+          starred ? '/rest/star.view' : '/rest/unstar.view',
+          query: {'id': id},
+        ) !=
+        null;
+  }
+
+  @override
+  Future<Set<String>> getStarredIds({required bool isArtist}) async {
+    final response = await safeRequest('/rest/getStarred2.view');
+    if (response == null) {
+      return {};
+    }
+    final items = normalize(response['starred2'][isArtist ? 'artist' : 'album']);
+    return {
+      for (final item in items ?? []) item['id'].toString(),
+    };
+  }
+
+  @override
+  Future<String?> getAlbumNotes(String albumId) async {
+    final response = await safeRequest(
+      '/rest/getAlbum.view',
+      query: {'id': albumId},
+    );
+    final notes = response?['album']?['notes']?.toString();
+    return (notes == null || notes.isEmpty) ? null : notes;
+  }
+
+  @override
+  Future<({String? biography, String? imageUrl})?> getArtistInfo(
+    String artistId,
+  ) async {
+    final response = await safeRequest(
+      '/rest/getArtistInfo.view',
+      query: {'id': artistId},
+    );
+    final info = response?['artistInfo'];
+    if (info == null) {
+      return null;
+    }
+    final biography = info['biography']?.toString();
+    final imageUrl =
+        (info['largeImageUrl'] ?? info['mediumImageUrl'])?.toString();
+    return (
+      biography: (biography == null || biography.isEmpty) ? null : biography,
+      imageUrl: (imageUrl == null || imageUrl.isEmpty) ? null : imageUrl,
+    );
+  }
+
+  @override
   Future<String> getLyricsById(String songId) async {
     final response = await safeRequest(
       '/rest/getLyricsBySongId.view',

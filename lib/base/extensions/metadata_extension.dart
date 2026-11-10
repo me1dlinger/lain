@@ -49,6 +49,8 @@ extension MetadataItemMapper on MetadataItem {
           ? DateTime.fromMillisecondsSinceEpoch(lastPlayed!)
           : null,
 
+      size: size,
+
       lyricsTimeOffset: lyricsTimeOffset,
     );
   }
@@ -80,6 +82,8 @@ extension MyAudioMetadataMapper on MyAudioMetadata {
       samplerate: Value(samplerate),
 
       duration: Value(duration?.inMilliseconds),
+
+      size: Value(size),
 
       lyrics: Value(lyrics),
 

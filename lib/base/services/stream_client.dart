@@ -141,4 +141,22 @@ abstract class StreamClient {
       downloadSong(songId, savePath);
 
   Future<bool> scrobble(String songId);
+
+  /// Whether this source can star a whole album or artist (as opposed to single
+  /// songs only). Local libraries answer true through their own store.
+  bool get supportsEntityFavorites => false;
+
+  /// Stars or unstars an album or an artist.
+  Future<bool> setStarred(String id, bool starred) async => false;
+
+  /// Ids of the starred albums, or of the starred artists.
+  Future<Set<String>> getStarredIds({required bool isArtist}) async => {};
+
+  /// The album's description/notes, or null when the source has none.
+  Future<String?> getAlbumNotes(String albumId) async => null;
+
+  /// Biography and image URL for an artist, or null when the source has none.
+  Future<({String? biography, String? imageUrl})?> getArtistInfo(
+    String artistId,
+  ) async => null;
 }

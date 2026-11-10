@@ -268,6 +268,37 @@ class Config {
     webdavClient = null;
   }
 
+  /// Re-probes the active server's other addresses and moves the app to one that
+  /// answers, returning true when the address actually changed.
+  ///
+  /// A launch reuses [MusicServer.lastGoodUrl] so it is not held up by two
+  /// timeouts - but that is the address that was good *last time*. Leaving the
+  /// house with a LAN address remembered, or coming home with a public one, is
+  /// perfectly normal, and every request then keeps failing until the user goes
+  /// to the settings and connects again by hand.
+  Future<bool> reProbeActiveServer() async {
+    final server = activeServer;
+    if (server == null) {
+      return false;
+    }
+
+    final current = streamClient?.baseUrl ?? webdavClient?.baseUrl;
+    for (final address in server.addresses) {
+      if (address == current) {
+        continue;
+      }
+      if (await _probe(server, address)) {
+        logger.output('[servers] ${server.name} switched to $address');
+        server.lastGoodUrl = address;
+        _openClient(server, address);
+        await save();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   /// Switches the app to [server]: probes its addresses (LAN first) and only
   /// connects when one of them answers.
   Future<bool> activateServer(MusicServer server) async {

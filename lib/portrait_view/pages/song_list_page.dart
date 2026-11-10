@@ -398,7 +398,17 @@ extension _SongListPage on _SongListState {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: playAllButton(),
+                      child: Row(
+                        children: [
+                          playAllButton(),
+                          const SizedBox(width: 10),
+                          shuffleButton(),
+                          if (canFavorite) ...[
+                            const SizedBox(width: 10),
+                            favoriteButton(),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -406,8 +416,94 @@ extension _SongListPage on _SongListState {
             ),
           ],
         ),
+        entityDetails(context),
         SizedBox(height: 20),
       ],
+    );
+  }
+
+  /// The heart that marks the album/artist being viewed as a favourite.
+  Widget favoriteButton() {
+    final target = favoriteEntity!;
+    return ValueListenableBuilder(
+      valueListenable: target.starredNotifier,
+      builder: (context, starred, child) {
+        return SizedBox(
+          width: 40,
+          height: 40,
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              tryVibrate();
+              toggleEntityFavorite(target);
+            },
+            icon: Icon(
+              starred
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              color: starred ? Colors.red : colorManager.getSpecificTextColor(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Year, counts, total playing time and size of the album/artist, then its
+  /// description. Nothing is shown for a plain song list.
+  Widget entityDetails(
+    BuildContext context, {
+    EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(20, 6, 20, 0),
+  }) {
+    final target = favoriteEntity;
+    if (target == null) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    final parts = <String>[];
+    if (album != null) {
+      final year = album!.maxYear;
+      if (year != null) {
+        parts.add('$year');
+      }
+      parts.add(l10n.songCount(album!.songList.length));
+    } else {
+      if (artist!.albumCount > 0) {
+        parts.add(l10n.albumCount(artist!.albumCount));
+      }
+      parts.add(l10n.songCount(artist!.songList.length));
+    }
+    if (target.playCount > 0) {
+      parts.add('${target.playCount} ${l10n.times}');
+    }
+    if (target.totalDuration > Duration.zero) {
+      parts.add(formatDuration(target.totalDuration, ms: false));
+    }
+    if (target.size > 0) {
+      parts.add(formatSize(target.size));
+    }
+    final description = album != null ? albumDescription : artist!.biography;
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            parts.join(' · '),
+            style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
+          ),
+          if (description != null && description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: textColor.withAlpha(180)),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -431,7 +527,11 @@ extension _SongListPage on _SongListState {
                     : null,
                 onLongPress: enabled
                     ? () {
-                        tryVibrate();
+                        // The long press has already changed what this button
+                        // does, so the change has to be felt. It is not behind
+                        // the app's vibration setting: that one is about
+                        // incidental feedback, not a changed action.
+                        vibrateGestureFeedback();
                         audioHandler.setPlayQueue(currentSongList, 1);
                       }
                     : null,
@@ -448,6 +548,45 @@ extension _SongListPage on _SongListState {
                     vertical: -2,
                   ),
                 ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// The same list as [playAllButton], shuffled. Icon-only and round, sharing the
+/// play button's height so the header stays one clean line; long-pressing "play
+/// all" does this too, but a visible button is what most people reach for.
+  Widget shuffleButton() {
+    return ValueListenableBuilder(
+      valueListenable: currentSongListNotifier,
+      builder: (context, currentSongList, child) {
+        return ListenableBuilder(
+          listenable: buttonColor.valueNotifier,
+          builder: (_, _) {
+            final enabled = currentSongList.isNotEmpty;
+            return SizedBox(
+              width: 40,
+              height: 40,
+              child: ElevatedButton(
+                onPressed: enabled
+                    ? () {
+                        tryVibrate();
+                        audioHandler.setPlayQueue(currentSongList, 1);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor.value,
+                  shape: const CircleBorder(),
+                  padding: EdgeInsets.zero,
+                  visualDensity: const VisualDensity(
+                    horizontal: 0,
+                    vertical: -2,
+                  ),
+                ),
+                child: const Icon(Icons.shuffle_rounded, size: 20),
               ),
             );
           },

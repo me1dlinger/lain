@@ -22,9 +22,20 @@ final albumsIsAscendingNotifier = ValueNotifier(true);
 final albumsUseLargePictureNotifier = ValueNotifier(false);
 final albumsRandomizeNotifier = ValueNotifier(false);
 
+/// Sort key of the album and artist lists, kept apart from the asc/desc switch
+/// so "play count, descending" survives leaving the page. 0 is the name order
+/// the list has always used.
+final albumsSortKeyNotifier = ValueNotifier<int>(0);
+final artistsSortKeyNotifier = ValueNotifier<int>(0);
+
 final playlistsUseLargePictureNotifier = ValueNotifier(true);
 
 final exitOnCloseNotifier = ValueNotifier(false);
+
+/// Favourite albums and artists of a local library, keyed by name; a local
+/// library has no server to star them on, so they live here.
+final localAlbumFavorites = <String>{};
+final localArtistFavorites = <String>{};
 
 final setting = Setting();
 
@@ -82,6 +93,23 @@ class Setting {
     albumsUseLargePictureNotifier.value =
         json['albumsUseLargePicture'] as bool? ??
         albumsUseLargePictureNotifier.value;
+
+    albumsSortKeyNotifier.value =
+        json['albumsSortKey'] as int? ?? albumsSortKeyNotifier.value;
+
+    artistsSortKeyNotifier.value =
+        json['artistsSortKey'] as int? ?? artistsSortKeyNotifier.value;
+
+    localAlbumFavorites
+      ..clear()
+      ..addAll(
+        (json['localAlbumFavorites'] as List?)?.map((e) => e.toString()) ?? [],
+      );
+    localArtistFavorites
+      ..clear()
+      ..addAll(
+        (json['localArtistFavorites'] as List?)?.map((e) => e.toString()) ?? [],
+      );
 
     playlistsUseLargePictureNotifier.value =
         json['playlistsUseLargePicture'] as bool? ??
@@ -195,6 +223,11 @@ class Setting {
         'albumsIsAscend': albumsIsAscendingNotifier.value,
         'albumsRandomize': albumsRandomizeNotifier.value,
         'albumsUseLargePicture': albumsUseLargePictureNotifier.value,
+        'albumsSortKey': albumsSortKeyNotifier.value,
+        'artistsSortKey': artistsSortKeyNotifier.value,
+
+        'localAlbumFavorites': localAlbumFavorites.toList(),
+        'localArtistFavorites': localArtistFavorites.toList(),
 
         'playlistsUseLargePicture': playlistsUseLargePictureNotifier.value,
 

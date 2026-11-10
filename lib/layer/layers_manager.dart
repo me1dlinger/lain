@@ -279,14 +279,44 @@ class LayersManager {
       DateTime.now().difference(_lastDetailPushAt!) <
           const Duration(milliseconds: 350);
 
-  void pushDetail(String label, dynamic detail) async {
+  /// The navigator and visibility of a root page, by its label; null when the
+  /// label names no page.
+  (GlobalKey<NavigatorState>, ValueNotifier<bool>)? _rootTargetOf(String label) {
+    switch (label) {
+      case 'artists':
+        return (artistsKey, artistsVisibleNotifier);
+      case 'albums':
+        return (albumsKey, albumsVisibleNotifier);
+      case 'folders':
+        return (foldersKey, foldersVisibleNotifier);
+      case 'home':
+        return (homeKey, homeVisibleNotifier);
+      case 'playlists':
+        return (playlistsKey, playlistsVisibleNotifier);
+      case 'settings':
+        return (settingsKey, settingsVisibleNotifier);
+    }
+    return null;
+  }
+
+  void pushDetail(String label, dynamic detail, {String? mountOn}) async {
     if (viewModeNotifier.value == .bigPicture) {
       return;
     }
     if (_detailPushTooSoon) {
       return;
     }
-    final rootLayer = getRootLayer(label);
+
+    // A detail normally mounts inside its own list layer, so the list is the
+    // page it slides in over. When the caller names the page it was opened
+    // from, the detail mounts there instead - the page the user is on stays
+    // behind it and going back returns to it, rather than to the list.
+    var mountLabel = (mountOn != null && mountOn.isNotEmpty) ? mountOn : label;
+    final mountedOn = mountLabel == label ? null : _rootTargetOf(mountLabel);
+    if (mountedOn == null) {
+      mountLabel = label;
+    }
+    final rootLayer = getRootLayer(mountLabel);
 
     // Tapping the same row again - before the page is even up, or after it has
     // settled - must not open a second copy of it.
@@ -347,6 +377,13 @@ class LayersManager {
     }
     detailWidgetMap[rootLayer] = detailLayer;
 
+    // Mounted elsewhere than its own list: the page it was opened from owns the
+    // navigator and the visibility, so its list is not revealed underneath.
+    if (mountedOn != null) {
+      rootKey = mountedOn.$1;
+      visibleNotifier = mountedOn.$2;
+    }
+
     final detailPage = createPage(detailLayer);
     rootKey.currentState?.push(
       DynamicDetailRoute(
@@ -356,7 +393,9 @@ class LayersManager {
           }
           return detailLayer;
         },
-        label: label,
+        // The route carries the page it belongs to: popping it (by gesture or
+        // by button) looks that page up to make it visible again.
+        label: mountLabel,
       ),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -429,29 +468,30 @@ class LayersManager {
     while (await popDetail(label)) {}
   }
 
-  Future<void> pushDetailIfNeed(dynamic detail) async {
-    if (detail is Artist) {
-      if ((detailWidgetMap[getRootLayer('artists')] as SingleArtistLayer?)
-              ?.artist !=
-          detail) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (await popDetail('artists')) {
-          await Future.delayed(Duration(milliseconds: 500));
-        }
-        pushDetail('artists', detail);
-      }
-    } else {
-      if ((detailWidgetMap[getRootLayer('albums')] as SingleAlbumLayer?)
-              ?.album !=
-          detail) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (await popDetail('albums')) {
-          await Future.delayed(Duration(milliseconds: 500));
-        }
+  Future<void> pushDetailIfNeed(dynamic detail, {String? mountOn}) async {
+    final label = detail is Artist ? 'artists' : 'albums';
+    final rootLayer = getRootLayer(mountOn ?? label);
+    final shown = detailWidgetMap[rootLayer];
 
-        pushDetail('albums', detail);
-      }
+    final alreadyShown = detail is Artist
+        ? shown is SingleArtistLayer && shown.artist == detail
+        : shown is SingleAlbumLayer && shown.album == detail;
+    if (alreadyShown) {
+      return;
     }
+
+    if (mountOn != null && mountOn.isNotEmpty) {
+      // Opened from another page: there is no list of its own to clear, and the
+      // page it came from has to stay behind it.
+      pushDetail(label, detail, mountOn: mountOn);
+      return;
+    }
+
+    await Future.delayed(Duration(milliseconds: 500));
+    if (await popDetail(label)) {
+      await Future.delayed(Duration(milliseconds: 500));
+    }
+    pushDetail(label, detail);
   }
 
   MyPicture? _getBackgroundPicture(Widget layer) {

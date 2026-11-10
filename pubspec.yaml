@@ -188,10 +188,10 @@ flutter:
 icons_launcher:
   image_path: "app_icons/icon.png"
   platforms:
-    # 自适应图标会在启动器里垫一层底板（透明层会渲染成黑色/纯色），
-    # 这里只出普通图标，保留设计里的透明通道。
     android:
       enable: true
+      adaptive_background_image: "app_icons/background.png"
+      adaptive_foreground_image: "app_icons/android.png"
     ios:
       enable: true
     macos:

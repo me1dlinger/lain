@@ -41,6 +41,11 @@ abstract class CollectionListState extends State<CollectionList> {
 
   ValueNotifier<bool>? randomizeNotifier;
   ValueNotifier<bool>? isAscendingNotifier;
+
+  /// Key of the list's own order (name, added time, play count, ...). When set
+  /// together with [sortKeyOptions] the "more" sheet offers it.
+  ValueNotifier<int>? sortKeyNotifier;
+  List<(String, int)> Function()? sortKeyOptions;
   ValueNotifier<bool> useLargePictureNotifier = ValueNotifier(false);
 
   final changeNotifier = ValueNotifier(0);
@@ -61,6 +66,67 @@ abstract class CollectionListState extends State<CollectionList> {
 
   void updateCurrentList();
 
+  /// "Sort by" entry of the sheet: the list of keys, the tick on the one in
+  /// use, and a picker that writes the value back to the settings.
+  Widget sortKeyTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final notifier = sortKeyNotifier!;
+    final options = sortKeyOptions!();
+    return ValueListenableBuilder(
+      valueListenable: notifier,
+      builder: (context, value, child) {
+        final current = options.firstWhere(
+          (option) => option.$2 == value,
+          orElse: () => options.first,
+        );
+        return ListTile(
+          leading: ImageIcon(sequenceImage),
+          title: Text(
+            l10n.sortType,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(current.$1),
+          visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useRootNavigator: true,
+              builder: (sheetContext) {
+                return MySheet(
+                  Column(
+                    children: [
+                      ListTile(title: Text(l10n.sortType)),
+                      MyDivider(thickness: 0.5, height: 1, color: dividerColor),
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            for (final option in options)
+                              ListTile(
+                                title: Text(option.$1),
+                                trailing: value == option.$2
+                                    ? const Icon(Icons.check)
+                                    : null,
+                                onTap: () {
+                                  notifier.value = option.$2;
+                                  setting.save();
+                                  Navigator.pop(sheetContext);
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   void onSearch() {
     if (preparing) {
       return;
@@ -73,12 +139,14 @@ abstract class CollectionListState extends State<CollectionList> {
     super.initState();
 
     isAscendingNotifier?.addListener(updateCurrentList);
+    sortKeyNotifier?.addListener(updateCurrentList);
     textController.addListener(onSearch);
   }
 
   @override
   void dispose() {
     isAscendingNotifier?.removeListener(updateCurrentList);
+    sortKeyNotifier?.removeListener(updateCurrentList);
     textController.dispose();
     scrollController.dispose();
     super.dispose();

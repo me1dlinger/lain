@@ -160,8 +160,19 @@ extension _SongListPanel on _SongListState {
                           l10n,
                           sourceType,
                         );
-                        return Text(
-                          "$prefix: ${l10n.songCount(currentSongList.length)}",
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "$prefix: ${l10n.songCount(currentSongList.length)}",
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            entityDetails(
+                              context,
+                              padding: const EdgeInsets.only(top: 6),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -213,6 +224,11 @@ extension _SongListPanel on _SongListState {
                               style: buttonStyle,
                               child: Text(l10n.shuffle),
                             ),
+
+                            if (canFavorite) ...[
+                              SizedBox(width: 15),
+                              favoriteButton(),
+                            ],
 
                             if (isMobile) ...[
                               SizedBox(width: 15),

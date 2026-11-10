@@ -31,6 +31,10 @@ class MetadataItems extends Table {
   IntColumn get samplerate => integer().nullable()();
   IntColumn get duration => integer().nullable()();
 
+  /// File size in bytes, so an album or an artist can report how much space it
+  /// takes up without touching every file again.
+  IntColumn get size => integer().nullable()();
+
   TextColumn get lyrics => text().nullable()();
 
   IntColumn get playCount => integer().withDefault(const Constant(0))();
@@ -48,7 +52,7 @@ class MetadataDB extends _$MetadataDB {
   MetadataDB(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -75,6 +79,10 @@ class MetadataDB extends _$MetadataDB {
 
         if (from < 6) {
           await m.addColumn(metadataItems, metadataItems.path);
+        }
+
+        if (from < 7) {
+          await m.addColumn(metadataItems, metadataItems.size);
         }
       },
     );

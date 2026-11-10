@@ -596,7 +596,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheTagLyric => '歌词';
 
   @override
-  String get precacheAll => '缓存全部歌曲';
+  String get precacheAll => '缓存全部歌曲信息';
 
   @override
   String get added2Next => '已添加到下一首播放';
@@ -929,4 +929,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notConnected => '未连接';
+
+  @override
+  String get sortType => '排序方式';
+
+  @override
+  String get sortByName => '名称';
+
+  @override
+  String get sortByAddedTime => '添加时间';
+
+  @override
+  String get sortByPlayCount => '播放次数';
+
+  @override
+  String get sortBySize => '文件大小';
+
+  @override
+  String get sortByYear => '年份';
+
+  @override
+  String get sortByAlbumCount => '专辑数量';
+
+  @override
+  String get sortBySongCount => '歌曲数量';
+
+  @override
+  String get totalDuration => '总时长';
+
+  @override
+  String get albumInfo => '专辑信息';
+
+  @override
+  String get artistInfo => '艺术家信息';
+
+  @override
+  String get biography => '艺术家简介';
+
+  @override
+  String get addToFavorites => '添加到我喜欢的';
+
+  @override
+  String get removeFromFavorites => '取消喜欢';
 }

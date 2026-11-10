@@ -165,6 +165,15 @@ class $MetadataItemsTable extends MetadataItems
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sizeMeta = const VerificationMeta('size');
+  @override
+  late final GeneratedColumn<int> size = GeneratedColumn<int>(
+    'size',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lyricsMeta = const VerificationMeta('lyrics');
   @override
   late final GeneratedColumn<String> lyrics = GeneratedColumn<String>(
@@ -227,6 +236,7 @@ class $MetadataItemsTable extends MetadataItems
     bitrate,
     samplerate,
     duration,
+    size,
     lyrics,
     playCount,
     lastPlayed,
@@ -342,6 +352,12 @@ class $MetadataItemsTable extends MetadataItems
         duration.isAcceptableOrUnknown(data['duration']!, _durationMeta),
       );
     }
+    if (data.containsKey('size')) {
+      context.handle(
+        _sizeMeta,
+        size.isAcceptableOrUnknown(data['size']!, _sizeMeta),
+      );
+    }
     if (data.containsKey('lyrics')) {
       context.handle(
         _lyricsMeta,
@@ -442,6 +458,10 @@ class $MetadataItemsTable extends MetadataItems
         DriftSqlType.int,
         data['${effectivePrefix}duration'],
       ),
+      size: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size'],
+      ),
       lyrics: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}lyrics'],
@@ -484,6 +504,10 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
   final int? bitrate;
   final int? samplerate;
   final int? duration;
+
+  /// File size in bytes, so an album or an artist can report how much space it
+  /// takes up without touching every file again.
+  final int? size;
   final String? lyrics;
   final int playCount;
   final int? lastPlayed;
@@ -505,6 +529,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
     this.bitrate,
     this.samplerate,
     this.duration,
+    this.size,
     this.lyrics,
     required this.playCount,
     this.lastPlayed,
@@ -559,6 +584,9 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
     if (!nullToAbsent || duration != null) {
       map['duration'] = Variable<int>(duration);
     }
+    if (!nullToAbsent || size != null) {
+      map['size'] = Variable<int>(size);
+    }
     if (!nullToAbsent || lyrics != null) {
       map['lyrics'] = Variable<String>(lyrics);
     }
@@ -612,6 +640,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
       duration: duration == null && nullToAbsent
           ? const Value.absent()
           : Value(duration),
+      size: size == null && nullToAbsent ? const Value.absent() : Value(size),
       lyrics: lyrics == null && nullToAbsent
           ? const Value.absent()
           : Value(lyrics),
@@ -645,6 +674,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
       bitrate: serializer.fromJson<int?>(json['bitrate']),
       samplerate: serializer.fromJson<int?>(json['samplerate']),
       duration: serializer.fromJson<int?>(json['duration']),
+      size: serializer.fromJson<int?>(json['size']),
       lyrics: serializer.fromJson<String?>(json['lyrics']),
       playCount: serializer.fromJson<int>(json['playCount']),
       lastPlayed: serializer.fromJson<int?>(json['lastPlayed']),
@@ -671,6 +701,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
       'bitrate': serializer.toJson<int?>(bitrate),
       'samplerate': serializer.toJson<int?>(samplerate),
       'duration': serializer.toJson<int?>(duration),
+      'size': serializer.toJson<int?>(size),
       'lyrics': serializer.toJson<String?>(lyrics),
       'playCount': serializer.toJson<int>(playCount),
       'lastPlayed': serializer.toJson<int?>(lastPlayed),
@@ -695,6 +726,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
     Value<int?> bitrate = const Value.absent(),
     Value<int?> samplerate = const Value.absent(),
     Value<int?> duration = const Value.absent(),
+    Value<int?> size = const Value.absent(),
     Value<String?> lyrics = const Value.absent(),
     int? playCount,
     Value<int?> lastPlayed = const Value.absent(),
@@ -716,6 +748,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
     bitrate: bitrate.present ? bitrate.value : this.bitrate,
     samplerate: samplerate.present ? samplerate.value : this.samplerate,
     duration: duration.present ? duration.value : this.duration,
+    size: size.present ? size.value : this.size,
     lyrics: lyrics.present ? lyrics.value : this.lyrics,
     playCount: playCount ?? this.playCount,
     lastPlayed: lastPlayed.present ? lastPlayed.value : this.lastPlayed,
@@ -743,6 +776,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
           ? data.samplerate.value
           : this.samplerate,
       duration: data.duration.present ? data.duration.value : this.duration,
+      size: data.size.present ? data.size.value : this.size,
       lyrics: data.lyrics.present ? data.lyrics.value : this.lyrics,
       playCount: data.playCount.present ? data.playCount.value : this.playCount,
       lastPlayed: data.lastPlayed.present
@@ -773,6 +807,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
           ..write('bitrate: $bitrate, ')
           ..write('samplerate: $samplerate, ')
           ..write('duration: $duration, ')
+          ..write('size: $size, ')
           ..write('lyrics: $lyrics, ')
           ..write('playCount: $playCount, ')
           ..write('lastPlayed: $lastPlayed, ')
@@ -782,7 +817,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     coverId,
     path,
@@ -799,11 +834,12 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
     bitrate,
     samplerate,
     duration,
+    size,
     lyrics,
     playCount,
     lastPlayed,
     lyricsTimeOffset,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -824,6 +860,7 @@ class MetadataItem extends DataClass implements Insertable<MetadataItem> {
           other.bitrate == this.bitrate &&
           other.samplerate == this.samplerate &&
           other.duration == this.duration &&
+          other.size == this.size &&
           other.lyrics == this.lyrics &&
           other.playCount == this.playCount &&
           other.lastPlayed == this.lastPlayed &&
@@ -847,6 +884,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
   final Value<int?> bitrate;
   final Value<int?> samplerate;
   final Value<int?> duration;
+  final Value<int?> size;
   final Value<String?> lyrics;
   final Value<int> playCount;
   final Value<int?> lastPlayed;
@@ -869,6 +907,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
     this.bitrate = const Value.absent(),
     this.samplerate = const Value.absent(),
     this.duration = const Value.absent(),
+    this.size = const Value.absent(),
     this.lyrics = const Value.absent(),
     this.playCount = const Value.absent(),
     this.lastPlayed = const Value.absent(),
@@ -892,6 +931,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
     this.bitrate = const Value.absent(),
     this.samplerate = const Value.absent(),
     this.duration = const Value.absent(),
+    this.size = const Value.absent(),
     this.lyrics = const Value.absent(),
     this.playCount = const Value.absent(),
     this.lastPlayed = const Value.absent(),
@@ -915,6 +955,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
     Expression<int>? bitrate,
     Expression<int>? samplerate,
     Expression<int>? duration,
+    Expression<int>? size,
     Expression<String>? lyrics,
     Expression<int>? playCount,
     Expression<int>? lastPlayed,
@@ -938,6 +979,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
       if (bitrate != null) 'bitrate': bitrate,
       if (samplerate != null) 'samplerate': samplerate,
       if (duration != null) 'duration': duration,
+      if (size != null) 'size': size,
       if (lyrics != null) 'lyrics': lyrics,
       if (playCount != null) 'play_count': playCount,
       if (lastPlayed != null) 'last_played': lastPlayed,
@@ -963,6 +1005,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
     Value<int?>? bitrate,
     Value<int?>? samplerate,
     Value<int?>? duration,
+    Value<int?>? size,
     Value<String?>? lyrics,
     Value<int>? playCount,
     Value<int?>? lastPlayed,
@@ -986,6 +1029,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
       bitrate: bitrate ?? this.bitrate,
       samplerate: samplerate ?? this.samplerate,
       duration: duration ?? this.duration,
+      size: size ?? this.size,
       lyrics: lyrics ?? this.lyrics,
       playCount: playCount ?? this.playCount,
       lastPlayed: lastPlayed ?? this.lastPlayed,
@@ -1045,6 +1089,9 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
     if (duration.present) {
       map['duration'] = Variable<int>(duration.value);
     }
+    if (size.present) {
+      map['size'] = Variable<int>(size.value);
+    }
     if (lyrics.present) {
       map['lyrics'] = Variable<String>(lyrics.value);
     }
@@ -1082,6 +1129,7 @@ class MetadataItemsCompanion extends UpdateCompanion<MetadataItem> {
           ..write('bitrate: $bitrate, ')
           ..write('samplerate: $samplerate, ')
           ..write('duration: $duration, ')
+          ..write('size: $size, ')
           ..write('lyrics: $lyrics, ')
           ..write('playCount: $playCount, ')
           ..write('lastPlayed: $lastPlayed, ')
@@ -1121,6 +1169,7 @@ typedef $$MetadataItemsTableCreateCompanionBuilder =
       Value<int?> bitrate,
       Value<int?> samplerate,
       Value<int?> duration,
+      Value<int?> size,
       Value<String?> lyrics,
       Value<int> playCount,
       Value<int?> lastPlayed,
@@ -1145,6 +1194,7 @@ typedef $$MetadataItemsTableUpdateCompanionBuilder =
       Value<int?> bitrate,
       Value<int?> samplerate,
       Value<int?> duration,
+      Value<int?> size,
       Value<String?> lyrics,
       Value<int> playCount,
       Value<int?> lastPlayed,
@@ -1238,6 +1288,11 @@ class $$MetadataItemsTableFilterComposer
 
   ColumnFilters<int> get duration => $composableBuilder(
     column: $table.duration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get size => $composableBuilder(
+    column: $table.size,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1351,6 +1406,11 @@ class $$MetadataItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get size => $composableBuilder(
+    column: $table.size,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get lyrics => $composableBuilder(
     column: $table.lyrics,
     builder: (column) => ColumnOrderings(column),
@@ -1433,6 +1493,9 @@ class $$MetadataItemsTableAnnotationComposer
   GeneratedColumn<int> get duration =>
       $composableBuilder(column: $table.duration, builder: (column) => column);
 
+  GeneratedColumn<int> get size =>
+      $composableBuilder(column: $table.size, builder: (column) => column);
+
   GeneratedColumn<String> get lyrics =>
       $composableBuilder(column: $table.lyrics, builder: (column) => column);
 
@@ -1497,6 +1560,7 @@ class $$MetadataItemsTableTableManager
                 Value<int?> bitrate = const Value.absent(),
                 Value<int?> samplerate = const Value.absent(),
                 Value<int?> duration = const Value.absent(),
+                Value<int?> size = const Value.absent(),
                 Value<String?> lyrics = const Value.absent(),
                 Value<int> playCount = const Value.absent(),
                 Value<int?> lastPlayed = const Value.absent(),
@@ -1519,6 +1583,7 @@ class $$MetadataItemsTableTableManager
                 bitrate: bitrate,
                 samplerate: samplerate,
                 duration: duration,
+                size: size,
                 lyrics: lyrics,
                 playCount: playCount,
                 lastPlayed: lastPlayed,
@@ -1543,6 +1608,7 @@ class $$MetadataItemsTableTableManager
                 Value<int?> bitrate = const Value.absent(),
                 Value<int?> samplerate = const Value.absent(),
                 Value<int?> duration = const Value.absent(),
+                Value<int?> size = const Value.absent(),
                 Value<String?> lyrics = const Value.absent(),
                 Value<int> playCount = const Value.absent(),
                 Value<int?> lastPlayed = const Value.absent(),
@@ -1565,6 +1631,7 @@ class $$MetadataItemsTableTableManager
                 bitrate: bitrate,
                 samplerate: samplerate,
                 duration: duration,
+                size: size,
                 lyrics: lyrics,
                 playCount: playCount,
                 lastPlayed: lastPlayed,

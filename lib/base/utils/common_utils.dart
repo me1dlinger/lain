@@ -15,6 +15,22 @@ String formatDuration(Duration duration, {bool ms = true}) {
   return "${twoDigits((duration.inMinutes / 60).toInt())}:${twoDigits(duration.inMinutes.remainder(60))}";
 }
 
+/// Bytes as a short human-readable size ("1.2 GB"); empty for nothing to show.
+String formatSize(int bytes) {
+  if (bytes <= 0) {
+    return '';
+  }
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var value = bytes.toDouble();
+  var unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  final decimals = (unit == 0 || value >= 100) ? 0 : 1;
+  return '${value.toStringAsFixed(decimals)} ${units[unit]}';
+}
+
 int compareVersion(String a, String b) {
   final aParts = a.split('.').map(int.parse).toList();
   final bParts = b.split('.').map(int.parse).toList();

@@ -759,6 +759,13 @@ class Library {
       if (song.created == null) {
         song.created = created;
       }
+      // A song read before the size column existed has none yet; stat the file
+      // once so album and artist sizes are complete.
+      if (song.size == null && sourceType == .local) {
+        try {
+          song.size = File(song.path!).lengthSync();
+        } catch (_) {}
+      }
       library.id2Song[id] = song;
     } else {
       library.id2Song.remove(id);

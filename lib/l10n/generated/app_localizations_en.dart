@@ -596,7 +596,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheTagLyric => 'Lyrics';
 
   @override
-  String get precacheAll => 'Cache Every Song';
+  String get precacheAll => 'Cache Every Song\'s Info';
 
   @override
   String get added2Next => 'Playing next';
@@ -938,4 +938,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notConnected => 'is Not Connected';
+
+  @override
+  String get sortType => 'Sort By';
+
+  @override
+  String get sortByName => 'Name';
+
+  @override
+  String get sortByAddedTime => 'Added Time';
+
+  @override
+  String get sortByPlayCount => 'Play Count';
+
+  @override
+  String get sortBySize => 'Size';
+
+  @override
+  String get sortByYear => 'Year';
+
+  @override
+  String get sortByAlbumCount => 'Album Count';
+
+  @override
+  String get sortBySongCount => 'Song Count';
+
+  @override
+  String get totalDuration => 'Total Duration';
+
+  @override
+  String get albumInfo => 'Album Info';
+
+  @override
+  String get artistInfo => 'Artist Info';
+
+  @override
+  String get biography => 'Biography';
+
+  @override
+  String get addToFavorites => 'Add to Favorites';
+
+  @override
+  String get removeFromFavorites => 'Remove from Favorites';
 }

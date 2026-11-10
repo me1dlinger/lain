@@ -14,6 +14,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
+import 'package:sylvakru/base/services/stream_client.dart';
 import 'package:sylvakru/base/utils/common_utils.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
@@ -135,6 +136,23 @@ class _SongListState extends State<SongList> {
   String rootLabel = '';
 
   bool prepareing = true;
+
+  /// Server description of the album being viewed, fetched once when the page
+  /// opens (only Navidrome has one).
+  String? albumDescription;
+
+  /// Whether the album/artist page can be marked as a favourite.
+  bool get canFavorite {
+    if (album == null && artist == null) {
+      return false;
+    }
+    if (isNotStreamSource) {
+      return true;
+    }
+    return streamClient?.supportsEntityFavorites == true;
+  }
+
+  ArtistAlbumBase? get favoriteEntity => album ?? artist;
 
   bool get reorderable {
     return canModify &&
@@ -473,6 +491,25 @@ class _SongListState extends State<SongList> {
       };
     }
     rootVisibleNotifier?.addListener(updateHideOthers);
+
+    // An album's description and an artist's biography are extra information
+    // shown on the page; both are fetched once, in the background, so the page
+    // opens at once.
+    if (album != null && sourceType == .navidrome) {
+      final albumId = album!.sourceId;
+      if (albumId != null) {
+        streamClient?.getAlbumNotes(albumId).then((notes) {
+          if (notes != null && mounted) {
+            setState(() => albumDescription = notes);
+          }
+        });
+      }
+    }
+    if (artist != null) {
+      loadArtistInfoIfNeed(artist!).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       updateSongList();
