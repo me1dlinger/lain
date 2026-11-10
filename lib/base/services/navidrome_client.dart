@@ -432,6 +432,12 @@ class NavidromeClient extends StreamClient {
   /// no local one.
   String? _nativeToken;
 
+  /// Root of the server, without a trailing slash, for the native API paths.
+  String get _nativeRoot {
+    final url = baseUrl.trim();
+    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  }
+
   Future<String?> _nativeTokenIfAvailable() async {
     final cached = _nativeToken;
     if (cached != null) {
@@ -439,7 +445,7 @@ class NavidromeClient extends StreamClient {
     }
     try {
       final response = await Dio().post(
-        '$baseUrl/auth/login',
+        '$_nativeRoot/auth/login',
         data: {'username': username, 'password': password},
         options: Options(contentType: 'application/json'),
       );
@@ -460,7 +466,7 @@ class NavidromeClient extends StreamClient {
     }
     try {
       final response = await Dio().get(
-        '$baseUrl/api/artist/$artistId',
+        '$_nativeRoot/api/artist/$artistId',
         options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
       );
       final url = (response.data?['largeImageUrl'] ?? response.data?['imageUrl'])
