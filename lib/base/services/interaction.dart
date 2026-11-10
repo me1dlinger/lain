@@ -423,43 +423,41 @@ void tryVibrate() {
 }
 
 /// Shows [text] in full, scrollable; tapping anywhere (the text, the pane or
-/// the barrier) closes it.
+/// the barrier) closes it. Uses the app's animated dialog so it matches the
+/// theme (a blurred backdrop, for instance, on the vivid themes).
 Future<void> showFullTextDialog(
   BuildContext context,
   String title,
   String text,
 ) {
-  return showDialog(
+  return showAnimationDialog<void>(
     context: context,
-    builder: (dialogContext) {
-      return GestureDetector(
-        onTap: () => Navigator.pop(dialogContext),
-        child: Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Text(text, style: const TextStyle(height: 1.5)),
-                  ),
-                ),
-              ],
+    child: GestureDetector(
+      onTap: () => Navigator.pop(context),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  cleanRichText(text),
+                  style: const TextStyle(height: 1.5),
+                ),
+              ),
+            ),
+          ],
         ),
-      );
-    },
+      ),
+    ),
   );
 }
 

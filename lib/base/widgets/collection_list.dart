@@ -104,6 +104,10 @@ abstract class CollectionListState extends State<CollectionList> {
           ),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () {
+            // Close the settings sheet first, then open the sort sheet: the
+            // same one-step flow the song-list sort uses, rather than stacking
+            // a second sheet on top of the first.
+            Navigator.pop(context);
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
@@ -124,6 +128,10 @@ abstract class CollectionListState extends State<CollectionList> {
                                         notifier.value == option.$2
                                     ? const Icon(Icons.check)
                                     : null,
+                                visualDensity: const VisualDensity(
+                                  horizontal: 0,
+                                  vertical: -4,
+                                ),
                                 onTap: () {
                                   notifier.value = option.$2;
                                   randomizeNotifier?.value = false;
@@ -142,18 +150,22 @@ abstract class CollectionListState extends State<CollectionList> {
                                 trailing: randomizing
                                     ? const Icon(Icons.check)
                                     : null,
+                                visualDensity: const VisualDensity(
+                                  horizontal: 0,
+                                  vertical: -4,
+                                ),
                                 onTap: () {
                                   randomizeNotifier!.value = true;
                                   setting.save();
                                   Navigator.pop(sheetContext);
                                 },
                               ),
-                            if (isAscendingNotifier != null) ...[
-                              MyDivider(
-                                thickness: 0.5,
-                                height: 1,
-                                color: dividerColor,
-                              ),
+                            MyDivider(
+                              thickness: 0.5,
+                              height: 1,
+                              color: dividerColor,
+                            ),
+                            if (isAscendingNotifier != null)
                               ListenableBuilder(
                                 listenable: isAscendingNotifier!,
                                 builder: (context, child) {
@@ -165,10 +177,14 @@ abstract class CollectionListState extends State<CollectionList> {
                                       valueNotifier: isAscendingNotifier!,
                                       onToggleCallBack: setting.save,
                                     ),
+                                    visualDensity: const VisualDensity(
+                                      horizontal: 0,
+                                      vertical: -4,
+                                    ),
                                   );
                                 },
                               ),
-                            ],
+                            const SizedBox(height: 50),
                           ],
                         ),
                       ),
@@ -196,6 +212,9 @@ abstract class CollectionListState extends State<CollectionList> {
 
     isAscendingNotifier?.addListener(updateCurrentList);
     sortKeyNotifier?.addListener(updateCurrentList);
+    // The shuffle switch lives in the sort dialog for albums and artists, so
+    // nothing else rebuilt the list when it was turned on.
+    randomizeNotifier?.addListener(updateCurrentList);
     textController.addListener(onSearch);
   }
 
@@ -203,6 +222,7 @@ abstract class CollectionListState extends State<CollectionList> {
   void dispose() {
     isAscendingNotifier?.removeListener(updateCurrentList);
     sortKeyNotifier?.removeListener(updateCurrentList);
+    randomizeNotifier?.removeListener(updateCurrentList);
     textController.dispose();
     scrollController.dispose();
     super.dispose();

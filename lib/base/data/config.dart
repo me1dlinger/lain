@@ -130,12 +130,12 @@ class Config {
 
     if (active != null && active.isUsable) {
       // Connect without probing, so a launch stays fast; a failing request
-      // switches to the other address instead. The LAN address wins whenever
-      // the server has one - it is the cheaper route, and when it is not
-      // reachable (a different network) the first request falls back on its
-      // own.
+      // switches to the other address instead. The address that was good last
+      // time is reused - leaving home or coming back to it is normal, and
+      // overriding it with the LAN address would undo that every launch. The
+      // LAN address is only the default when nothing was remembered yet.
       final lan = active.lanUrl.trim();
-      if (lan.isNotEmpty) {
+      if ((active.lastGoodUrl?.trim() ?? '').isEmpty && lan.isNotEmpty) {
         active.lastGoodUrl = lan;
       }
       _openClient(active, active.currentUrl);

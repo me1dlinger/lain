@@ -555,9 +555,13 @@ extension _SongListPage on _SongListState {
         icon: Icon(icon, size: 22),
         label: Text(label),
         style: ElevatedButton.styleFrom(
-          backgroundColor: filled ? buttonColor.value : null,
+          backgroundColor: filled
+              ? buttonColor.value
+              // A lighter tint of the accent, so "shuffle" reads as the
+              // secondary action next to "play all" instead of shouting.
+              : buttonColor.value.withAlpha(38),
           foregroundColor: filled ? null : colorManager.getSpecificTextColor(),
-          elevation: filled ? 2 : 0,
+          elevation: 0,
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
@@ -615,7 +619,8 @@ extension _SongListPage on _SongListState {
   /// The album description / artist biography, truncated to a few lines, that
   /// opens a full-text popup when tapped.
   Widget _descriptionSection(BuildContext context, AppLocalizations l10n) {
-    final description = album != null ? albumDescription : artist?.biography;
+    final raw = album != null ? albumDescription : artist?.biography;
+    final description = raw == null ? null : cleanRichText(raw);
     if (description == null || description.isEmpty) {
       return const SizedBox.shrink();
     }

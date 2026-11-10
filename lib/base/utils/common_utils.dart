@@ -31,6 +31,24 @@ String formatSize(int bytes) {
   return '${value.toStringAsFixed(decimals)} ${units[unit]}';
 }
 
+/// Turns the markup a server stores in a description / biography into plain
+/// text: `<br>` becomes a line break, a literal "\n" becomes one, and any other
+/// tag is dropped. Also rejects the NetEase "163 key(...)" blob, which is
+/// metadata rather than a description.
+String cleanRichText(String text) {
+  var value = text.trim();
+  if (value.startsWith('163 key(')) {
+    return '';
+  }
+  value = value.replaceAll(
+    RegExp(r'<\s*br\s*/?\s*>', caseSensitive: false),
+    '\n',
+  );
+  value = value.replaceAll('\\n', '\n');
+  value = value.replaceAll(RegExp(r'<[^>]+>'), '');
+  return value.trim();
+}
+
 int compareVersion(String a, String b) {
   final aParts = a.split('.').map(int.parse).toList();
   final bParts = b.split('.').map(int.parse).toList();

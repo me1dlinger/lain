@@ -955,13 +955,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortBySongCount => '歌曲数量';
 
   @override
-  String get sortByFavorite => 'Favorites';
+  String get sortByFavorite => '喜爱';
 
   @override
-  String get randomSort => 'Shuffle';
+  String get randomSort => '随机';
 
   @override
-  String get favoriteFailed => 'Could not update favorites';
+  String get favoriteFailed => '无法更新收藏';
 
   @override
   String get totalDuration => '总时长';

@@ -481,38 +481,42 @@ class _ServerEditPageState extends State<ServerEditPage> {
 
   Widget _addressSection(String title, _AddressEditor editor) {
     final l10n = AppLocalizations.of(context);
-
-    if (editor.usesFnId) {
-      // Only a Feiniu server's public address is a device id.
-      return AppleFormSection(
-        title: title,
-        children: [
-          appleFormRow(
-            'FN ID',
-            appleTextField(editor.hostTmp, placeholder: 'xxxxxxxx'),
-          ),
-          if (editor.isSecure)
-            appleSwitchRow(l10n.ignoreCert, editor.ignoreCertNotifier),
-        ],
-      );
-    }
+    // A Feiniu server's public address is either its device id (the default) or
+    // an ordinary public host; the two are alternatives chosen here.
+    final feiniuPublic = type == .feiniu && editor.isPublic;
 
     return AppleFormSection(
       title: title,
       children: [
-        appleSegmented<String>(
-          const ['http', 'https'],
-          (value) => value,
-          editor.scheme,
-          (value) => setState(() => editor.scheme = value),
-        ),
-        appleTextFieldRow(l10n.serverHost, editor.hostTmp),
-        appleTextFieldRow(l10n.serverPort, editor.portTmp, number: true),
-        if (type == .webdav)
-          appleTextFieldRow(l10n.serverPath, editor.pathTmp),
-        // A plain http address has no certificate to skip.
-        if (editor.isSecure)
-          appleSwitchRow(l10n.ignoreCert, editor.ignoreCertNotifier),
+        if (feiniuPublic)
+          appleSegmented<bool>(
+            const [true, false],
+            (value) => value ? 'FN ID' : l10n.publicAddress,
+            editor.fnIdMode,
+            (value) => setState(() => editor.fnIdMode = value),
+          ),
+        if (editor.usesFnId)
+          // The device-id form carries its own certificate, so there is
+          // nothing to skip here.
+          appleFormRow(
+            'FN ID',
+            appleTextField(editor.hostTmp, placeholder: 'xxxxxxxx'),
+          )
+        else ...[
+          appleSegmented<String>(
+            const ['http', 'https'],
+            (value) => value,
+            editor.scheme,
+            (value) => setState(() => editor.scheme = value),
+          ),
+          appleTextFieldRow(l10n.serverHost, editor.hostTmp),
+          appleTextFieldRow(l10n.serverPort, editor.portTmp, number: true),
+          if (type == .webdav)
+            appleTextFieldRow(l10n.serverPath, editor.pathTmp),
+          // A plain http address has no certificate to skip.
+          if (editor.isSecure)
+            appleSwitchRow(l10n.ignoreCert, editor.ignoreCertNotifier),
+        ],
       ],
     );
   }
@@ -585,6 +589,9 @@ class _AddressEditor {
   /// Whether this is the server's public address.
   final bool isPublic;
 
+  /// Feiniu public only: true for the device-id form, false for a real host.
+  bool fnIdMode = true;
+
   _AddressEditor({
     required String initial,
     required this.type,
@@ -592,19 +599,27 @@ class _AddressEditor {
     bool ignoreCert = false,
   }) {
     ignoreCertNotifier.value = ignoreCert;
+    // A remembered public address that is a host rather than an id reopens in
+    // the host form.
+    if (type == .feiniu && isPublic) {
+      fnIdMode =
+          initial.trim().isEmpty ||
+          (!initial.contains('://') && !initial.contains('.'));
+    }
     if (initial.isNotEmpty) {
       load(initial);
     }
   }
 
-  /// Feiniu is the odd one out: its public address is the device id (the client
-  /// expands a bare id to https://<id>.fnos.net/music/api/v1), while its LAN
-  /// address is a normal host, and the client appends the API path either way.
-  bool get usesFnId => type == .feiniu && isPublic;
+  /// Feiniu is the odd one out: its public address can be the device id (the
+  /// client expands a bare id to https://<id>.fnos.net/music/api/v1), while its
+  /// LAN address is a normal host, and the client appends the API path either
+  /// way.
+  bool get usesFnId => type == .feiniu && isPublic && fnIdMode;
 
   /// Only an address reached over https can have a certificate to skip, and the
-  /// device-id form is always https.
-  bool get isSecure => usesFnId || scheme == 'https';
+  /// device-id form carries its own.
+  bool get isSecure => scheme == 'https';
 
   final ignoreCertNotifier = ValueNotifier<bool>(false);
 

@@ -193,6 +193,10 @@ abstract class StreamClient {
   /// The album's description/notes, or null when the source has none.
   Future<String?> getAlbumNotes(String albumId) async => null;
 
+  /// The album's description from the source's own API, for a server that keeps
+  /// one its Subsonic endpoint does not expose. Null when there is none.
+  Future<String?> getAlbumDescription(String albumId) async => null;
+
   /// Biography and image URL for an artist, or null when the source has none.
   Future<({String? biography, String? imageUrl})?> getArtistInfo(
     String artistId,

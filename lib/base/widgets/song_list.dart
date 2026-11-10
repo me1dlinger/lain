@@ -519,9 +519,15 @@ class _SongListState extends State<SongList> {
     if (album != null && sourceType == .navidrome) {
       final albumId = album!.sourceId;
       if (albumId != null) {
-        streamClient?.getAlbumNotes(albumId).then((notes) {
-          if (notes != null && mounted) {
-            setState(() => albumDescription = notes);
+        // Navidrome's own API carries the album description its Subsonic
+        // endpoint leaves out; fall back to the Subsonic notes if not.
+        streamClient?.getAlbumDescription(albumId).then((description) async {
+          var value = description;
+          if (value == null || value.trim().isEmpty) {
+            value = await streamClient?.getAlbumNotes(albumId);
+          }
+          if (value != null && value.trim().isNotEmpty && mounted) {
+            setState(() => albumDescription = value);
           }
         });
       }

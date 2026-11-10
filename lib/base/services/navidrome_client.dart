@@ -479,6 +479,30 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
+  Future<String?> getAlbumDescription(String albumId) async {
+    final token = await _nativeTokenIfAvailable();
+    if (token == null) {
+      return null;
+    }
+    try {
+      final response = await Dio().get(
+        '$_nativeRoot/api/album/$albumId',
+        options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
+      );
+      final data = response.data;
+      final description = data?['description']?.toString();
+      final comment = data?['comment']?.toString();
+      final value = (description != null && description.trim().isNotEmpty)
+          ? description
+          : comment;
+      return (value == null || value.trim().isEmpty) ? null : value;
+    } catch (e) {
+      logger.output('[Navidrome] album description $albumId: $e');
+      return null;
+    }
+  }
+
+  @override
   Future<String> getLyricsById(String songId) async {
     final response = await safeRequest(
       '/rest/getLyricsBySongId.view',
