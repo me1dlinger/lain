@@ -14,7 +14,10 @@ extension HomePage on HomeLayerState {
           icon: const Icon(Icons.search),
           onPressed: () {
             globalNavigatorKey.currentState?.push(
-              MaterialPageRoute(builder: (context) => const GlobalSearchPage()),
+              themedRoute(
+                (context) => const GlobalSearchPage(),
+                picture: backgroundPicture,
+              ),
             );
           },
         ),

@@ -84,7 +84,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         titleSpacing: 0,
         title: TextField(
           controller: controller,
@@ -107,14 +109,18 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
             ],
           ),
           Expanded(
-            child: TabBarView(
-              controller: tab,
-              children: [
-                _songResults(l10n),
-                _albumResults(),
-                _artistResults(),
-                _playlistResults(),
-              ],
+            child: Padding(
+              // Room for the play bar drawn over the page.
+              padding: const EdgeInsets.only(bottom: 96),
+              child: TabBarView(
+                controller: tab,
+                children: [
+                  _songResults(l10n),
+                  _albumResults(),
+                  _artistResults(),
+                  _playlistResults(),
+                ],
+              ),
             ),
           ),
         ],

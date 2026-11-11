@@ -434,11 +434,12 @@ class Artist extends ArtistAlbumBase {
   String? get biography => artistInfoCache[artistKey(name)]?.biography;
   String? get imageUrl => artistInfoCache[artistKey(name)]?.imageUrl;
 
-  /// The artist's own image, kept per name so a rebuilt artist does not lose it.
-  /// It is used only when the server reports an artist image; otherwise the
-  /// first album's cover is shown, which reads better than the blank star the
-  /// cover-art endpoint returns for an artist it has no image for - and that
-  /// placeholder is never fetched or cached.
+  /// The artist's own image, decided the same way for the list and the detail
+/// page: the server's cover-art endpoint for this artist's id. It is kept per
+/// name so a rebuilt artist keeps the same picture, and never depends on an
+/// asynchronously fetched biography - that is what made the list and the page
+/// disagree (and flip when it arrived). An artist the server has no image for
+/// gets the placeholder, as it does on the server's own web UI.
   @override
   MyPicture get picture {
     final key = artistKey(name);
@@ -446,13 +447,10 @@ class Artist extends ArtistAlbumBase {
     if (existing != null) {
       return existing;
     }
-
     final id = sourceId;
-    final hasImage = (imageUrl ?? '').isNotEmpty;
-    if (id == null || !hasImage) {
+    if (id == null) {
       return super.picture;
     }
-
     return artistPictureCache[key] = MyPicture.form(id);
   }
 

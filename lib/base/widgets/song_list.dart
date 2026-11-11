@@ -33,6 +33,7 @@ import 'package:sylvakru/base/widgets/my_location.dart';
 import 'package:sylvakru/base/widgets/my_scaffold.dart';
 import 'package:sylvakru/base/widgets/my_sheet.dart';
 import 'package:sylvakru/base/widgets/sort_sheet.dart';
+import 'package:sylvakru/base/widgets/themed_route.dart';
 import 'package:sylvakru/base/widgets/play_next_button.dart';
 import 'package:sylvakru/base/widgets/playlist_widgets.dart';
 import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
@@ -46,7 +47,6 @@ import 'package:sylvakru/layer/home_layer.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/playlists_layer.dart';
 import 'package:sylvakru/portrait_view/my_search_field.dart';
-import 'package:sylvakru/portrait_view/play_bar.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 part '../../landscape_view/panels/song_list_panel.dart';
@@ -62,6 +62,7 @@ const pushedRouteLabel = '__pushed__';
 void pushAlbumDetail(Album album) {
   _pushSongListRoute(
     (context) => SongList(album: album, isRoot: false, pushedRoute: true),
+    album.picture,
   );
 }
 
@@ -69,6 +70,7 @@ void pushAlbumDetail(Album album) {
 void pushArtistDetail(Artist artist) {
   _pushSongListRoute(
     (context) => SongList(artist: artist, isRoot: false, pushedRoute: true),
+    artist.picture,
   );
 }
 
@@ -77,46 +79,14 @@ void pushPlaylistDetail(Playlist playlist) {
   _pushSongListRoute(
     (context) =>
         SongList(playlist: playlist, isRoot: false, pushedRoute: true),
+    playlist.picture,
   );
 }
 
-/// A detail page floats over the current page: the route is transparent so the
-/// app's blurred backdrop still shows, and the play bar is drawn over the page
-/// (it lives below the root navigator, which this route covers).
-void _pushSongListRoute(WidgetBuilder builder) {
+/// A detail page floats over the current page, themed and keeping the play bar.
+void _pushSongListRoute(WidgetBuilder builder, MyPicture? picture) {
   globalNavigatorKey.currentState?.push(
-    PageRouteBuilder<void>(
-      opaque: false,
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        final page = builder(context);
-        if (!isTooNarrow(context)) {
-          return page;
-        }
-        return Stack(
-          children: [
-            Positioned.fill(child: page),
-            const Positioned(left: 20, right: 20, bottom: 40, child: PlayBar()),
-          ],
-        );
-      },
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(curved),
-          child: child,
-        );
-      },
-    ),
+    themedRoute(builder, picture: picture),
   );
 }
 

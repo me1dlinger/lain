@@ -567,6 +567,13 @@ class LayersManager {
     }
   }
 
+  /// Gives a page opened as a route the same backdrop a root layer has, coloured
+/// from [picture]; the page is wrapped with createPage by the caller.
+  Future<void> styleRouteLayer(Widget layer, MyPicture? picture) async {
+    final color = await computeColor(picture);
+    _updateLayerInfo(layer, picture, color);
+  }
+
   Future<void> updateBackground() async {
     if (topRootLayer == null || viewModeNotifier.value == .bigPicture) {
       return;
