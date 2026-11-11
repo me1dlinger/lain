@@ -135,6 +135,9 @@ Future<void> clearArtistInfoCache() async {
     picture.isLoaded = false;
   }
   artistPictureCache.clear();
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache.clear();
+  imageCache.clearLiveImages();
   try {
     final file = _artistInfoFileOf();
     if (await file.exists()) {
@@ -189,6 +192,12 @@ Future<bool> refreshArtistCache(Artist artist) async {
       logger.output('artist cache: $e');
     }
   }
+  // The widget reads the image with FileImage, whose cache entry is keyed by
+  // the path and is not re-read when the file changes: without dropping it the
+  // old picture stays on screen even though the bytes were fetched again.
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache.clear();
+  imageCache.clearLiveImages();
   artistInfoCache.remove(key);
   await saveArtistInfoCache();
 
