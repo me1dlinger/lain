@@ -2030,6 +2030,18 @@ abstract class AppLocalizations {
   /// **'Clear artist cache'**
   String get clearArtistsCache;
 
+  /// No description provided for @artistCacheRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist cache refreshed'**
+  String get artistCacheRefreshed;
+
+  /// No description provided for @artistCacheNoImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshed - no artist image yet, using the album cover'**
+  String get artistCacheNoImage;
+
   /// No description provided for @addedTime.
   ///
   /// In en, this message translates to:

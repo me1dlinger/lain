@@ -293,6 +293,11 @@ void sortSongList(
         return b.playCount.compareTo(a.playCount);
       });
       break;
+    case 18: // play count Ascending
+      songList.sort((a, b) {
+        return a.playCount.compareTo(b.playCount);
+      });
+      break;
     case 14: // added time Descending
       if (addedOrder != null) {
         final position = {

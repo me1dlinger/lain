@@ -147,7 +147,13 @@ extension _SongListPage on _SongListState {
                     SortEntry(l10n.duration, 7, descValue: 8),
                     SortEntry(l10n.addedTime, 13, descValue: 14),
                     if (sourceType == .navidrome || sourceType == .emby)
-                      SortEntry(l10n.playCountLabel, 17),
+                      // 18 ascending, 17 descending: the entry carries both
+                      // directions so the order switch acts on it.
+                      SortEntry(
+                        l10n.playCountLabel,
+                        18,
+                        descValue: 17,
+                      ),
                     if (widget.album != null)
                       SortEntry(l10n.track, 15, descValue: 16),
                     if ((isLibrary && isNotStreamSource) || folder != null) ...[

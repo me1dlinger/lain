@@ -991,6 +991,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearArtistsCache => '清空艺术家缓存';
 
   @override
+  String get artistCacheRefreshed => '艺术家缓存已刷新';
+
+  @override
+  String get artistCacheNoImage => '已刷新，服务器暂无艺术家头像（使用专辑封面）';
+
+  @override
   String get addedTime => '添加时间';
 
   @override

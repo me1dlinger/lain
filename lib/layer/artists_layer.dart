@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/collection_list.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -50,6 +51,22 @@ class _ArtistsLayerState extends CollectionListState {
             // No waiting for the artwork: an artist whose cover has not loaded
             // (or has none) still opens.
             layersManager.pushDetail('artists', e);
+          },
+        )
+        .toList();
+    // Long-pressing an avatar drops that artist's cached biography and image
+    // and fetches them again - for an artist the server had no image for, the
+    // image may have appeared online since.
+    final l10n = AppLocalizations.of(context);
+    currentOnLongPressList = list
+        .map(
+          (e) => () async {
+            vibrateGestureFeedback();
+            final hasImage = await refreshArtistCache(e);
+            updateCurrentList();
+            showCenterMessage(
+              hasImage ? l10n.artistCacheRefreshed : l10n.artistCacheNoImage,
+            );
           },
         )
         .toList();

@@ -42,6 +42,10 @@ abstract class CollectionListState extends State<CollectionList> {
 
   List<Function> currentOnTapList = [];
 
+  /// Optional long-press action per row, for a layer that offers one (the
+  /// artist list refreshes that artist's cache).
+  List<Function>? currentOnLongPressList;
+
   final textController = TextEditingController();
 
   final ScrollController scrollController = ScrollController();

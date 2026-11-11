@@ -1000,6 +1000,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearArtistsCache => 'Clear artist cache';
 
   @override
+  String get artistCacheRefreshed => 'Artist cache refreshed';
+
+  @override
+  String get artistCacheNoImage =>
+      'Refreshed - no artist image yet, using the album cover';
+
+  @override
   String get addedTime => 'Added Time';
 
   @override

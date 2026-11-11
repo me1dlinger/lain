@@ -170,6 +170,49 @@ Future<void> prefetchArtistInfo() async {
   await saveArtistInfoCache();
 }
 
+/// Drops one artist's cached biography and image (missing ones are fine) and
+/// fetches them again. Returns whether the server now reports an artist image;
+/// when it does not, the album cover is used instead.
+Future<bool> refreshArtistCache(Artist artist) async {
+  final key = artistKey(artist.name);
+  final info = artistInfoCache[key];
+  final artistId = info?.artistId ?? artist.sourceId;
+
+  final picture = artistPictureCache.remove(key);
+  if (picture != null) {
+    try {
+      final file = File(picture.path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      logger.output('artist cache: $e');
+    }
+  }
+  artistInfoCache.remove(key);
+  await saveArtistInfoCache();
+
+  if (artistId == null || sourceType != .navidrome) {
+    artist.changeNotifier.value++;
+    artistAlbumManager.updateNotifier.value++;
+    return false;
+  }
+
+  final fresh = await streamClient?.getArtistInfo(artistId);
+  final hasImage = (fresh?.imageUrl ?? '').isNotEmpty;
+  artistInfoCache[key] = CachedArtistInfo(
+    biography: fresh?.biography,
+    imageUrl: fresh?.imageUrl,
+    hasImage: hasImage,
+    artistId: artistId,
+  );
+  await saveArtistInfoCache();
+
+  artist.changeNotifier.value++;
+  artistAlbumManager.updateNotifier.value++;
+  return hasImage;
+}
+
 /// Fetches one artist's biography if the cache does not have it yet.
 Future<void> loadArtistInfoIfNeed(Artist artist) async {
   await loadArtistInfoCache();

@@ -215,6 +215,9 @@ extension _CollectionListPage on CollectionListState {
             onTap: () {
               currentOnTapList[index].call();
             },
+            onLongPress: currentOnLongPressList == null
+                ? null
+                : () => currentOnLongPressList![index].call(),
           ),
         );
       },
@@ -258,6 +261,9 @@ extension _CollectionListPage on CollectionListState {
                       onTap: () {
                         currentOnTapList[index].call();
                       },
+                      onLongPress: currentOnLongPressList == null
+                          ? null
+                          : () => currentOnLongPressList![index].call(),
                     ),
                     SizedBox(
                       width: constraints.maxWidth - 10,

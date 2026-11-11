@@ -204,9 +204,9 @@ class _SettingsListState extends State<SettingsList> {
             paddingForLandscape(exitOnClose(l10n)),
           ), // always landscape style
 
-        if (!Platform.isIOS)
-          sliverBox(paddingIfNeed(isLandscape, checkUpdate(context, l10n))),
-
+        // Update checking is hidden for now: it is tied to the upstream
+        // repository, which this build is far from. It will come back with a
+        // channel of its own.
         sliverBox(paddingIfNeed(isLandscape, viewLogListTile(context, l10n))),
 
         if (viewModeNotifier.value != .bigPicture)

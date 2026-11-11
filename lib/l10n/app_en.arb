@@ -377,6 +377,8 @@
   "contributingArtists": "Contributing Artists",
   "noResults": "No results",
   "clearArtistsCache": "Clear artist cache",
+  "artistCacheRefreshed": "Artist cache refreshed",
+  "artistCacheNoImage": "Refreshed - no artist image yet, using the album cover",
   "addedTime": "Added Time",
   "modifiedTime": "Modified Time",
   "playCountLabel": "Play Count",

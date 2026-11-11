@@ -321,6 +321,8 @@
   "contributingArtists": "参与创作的艺术家",
   "noResults": "没有找到结果",
   "clearArtistsCache": "清空艺术家缓存",
+  "artistCacheRefreshed": "艺术家缓存已刷新",
+  "artistCacheNoImage": "已刷新，服务器暂无艺术家头像（使用专辑封面）",
   "addedTime": "添加时间",
   "modifiedTime": "修改时间",
   "playCountLabel": "播放次数",
