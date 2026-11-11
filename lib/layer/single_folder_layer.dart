@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/data/folder.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
+import 'package:lain/base/data/folder.dart';
+import 'package:lain/base/widgets/song_list.dart';
 
 class SingleFolderLayer extends StatelessWidget {
   final Folder folder;

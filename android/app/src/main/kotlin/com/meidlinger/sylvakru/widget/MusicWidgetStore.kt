@@ -1,4 +1,4 @@
-package com.afalphy.sylvakru.widget
+package com.meidlinger.sylvakru.widget
 
 import android.content.SharedPreferences
 

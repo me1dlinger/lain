@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/utils/my_gird_delegate.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/scale_widget.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/utils/my_gird_delegate.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/scale_widget.dart';
 
 abstract class BigCollectionListPanel extends StatefulWidget {
   const BigCollectionListPanel({super.key});

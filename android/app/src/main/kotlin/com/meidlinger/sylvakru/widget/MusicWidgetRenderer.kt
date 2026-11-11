@@ -1,4 +1,4 @@
-package com.afalphy.sylvakru.widget
+package com.meidlinger.sylvakru.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -14,8 +14,8 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.util.LruCache
 import android.widget.RemoteViews
-import com.afalphy.sylvakru.MainActivity
-import com.afalphy.sylvakru.R
+import com.meidlinger.sylvakru.MainActivity
+import com.meidlinger.sylvakru.R
 import java.io.File
 
 /**

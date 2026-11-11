@@ -1,6 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sylvakru/base/services/media_session_item.dart';
+import 'package:lain/base/services/media_session_item.dart';
 
 /// The car reads the media session, not the app, so these are the fields that
 /// decide what it shows. Testing them here means the mapping can be checked

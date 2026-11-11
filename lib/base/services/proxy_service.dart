@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:sylvakru/base/services/cert_policy.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:lain/base/services/cert_policy.dart';
+import 'package:lain/base/services/logger.dart';
 import 'package:win32/win32.dart' as win32;
 
 // System proxy detected from the OS (null = none configured, traffic direct).
@@ -13,7 +13,7 @@ import 'package:win32/win32.dart' as win32;
 // rules (e.g. Clash rule mode), so nothing here inspects domains.
 ({String host, int port})? systemProxy;
 
-const _channel = MethodChannel('com.afalphy.system_proxy');
+const _channel = MethodChannel('com.meidlinger.sylvakru.system_proxy');
 
 class _SystemProxyHttpOverrides extends HttpOverrides {
   @override

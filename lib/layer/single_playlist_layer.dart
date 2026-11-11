@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
-import 'package:sylvakru/base/data/playlist.dart';
+import 'package:lain/base/widgets/song_list.dart';
+import 'package:lain/base/data/playlist.dart';
 
 class SinglePlaylistLayer extends StatelessWidget {
   final Playlist playlist;

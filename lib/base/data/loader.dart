@@ -3,25 +3,25 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/font_manager.dart';
-import 'package:sylvakru/base/services/bookmark_service.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/data/setting.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/data/font_manager.dart';
+import 'package:lain/base/services/bookmark_service.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/history.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/picture_load_scheduler.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/picture_load_scheduler.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 bool firstLaunch = true;
 
@@ -38,7 +38,7 @@ class Loader {
       await Permission.audio.request();
     } else if (Platform.isIOS) {
       await BookmarkService.init();
-      File keepFile = File('${appDocsDir.path}/sylvakru.keep');
+      File keepFile = File('${appDocsDir.path}/lain.keep');
       if (!keepFile.existsSync()) {
         keepFile.createSync();
       }
@@ -265,7 +265,7 @@ class Loader {
       firstLaunch = false;
       if (compareVersion('4.0.1', jsonDecode(tmp.readAsStringSync())) > 0) {
         File playlistsFile = File(
-          "${getPlaylistConfigPath(.local)}/sylvakru_playlists.json",
+          "${getPlaylistConfigPath(.local)}/lain_playlists.json",
         );
         if (playlistsFile.existsSync()) {
           final content = playlistsFile.readAsStringSync();
@@ -276,7 +276,7 @@ class Loader {
         }
 
         playlistsFile = File(
-          "${getPlaylistConfigPath(.webdav)}/sylvakru_playlists.json",
+          "${getPlaylistConfigPath(.webdav)}/lain_playlists.json",
         );
         if (playlistsFile.existsSync()) {
           final content = playlistsFile.readAsStringSync();

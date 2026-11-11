@@ -3,21 +3,21 @@ import 'dart:typed_data';
 
 import 'package:home_widget/home_widget.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
 
 class HomeWidgetService {
   /// Android home screen widgets, addressed by fully qualified class name: the
   /// home_widget plugin resolves `androidName` against the application id, and
   /// these providers live in a sub-package.
   static const _androidPlayerProviders = [
-    'com.afalphy.sylvakru.widget.PlayerWidget2x2Provider',
-    'com.afalphy.sylvakru.widget.PlayerWidget4x2Provider',
+    'com.meidlinger.sylvakru.widget.PlayerWidget2x2Provider',
+    'com.meidlinger.sylvakru.widget.PlayerWidget4x2Provider',
   ];
 
   static Future<void> reloadNowPlayingWidget() async {

@@ -1,10 +1,10 @@
-package com.afalphy.sylvakru.widget
+package com.meidlinger.sylvakru.widget
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
-import com.afalphy.sylvakru.MainActivity
+import com.meidlinger.sylvakru.MainActivity
 import com.ryanheise.audioservice.AudioService
 
 /**
@@ -17,9 +17,9 @@ import com.ryanheise.audioservice.AudioService
  */
 class MusicWidgetActionReceiver : BroadcastReceiver() {
     companion object {
-        const val ACTION_PREVIOUS = "com.afalphy.sylvakru.widget.PREVIOUS"
-        const val ACTION_NEXT = "com.afalphy.sylvakru.widget.NEXT"
-        const val ACTION_TOGGLE = "com.afalphy.sylvakru.widget.TOGGLE"
+        const val ACTION_PREVIOUS = "com.meidlinger.sylvakru.widget.PREVIOUS"
+        const val ACTION_NEXT = "com.meidlinger.sylvakru.widget.NEXT"
+        const val ACTION_TOGGLE = "com.meidlinger.sylvakru.widget.TOGGLE"
         const val EXTRA_IS_PLAYING = "isPlaying"
     }
 

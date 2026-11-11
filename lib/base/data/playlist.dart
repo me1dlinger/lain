@@ -3,18 +3,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/home_widget_service.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/home_widget_service.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 final playlistManager = PlaylistManager();
 
@@ -31,7 +31,7 @@ class PlaylistManager {
 
   Future<void> _prepareForLoad() async {
     _playlistsFile = File(
-      "${getPlaylistConfigPath(sourceType)}/sylvakru_playlists.json",
+      "${getPlaylistConfigPath(sourceType)}/lain_playlists.json",
     );
     initFile(_playlistsFile, true);
 
@@ -50,13 +50,13 @@ class PlaylistManager {
 
   Future<void> _prepareForSync() async {
     _playlistsFile = File(
-      "${getPlaylistConfigPath(sourceType)}/sylvakru_playlists.json",
+      "${getPlaylistConfigPath(sourceType)}/lain_playlists.json",
     );
     initFile(_playlistsFile, true);
     if (isStreamSource) {
       final tmpPlaylist = await streamClient?.getPlaylists();
       for (final playlist in tmpPlaylist ?? <Playlist>[]) {
-        if (playlist.name == '_sylvakru_play_queue_') {
+        if (playlist.name == '_lain_play_queue_') {
           streamClient?.deletePlaylist(playlist.id!);
           continue;
         }

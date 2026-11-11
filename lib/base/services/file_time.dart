@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
 
-const _fileTimeChannel = MethodChannel('com.afalphy.media');
+const _fileTimeChannel = MethodChannel('com.meidlinger.sylvakru.media');
 
 /// Local file creation times, used as the "added time" sort key.
 ///

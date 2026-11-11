@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
   DynamicDetailRoute({required this.builder, required this.label});

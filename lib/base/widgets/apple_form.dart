@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/widgets/my_divider.dart';
+import 'package:lain/base/widgets/my_switch.dart';
 
 /// Grouped form pieces in the app's own style.
 ///

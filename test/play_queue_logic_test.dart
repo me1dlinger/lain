@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/play_queue_logic.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/play_queue_logic.dart';
 
 MyAudioMetadata song(String id) {
   return MyAudioMetadata(AudioMetadata(title: id), id: id);

@@ -4,44 +4,44 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/emby_client.dart';
-import 'package:sylvakru/base/services/feiniu_client.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/navidrome_client.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/system_ui_service.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/server_manager.dart';
-import 'package:sylvakru/base/widgets/equalizer.dart';
-import 'package:sylvakru/base/services/download_manager.dart';
-import 'package:sylvakru/base/widgets/downloads_page.dart';
-import 'package:sylvakru/base/widgets/home_layout_settings.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/apple_form.dart';
-import 'package:sylvakru/base/widgets/stats_page.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/data/stream_quality.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/widgets/manage_music_folders.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/layer/premium_layer.dart';
-import 'package:sylvakru/portrait_view/portrait_view.dart';
-import 'package:sylvakru/portrait_view/sleep_timer.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/services/emby_client.dart';
+import 'package:lain/base/services/feiniu_client.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/navidrome_client.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/services/system_ui_service.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/utils/source_type.dart';
+import 'package:lain/base/widgets/server_manager.dart';
+import 'package:lain/base/widgets/equalizer.dart';
+import 'package:lain/base/services/download_manager.dart';
+import 'package:lain/base/widgets/downloads_page.dart';
+import 'package:lain/base/widgets/home_layout_settings.dart';
+import 'package:lain/base/widgets/my_divider.dart';
+import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/stats_page.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/data/stream_quality.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/base/widgets/manage_music_folders.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/data/loader.dart';
+import 'package:lain/layer/premium_layer.dart';
+import 'package:lain/portrait_view/portrait_view.dart';
+import 'package:lain/portrait_view/sleep_timer.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -84,13 +84,16 @@ class _SettingsListState extends State<SettingsList> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
+                    // Counted from what this page actually renders: the tiles
+                    // shared by every build, plus the platform-specific ones.
                     l10n.settingCount(
                       (Platform.isAndroid
-                              ? 16
+                              ? 19
                               : Platform.isIOS
-                              ? 15
-                              : 14) +
-                          (isNotStreamSource ? 1 : 0),
+                              ? 17
+                              : 15) +
+                          (isNotStreamSource ? 1 : 0) +
+                          (isStreamSource ? 2 : 0),
                     ),
                     style: TextStyle(fontSize: 12),
                   ),
@@ -168,10 +171,9 @@ class _SettingsListState extends State<SettingsList> {
           paddingIfNeed(isLandscape, controlCenterLyricsListTile(l10n)),
         ),
 
-        if (Platform.isIOS &&
-            !isLandscape &&
-            viewModeNotifier.value != .bigPicture)
-
+        // The drawer side entry this used to gate was removed with the drawer
+        // itself; leaving the empty `if` here made it swallow the vibration
+        // tile, which only showed on iOS portrait.
         if (isMobile && !isTV)
           sliverBox(paddingIfNeed(isLandscape, vibrationListTile(l10n))),
 
@@ -922,7 +924,7 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.checkUpdate),
       onTap: () async {
         final url = Uri.parse(
-          'https://api.github.com/repos/AfalpHy/sylvakru/releases/latest',
+          'https://api.github.com/repos/me1dlinger/sylvakru/releases/latest',
         );
 
         try {
@@ -993,7 +995,7 @@ class _SettingsListState extends State<SettingsList> {
                                 ElevatedButton(
                                   onPressed: () => launchUrl(
                                     Uri.parse(
-                                      "https://github.com/AfalpHy/sylvakru/releases/latest",
+                                      "https://github.com/me1dlinger/sylvakru/releases/latest",
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -1081,7 +1083,7 @@ class _SettingsListState extends State<SettingsList> {
                                 } else {
                                   result = '${appDocsDir.path}/logs';
                                   logger.export2Directory(result);
-                                  showCenterMessage('Export to Sylvakru/logs');
+                                  showCenterMessage('Export to Lain/logs');
                                 }
                               },
                               child: Text(l10n.exportLog),
@@ -1315,7 +1317,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
       valueListenable: cacheEntriesNotifier,
       builder: (context, entries, child) {
         final playlists = playlistManager.playlists
-            .where((playlist) => playlist.name != '_sylvakru_play_queue_')
+            .where((playlist) => playlist.name != '_lain_play_queue_')
             .toList();
         if (playlists.isEmpty) {
           return Center(child: Text(l10n.cacheEmpty));

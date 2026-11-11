@@ -1,15 +1,15 @@
 <div align="center">
-  <img src="./app_icons/icon.png" width="160" alt="Sylvakru Icon"/>
+  <img src="./app_icons/icon.png" width="160" alt="Lain Icon"/>
 
   <br />
 
-  # Sylvakru (森露)
+  # Lain (临音)
 
   _“A private music oasis in the digital world.”_
 
 </div>
 
-Sylvakru is a cross-platform music player for local libraries and self-hosted media services, supporting Android, iOS, Windows, Linux, and macOS.
+Lain is a cross-platform music player for local libraries and self-hosted media services, supporting Android, iOS, Windows, Linux, and macOS.
 
 Currently supports:
 - Local
@@ -18,18 +18,31 @@ Currently supports:
 - Emby
 - Feiniu Music (Special thanks to [huya688zdx](https://github.com/huya688zdx) for the contribution)
 
+## About this project
 
+Lain is a derivative work of [Sylvakru](https://github.com/AfalpHy/sylvakru) (formerly Particle Music),
+originally created by [AfalpHy](https://github.com/AfalpHy). This repository is maintained independently
+from the upstream project: it is not a GitHub fork, has its own application identifier
+(`com.meidlinger.sylvakru`), its own release channel and its own development direction.
 
-> Formerly known as Particle Music.
+It remains open source, under the same license as the upstream project — the
+[Apache License 2.0](./LICENSE). Upstream copyright notices are kept in
+[NOTICE](./NOTICE); modifications made here are listed in the git history and
+summarised in the release notes of each version.
 
-> [!Note]
-> **The iOS version is now available on the Apple App Store!**
+The Android side has been substantially reworked here (single home page, server
+manager, sorting, listening stats, home-screen widgets, media session artwork,
+among others); iOS, macOS, Windows and Linux share the same core and are kept
+building from the same source.
+
+Special thanks to the upstream author for the original work this project builds on.
 
 ## USB Exclusive Mode(Android)
 
-Special thanks to [huya688zdx](https://github.com/huya688zdx) for maintaining USB Exclusive Mode support.
+Special thanks to [huya688zdx](https://github.com/huya688zdx) for maintaining USB Exclusive Mode support upstream.
 
-If you need USB Exclusive Mode, please check out this [fork](https://github.com/huya688zdx/sylvakru)
+That mode is not part of this build; for USB Exclusive Mode please use the
+[upstream fork](https://github.com/huya688zdx/sylvakru).
 
 
 ## Supported Formats
@@ -67,7 +80,7 @@ sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 # audio lib
 sudo apt install libmpv-dev
 
-git clone https://github.com/AfalpHy/sylvakru.git
+git clone https://github.com/me1dlinger/sylvakru.git
 cd sylvakru
 # check the development environment
 flutter doctor -v
@@ -88,7 +101,7 @@ flutter build linux && ./generate_rpm.sh
 ### Windows
 Install [Visual Studio](https://visualstudio.microsoft.com/).
 ```shell
-git clone https://github.com/AfalpHy/sylvakru.git
+git clone https://github.com/me1dlinger/sylvakru.git
 cd sylvakru
 # check the development environment
 flutter doctor -v
@@ -104,7 +117,7 @@ flutter build windows
 Install Xcode and the Xcode Command Line Tools by following the [official Apple Developer download page](https://developer.apple.com/download/all/).
 
 ```shell
-git clone https://github.com/AfalpHy/sylvakru.git
+git clone https://github.com/me1dlinger/sylvakru.git
 cd sylvakru
 
 # install CocoaPods
@@ -123,14 +136,14 @@ flutter build macos
 flutter build ios --release --no-codesign && \
 mkdir -p Payload && \
 cp -r build/ios/iphoneos/Runner.app Payload/ && \
-zip -r sylvakru.ipa Payload && \
+zip -r lain.ipa Payload && \
 rm -rf Payload
 ```
 
 ### Android
 Install [Android Studio](https://developer.android.com/studio) and Android SDK Command-line Tools
 ```shell
-git clone https://github.com/AfalpHy/sylvakru.git
+git clone https://github.com/me1dlinger/sylvakru.git
 cd sylvakru
 # accept the SDK licenses
 flutter doctor --android-licenses

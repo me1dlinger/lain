@@ -5,16 +5,16 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:home_widget/home_widget.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/music_server.dart';
-import 'package:sylvakru/base/services/cert_policy.dart';
-import 'package:sylvakru/base/services/emby_client.dart';
-import 'package:sylvakru/base/services/feiniu_client.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/navidrome_client.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/layer/premium_layer.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/music_server.dart';
+import 'package:lain/base/services/cert_policy.dart';
+import 'package:lain/base/services/emby_client.dart';
+import 'package:lain/base/services/feiniu_client.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/navidrome_client.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/services/webdav_client.dart';
+import 'package:lain/layer/premium_layer.dart';
 
 final config = Config();
 

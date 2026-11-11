@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/data/stats.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/data/stats.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 /// Local listening report: a yearly heatmap, the day's ranking, the year's
 /// totals and the top songs / artists / albums. Everything comes from

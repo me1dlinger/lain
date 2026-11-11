@@ -1,16 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/iap_service.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/widgets/my_scaffold.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/settings_layer.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/iap_service.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/widgets/my_scaffold.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/landscape_view/title_bar.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/layer/settings_layer.dart';
 
 final trialRemainingMinNotifier = ValueNotifier(-1);
 

@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// Quick action on a song row: the "+" queues the song right after the one
 /// playing.

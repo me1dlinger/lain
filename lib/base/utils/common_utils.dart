@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/l10n/generated/app_localizations_en.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/l10n/generated/app_localizations_en.dart';
 
 String formatDuration(Duration duration, {bool ms = true}) {
   String twoDigits(int n) => n.toString().padLeft(2, "0");

@@ -1,13 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/widgets/buttons.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/widgets/buttons.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/layer/lyrics_page_layer.dart';
 
 class BigPlayBar extends StatelessWidget {
   final FocusNode? focusNode;

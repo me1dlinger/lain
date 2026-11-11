@@ -1,15 +1,15 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/playlist_widgets.dart';
-import 'package:sylvakru/base/data/folder.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/selectable_song_list_tile.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/data/playlist.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/playlist_widgets.dart';
+import 'package:lain/base/data/folder.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/base/widgets/selectable_song_list_tile.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/data/playlist.dart';
 
 class SelectableSongListPage extends StatelessWidget {
   final List<MyAudioMetadata> songList;

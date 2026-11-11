@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 String getSourceTypeDisplayName(AppLocalizations l10n, SourceType sourceType) {
   switch (sourceType) {

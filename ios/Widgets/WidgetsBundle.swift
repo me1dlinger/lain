@@ -21,7 +21,7 @@ struct WidgetsBundle: WidgetBundle {
 // (config.dart syncWidgetPremium). A missing key means the app never ran yet
 // (widget gallery, fresh install) - show the full design in that case.
 func widgetIsPremium() -> Bool {
-  UserDefaults(suiteName: "group.com.afalphy.sylvakru")?
+  UserDefaults(suiteName: "group.com.meidlinger.sylvakru")?
     .object(forKey: "isPremium") as? Bool ?? true
 }
 

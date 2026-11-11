@@ -1,14 +1,14 @@
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/play_queue_sheet.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/pages/play_queue_page.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/play_queue_sheet.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 /// Play order: tapping it cycles list loop -> shuffle -> repeat one and the icon

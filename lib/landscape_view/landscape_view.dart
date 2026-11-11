@@ -1,11 +1,11 @@
 import 'dart:ui';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/landscape_view/bottom_control.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/landscape_view/bottom_control.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 class LandscapeView extends StatelessWidget {
   const LandscapeView({super.key});

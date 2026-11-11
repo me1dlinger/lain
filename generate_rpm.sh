@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ---------- CONFIG ----------
-BINARY_NAME="sylvakru"
-APP_NAME="Sylvakru"
+BINARY_NAME="lain"
+APP_NAME="Lain"
 APP_VERSION="4.5.1"
 MAINTAINER="AfalpHy <736353503@qq.com>"
 
@@ -46,7 +46,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.afalphy.sylvakru
+StartupWMClass=com.meidlinger.sylvakru
 Terminal=false
 EOL
 
@@ -60,7 +60,7 @@ Version:        $APP_VERSION
 Release:        1
 Summary:        $APP_NAME Desktop Application
 License:        Proprietary
-URL:            https://github.com/AfalpHy/sylvakru
+URL:            https://github.com/me1dlinger/sylvakru
 BuildArch:      x86_64
 
 Requires:       $DEPENDS

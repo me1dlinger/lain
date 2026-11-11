@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:lain/base/services/logger.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/my_audio_metadata.dart';
 
 StreamClient? streamClient;
 

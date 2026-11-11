@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ---------- CONFIG ----------
-BINARY_NAME="sylvakru"
-APP_NAME="Sylvakru"
+BINARY_NAME="lain"
+APP_NAME="Lain"
 APP_VERSION="4.5.1"
 MAINTAINER="AfalpHy"
 
@@ -75,7 +75,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.afalphy.sylvakru
+StartupWMClass=com.meidlinger.sylvakru
 Terminal=false
 EOL
 

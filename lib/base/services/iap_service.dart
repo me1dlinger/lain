@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/premium_layer.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/config.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/premium_layer.dart';
 
 class IAPService {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -45,7 +45,7 @@ class IAPService {
     onMessage?.call(l10n.connectingToAppStore);
     if (products.isEmpty) {
       final ProductDetailsResponse response = await _iap.queryProductDetails({
-        'com.afalphy.sylvakru.premium.lifetime',
+        'com.meidlinger.sylvakru.premium.lifetime',
       });
       if (response.error != null) {
         logger.output(response.error.toString());

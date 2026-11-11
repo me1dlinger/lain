@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_player_2x2_name">Sylvakru</string>
+    <string name="app_name">临音</string>
+    <string name="widget_player_2x2_name">Lain</string>
     <string name="widget_player_2x2_desc">显示封面、歌名、艺术家与播放控制。</string>
-    <string name="widget_player_4x2_name">Sylvakru 歌词版</string>
+    <string name="widget_player_4x2_name">临音 歌词版</string>
     <string name="widget_player_4x2_desc">显示封面、歌名、艺术家、当前歌词行与播放控制。</string>
 
     <string name="widget_action_previous">上一首</string>

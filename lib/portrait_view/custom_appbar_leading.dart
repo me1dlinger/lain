@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 /// Leading action of the page app bars:
 /// - a detail page (a level below a list) goes back to the list it came from,

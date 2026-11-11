@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/data/stream_quality.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/data/stream_quality.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/stream_client.dart';
 
 class EmbyClient extends StreamClient {
   String? accessToken;
@@ -29,7 +29,7 @@ class EmbyClient extends StreamClient {
         headers: {
           'Content-Type': 'application/json',
           'X-Emby-Authorization':
-              'MediaBrowser Client="Sylvakru", Device="Flutter", DeviceId="sylvakru", Version="$versionNumber"',
+              'MediaBrowser Client="Lain", Device="Flutter", DeviceId="lain", Version="$versionNumber"',
         },
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/keyboard.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/keyboard.dart';
 
 class MySearchField extends StatefulWidget {
   final String hintText;

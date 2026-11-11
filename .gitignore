@@ -46,3 +46,7 @@ app.*.map.json
 
 .vscode
 *.pfx
+# Android signing (never commit)
+/android/key.properties
+/android/*.jks
+/android/*.keystore

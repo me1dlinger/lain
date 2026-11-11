@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/widgets/collection_list.dart';
-import 'package:sylvakru/base/widgets/playlist_widgets.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/widgets/collection_list.dart';
+import 'package:lain/base/widgets/playlist_widgets.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/base/asset_images.dart';
 
 final GlobalKey<NavigatorState> playlistsKey = GlobalKey();
 final playlistsVisibleNotifier = ValueNotifier(true);

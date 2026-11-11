@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/portrait_view/custom_appbar_leading.dart';
 
 Widget myScaffold({
   required BuildContext context,

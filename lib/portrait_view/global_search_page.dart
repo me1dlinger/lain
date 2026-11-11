@@ -1,14 +1,14 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/song_list.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/layers_manager.dart';
 
 /// Search across the whole library - songs, albums, artists and playlists - in
 /// one place, split into tabs, instead of only filtering whatever the home page
@@ -75,7 +75,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
       : playlistManager.playlists
             .where(
               (playlist) =>
-                  playlist.name != '_sylvakru_play_queue_' &&
+                  playlist.name != '_lain_play_queue_' &&
                   _matches(playlist.name),
             )
             .toList();

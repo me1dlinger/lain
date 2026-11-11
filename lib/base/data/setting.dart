@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/lyric_list_view.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/home_layout.dart';
-import 'package:sylvakru/base/data/stream_quality.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/widgets/manage_music_folders.dart';
-import 'package:sylvakru/portrait_view/portrait_view.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/lyric_list_view.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/home_layout.dart';
+import 'package:lain/base/data/stream_quality.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/base/widgets/manage_music_folders.dart';
+import 'package:lain/portrait_view/portrait_view.dart';
 
 final artistsIsListViewNotifier = ValueNotifier(true);
 final artistsIsAscendingNotifier = ValueNotifier(true);

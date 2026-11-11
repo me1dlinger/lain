@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/exit.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/mini_view/mini_view.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/exit.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/mini_view/mini_view.dart';
 import 'package:window_manager/window_manager.dart';
 
 late final MyWindowListener myWindowListener;

@@ -1,12 +1,12 @@
-package com.afalphy.sylvakru.widget
+package com.meidlinger.sylvakru.widget
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
 import es.antonborri.home_widget.HomeWidgetProvider
 
-/** 4x2 player: the 2x2 content plus the current lyric line. */
-class PlayerWidget4x2Provider : HomeWidgetProvider() {
+/** 2x2 player: cover, title, artist and the three playback controls. */
+class PlayerWidget2x2Provider : HomeWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -18,7 +18,7 @@ class PlayerWidget4x2Provider : HomeWidgetProvider() {
             appWidgetManager,
             appWidgetIds,
             widgetData,
-            withLyrics = true,
+            withLyrics = false,
         )
     }
 }

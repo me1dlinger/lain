@@ -1,10 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/widgets/my_navigator.dart';
-import 'package:sylvakru/base/widgets/my_scaffold.dart';
-import 'package:sylvakru/base/widgets/settings_list.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/widgets/my_navigator.dart';
+import 'package:lain/base/widgets/my_scaffold.dart';
+import 'package:lain/base/widgets/settings_list.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/landscape_view/title_bar.dart';
 
 final GlobalKey<NavigatorState> settingsKey = GlobalKey();
 final settingsVisibleNotifier = ValueNotifier(true);

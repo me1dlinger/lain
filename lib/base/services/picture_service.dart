@@ -9,12 +9,12 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/picture_load_scheduler.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/picture_load_scheduler.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/services/webdav_client.dart';
+import 'package:lain/base/utils/path.dart';
 
 List<MyPicture> globalPictureList = [];
 

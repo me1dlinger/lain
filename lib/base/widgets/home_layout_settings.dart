@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/data/home_layout.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:lain/base/data/home_layout.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/widgets/my_switch.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// Chooses what the home page shows - the buttons at the very top and the
 /// shelves below them - and in which order. Hidden entries keep their place, so

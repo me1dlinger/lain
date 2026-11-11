@@ -6,41 +6,41 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/services/background_task_service.dart';
-import 'package:sylvakru/base/services/home_widget_service.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/play_queue_logic.dart';
-import 'package:sylvakru/base/services/stream_relay.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/taskbar_service.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/lyric.dart';
-import 'package:sylvakru/base/services/media_session_item.dart';
-import 'package:sylvakru/base/services/media_art.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/widgets/equalizer.dart';
-import 'package:sylvakru/base/widgets/lyric_list_view.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/base/data/stats.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/utils/contrast_color_generator.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/loader.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/services/background_task_service.dart';
+import 'package:lain/base/services/home_widget_service.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/my_window_listener.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/services/play_queue_logic.dart';
+import 'package:lain/base/services/stream_relay.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/services/taskbar_service.dart';
+import 'package:lain/base/services/webdav_client.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/lyric.dart';
+import 'package:lain/base/services/media_session_item.dart';
+import 'package:lain/base/services/media_art.dart';
+import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/base/widgets/equalizer.dart';
+import 'package:lain/base/widgets/lyric_list_view.dart';
+import 'package:lain/base/data/history.dart';
+import 'package:lain/base/data/stats.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/base/utils/contrast_color_generator.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/layer/lyrics_page_layer.dart';
 import 'dart:async';
 
-import 'package:sylvakru/portrait_view/sleep_timer.dart';
+import 'package:lain/portrait_view/sleep_timer.dart';
 
 late AudioSession _session;
 
@@ -65,7 +65,7 @@ bool loadingSong = false;
 // Android side helper that turns an app-private cover file into a
 // content:// URI (see MainActivity.kt / the media_provider FileProvider), so
 // the media session can expose artwork that other processes can read.
-const _mediaChannel = MethodChannel('com.afalphy.media');
+const _mediaChannel = MethodChannel('com.meidlinger.sylvakru.media');
 
 // cover file path -> a URI that other processes can fetch, so a track's media
 // item can be published synchronously once it has been resolved once.
@@ -82,8 +82,8 @@ Future<void> initAudioService() async {
     builder: () => MyAudioHandler(),
 
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.afalphy.sylvakru',
-      androidNotificationChannelName: 'Sylvakru',
+      androidNotificationChannelId: 'com.meidlinger.sylvakru.sylvakru',
+      androidNotificationChannelName: 'Lain',
       androidNotificationOngoing: true,
     ),
   );
@@ -109,7 +109,7 @@ Future<void> initAudioService() async {
   });
 
   if (isMobile) {
-    const channel = MethodChannel('com.afalphy.audio_control');
+    const channel = MethodChannel('com.meidlinger.sylvakru.audio_control');
 
     channel.setMethodCallHandler((call) async {
       switch (call.method) {

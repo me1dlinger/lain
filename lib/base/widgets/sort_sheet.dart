@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/widgets/my_divider.dart';
+import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// One entry of a sort sheet: the label shown, the value it sets in the
 /// ascending form, and - for a key that has two directions - the descending

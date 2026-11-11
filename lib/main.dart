@@ -7,20 +7,20 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:liquid_glass_widgets/liquid_glass_setup.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/proxy_service.dart';
-import 'package:sylvakru/base/services/keyboard.dart';
-import 'package:sylvakru/base/services/my_tray_listener.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/base/services/single_instance.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/l10n/generated/app_localizations_en.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/custom_page_transition_builder.dart';
-import 'package:sylvakru/view_entry.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/proxy_service.dart';
+import 'package:lain/base/services/keyboard.dart';
+import 'package:lain/base/services/my_tray_listener.dart';
+import 'package:lain/base/services/my_window_listener.dart';
+import 'package:lain/base/services/single_instance.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/l10n/generated/app_localizations_en.dart';
+import 'package:lain/base/data/loader.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/portrait_view/custom_page_transition_builder.dart';
+import 'package:lain/view_entry.dart';
 import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -62,7 +62,7 @@ Future<void> main() async {
       screenTopLeftRadius = radius.topLeft;
       screenTopRightRadius = radius.topRight;
     });
-    await HomeWidget.setAppGroupId('group.com.afalphy.sylvakru');
+    await HomeWidget.setAppGroupId('group.com.meidlinger.sylvakru');
   } else {
     if (kReleaseMode) {
       await SingleInstance.start();
@@ -115,7 +115,7 @@ Future<void> main() async {
             ...GlobalMaterialLocalizations.delegates,
           ],
           navigatorKey: globalNavigatorKey,
-          title: 'Sylvakru',
+          title: 'Lain',
           theme: ThemeData(
             focusColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)

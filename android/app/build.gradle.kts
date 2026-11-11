@@ -19,8 +19,12 @@ dependencies {
 }
 
 android {
-    namespace = "com.afalphy.sylvakru"
+    namespace = "com.meidlinger.sylvakru"
     compileSdk = 37
+    // The SDK ships platform 37 as `android-37.0`; without this AGP looks the
+    // hash string up as plain `android-37` and fails to resolve the platform.
+    // See BUILDING.md 6.5 - this is a local compatibility patch.
+    compileSdkMinor = 0
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -38,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.afalphy.sylvakru"
+        applicationId = "com.meidlinger.sylvakru"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -1,5 +1,5 @@
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
 
 String getTitle(MyAudioMetadata? song) {

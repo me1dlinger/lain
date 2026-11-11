@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/utils/path.dart';
 
 /// One song's totals, kept per year and shared by every source: the same song
 /// played from Navidrome and from a local folder lands in the same bucket.

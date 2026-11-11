@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/webdav_client.dart';
 
 void setIOSFileProviderStorageIfNeed(String? iosPath) {
   if (iosFileProviderStorage == null && iosPath != null) {
@@ -23,14 +23,14 @@ String convertIOSPath(String path) {
     return path.split('File Provider Storage/').last;
   } else {
     path = path.substring(path.indexOf('Documents'));
-    return path.replaceFirst('Documents', 'Sylvakru');
+    return path.replaceFirst('Documents', 'Lain');
   }
 }
 
 // short path to full path
 String revertIOSPath(String path) {
-  if (path.startsWith('Sylvakru')) {
-    return "${appDocsDir.parent.path}/${path.replaceFirst('Sylvakru', 'Documents')}";
+  if (path.startsWith('Lain')) {
+    return "${appDocsDir.parent.path}/${path.replaceFirst('Lain', 'Documents')}";
   } else {
     if (iosFileProviderStorage == null) {
       return '';

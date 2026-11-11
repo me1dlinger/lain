@@ -1,8 +1,8 @@
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/play_bar.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/portrait_view/play_bar.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
 final endDrawerNotifier = ValueNotifier(false);

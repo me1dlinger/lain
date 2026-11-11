@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:sylvakru/base/app.dart';
+import 'package:lain/base/app.dart';
 
 /// One configured music server.
 ///

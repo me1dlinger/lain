@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_switch/flutter_switch.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/scale_widget.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/scale_widget.dart';
 
 class MySwitch extends StatelessWidget {
   final String? trueText;

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_player_2x2_name">Sylvakru</string>
+    <string name="app_name">Lain</string>
+    <string name="widget_player_2x2_name">Lain</string>
     <string name="widget_player_2x2_desc">Cover, title and artist with playback controls.</string>
-    <string name="widget_player_4x2_name">Sylvakru with lyrics</string>
+    <string name="widget_player_4x2_name">Lain with lyrics</string>
     <string name="widget_player_4x2_desc">Cover, title, artist and the current lyric line with playback controls.</string>
 
     <string name="widget_action_previous">Previous</string>

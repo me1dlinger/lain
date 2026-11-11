@@ -5,34 +5,34 @@ import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/download_manager.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/zoom_page_route.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/custom_text_field.dart';
-import 'package:sylvakru/base/widgets/edit_metadata.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/base/widgets/playlist_widgets.dart';
-import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
-import 'package:sylvakru/base/widgets/song_info.dart';
-import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
-import 'package:sylvakru/big_picture_view/panels/big_single_artist_panel.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/data/loader.dart';
+import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/download_manager.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/zoom_page_route.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/custom_text_field.dart';
+import 'package:lain/base/widgets/edit_metadata.dart';
+import 'package:lain/base/widgets/my_divider.dart';
+import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/base/widgets/playlist_widgets.dart';
+import 'package:lain/base/widgets/selectable_song_list_page.dart';
+import 'package:lain/base/widgets/song_list.dart';
+import 'package:lain/base/widgets/song_info.dart';
+import 'package:lain/big_picture_view/panels/big_single_album_panel.dart';
+import 'package:lain/big_picture_view/panels/big_single_artist_panel.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 DateTime? _lastShowTime;
@@ -672,7 +672,7 @@ class MenuPositionDelegate extends SingleChildLayoutDelegate {
 }
 
 class NativeMenu {
-  static const _channel = MethodChannel('com.afalphy.menu');
+  static const _channel = MethodChannel('com.meidlinger.sylvakru.menu');
 
   static final Map<IconData, Uint8List> _iconMap = {};
 

@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/keyboard.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
-import 'package:sylvakru/mini_view/mini_view.dart';
+import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/keyboard.dart';
+import 'package:lain/base/services/my_window_listener.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/layer/lyrics_page_layer.dart';
+import 'package:lain/mini_view/mini_view.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
 

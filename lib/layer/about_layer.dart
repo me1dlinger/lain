@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/widgets/my_scaffold.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/settings_layer.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/widgets/my_scaffold.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/landscape_view/title_bar.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/layer/settings_layer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 part '../portrait_view/pages/about_page.dart';

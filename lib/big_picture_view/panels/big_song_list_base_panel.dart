@@ -1,15 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/asset_images.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
 
 abstract class BigSongListBasePanel extends StatefulWidget {
   const BigSongListBasePanel({super.key});

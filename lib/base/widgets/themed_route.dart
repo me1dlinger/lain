@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/play_bar.dart';
+import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/utils/media_query.dart';
+import 'package:lain/base/widgets/song_list.dart';
+import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/portrait_view/play_bar.dart';
 
 /// Opens a full-screen page as a route that still looks like the rest of the
 /// app: it is wrapped the same way a root layer is, so it gets the theme's

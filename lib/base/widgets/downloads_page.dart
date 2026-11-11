@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/download_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/download_manager.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/utils/source_type.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// What the user has downloaded: which server each file came from, where it is,
 /// how big it is - and a way to drop it again.

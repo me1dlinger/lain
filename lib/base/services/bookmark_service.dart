@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
 
 class BookmarkService {
-  static const _channel = MethodChannel('com.afalphy.bookmark_manager');
+  static const _channel = MethodChannel('com.meidlinger.sylvakru.bookmark_manager');
   static const _fileName = 'directory_inventory.txt';
 
   static late File file;

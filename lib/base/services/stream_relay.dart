@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:sylvakru/base/services/cert_policy.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:lain/base/services/cert_policy.dart';
+import 'package:lain/base/services/logger.dart';
 
 final streamRelay = StreamRelay();
 

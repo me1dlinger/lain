@@ -3,19 +3,19 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/utils/common_utils.dart';
+import 'package:lain/base/utils/path.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/base/utils/source_type.dart';
 
 /// Folder every download is kept in, under the public Downloads directory so the
 /// files are where the user (and any other player) expects them.
-const downloadFolderName = 'Sylvakru';
+const downloadFolderName = 'Lain';
 
 /// One song the user downloaded from a server. Kept on disk, so the list
 /// survives a restart and says where each file came from.

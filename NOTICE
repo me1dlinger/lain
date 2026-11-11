@@ -1,0 +1,20 @@
+Lain (临音)
+Copyright 2025-2026 AfalpHy (original work: Sylvakru)
+Copyright 2026 Meidlinger (modifications)
+
+This product is a derivative work of Sylvakru, originally created by AfalpHy
+and distributed under the Apache License, Version 2.0.
+
+    Upstream project: https://github.com/AfalpHy/sylvakru
+    License:          Apache License, Version 2.0 (see LICENSE)
+
+Modifications made by Meidlinger in this repository include, but are not
+limited to:
+
+  - Android 端界面重构（单一主页、服务器管理、排序抽屉、听歌统计、桌面小组件、
+    媒体会话封面与歌词、下载与播放列表导入导出等）
+  - 应用标识改为 com.meidlinger.sylvakru，应用名改为 Lain（临音）
+  - 构建与打包文档 (BUILDING.md)
+
+The original work's copyright notices, license text and contribution credits
+attributed to third parties in the original README are preserved.

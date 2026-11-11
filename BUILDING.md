@@ -45,7 +45,7 @@ flutter.sdk=E:\\Work\\flutter
 ```properties
 storeFile=E:/Fun/code/sylvakru/android/app/sylvakru.jks
 storePassword=******
-keyAlias=sylvakru
+keyAlias=lain
 keyPassword=******
 ```
 
@@ -53,10 +53,16 @@ keyPassword=******
 
 ```properties
 # 内存
-org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G
+# 8G 内存以下的机器务必压到 2G：rive_native / media_kit / CMake 三套原生构建
+# 同时拉起时，-Xmx4G 或更高会把物理内存和 swap 吃满，Gradle daemon 会被
+# OOM killer 干掉，报 "Gradle build daemon disappeared unexpectedly"。
+org.gradle.jvmargs=-Xmx2G -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=192m
 
 # 必须关掉并行：并行时 :jni 的 CMake 配置任务会互相抢临时文件
 org.gradle.parallel=false
+
+# 限制 worker 数，避免同时开太多原生编译进程
+org.gradle.workers.max=2
 
 # 跨盘 Kotlin 缓存会崩，关掉增量
 kotlin.incremental=false
@@ -184,7 +190,7 @@ C++ 元数据生成会在 `build/jni/...` 写一个 timing 文件，**杀毒软�
        if (project.name == "jni") {
            project.layout.buildDirectory.value(
                project.objects.directoryProperty().fileValue(
-                   File(System.getProperty("java.io.tmpdir"), "sylvakru-jni"),
+                   File(System.getProperty("java.io.tmpdir"), "lain-jni"),
                ),
            )
        }
@@ -209,19 +215,51 @@ Windows 打开开发者模式（见 3.1）。临时应急可用 `--no-pub`（前
 
 ### 6.5 `compileSdk = 37` 提示需要 android-37.0
 
-有些 AGP 版本要求 `compileSdkMinor`。临时在 `android/app/build.gradle.kts` 的 `android {}` 里加：
+**这一项现在已经是工程里的固定配置，不要删。** `android/app/build.gradle.kts` 的 `android {}` 里有：
 
 ```kotlin
+compileSdk = 37
 compileSdkMinor = 0
 ```
 
-**这是本机兼容性补丁，确认不需要后请删掉再提交。**
+原因：Android SDK 把 platform 37 装成了目录 `android-37.0`，`package.xml` 里写的是
+`<api-level>37.0</api-level>`，而 AGP 9.0.1 按 `android-37` 这个 hash string 去查找，找不到就报：
+
+```
+Failed to find target with hash string 'android-37' in: <sdk>
+```
+
+`compileSdkMinor = 0` 让 AGP 按 `android-37.0`（即 37 + minor 0）解析，问题消失。
+手动把平台目录改名成 `android-37` 是**没用的**：AGP 会重新下载一份 `android-37.0` 覆盖回去。
 
 ### 6.6 打包很慢
 
 - 不要删 `build/`：增量构建快很多。
 - 日常只打 `--target-platform android-arm64 --split-per-abi`。
 - 保持 Gradle daemon 常驻（2.4 里的 `idletimeout`）。
+
+### 6.7 `Gradle build daemon disappeared unexpectedly`
+
+不是代码问题，是**内存被吃爆**：rive_native、media_kit、jni 三套原生构建会同时拉起
+CMake / Kotlin / R8 进程，8G 内存 + 4G swap 很容易打满。按 2.4 把
+`org.gradle.jvmargs` 降到 `-Xmx2G`、`org.gradle.workers.max=2`。
+
+还要确认**工程自带的** `android/gradle.properties` 里的 `org.gradle.jvmargs` 也压下来了——
+它的优先级高于 `~/.gradle/gradle.properties`，只改全局是不生效的。
+
+彻底恢复的办法：`cd android && ./gradlew --stop`，然后重试。若之前有被中断的
+`flutter build` 残留（`dartvm` / `dartaotruntime` 进程 PPID 变成 1，各占 1GB 以上），也一并清掉。
+
+### 6.8 `No key with alias '...' found in keystore`
+
+`android/key.properties` 里的 `keyAlias` 必须和 jks 文件里**实际生成的别名一致**。
+改名后容易只改了 `key.properties` 而忘了 jks 里还是旧别名。用下面的命令查实际别名：
+
+```bash
+keytool -list -keystore android/<your>.jks -storepass <pass>
+```
+
+对不上就重新生成（旧包也就签不了名了，所以正式发布前务必确认 alias）:
 
 ---
 

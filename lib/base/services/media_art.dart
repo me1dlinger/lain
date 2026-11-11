@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/utils/path.dart';
 
 /// What a background isolate needs to make the small copy.
 class MediaArtRequest {
