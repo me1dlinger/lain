@@ -548,6 +548,40 @@ class Library {
     await precacheSongs(songs);
   }
 
+  /// Downloads the audio of [songs] into the offline cache, reporting progress
+  /// through [precacheProgressNotifier] as it goes.
+  ///
+  /// This is what the download button on a cached playlist or artist means: the
+  /// songs themselves, so playing them needs no network. It is deliberately
+  /// separate from [precacheSongs], which only fetches artwork and lyrics - the
+  /// button used to run that, which is why the bar filled up, the whole album's
+  /// worth of data was spent, and not a single song became playable offline.
+  ///
+  /// Songs already on disk are counted as done and not fetched again, so the
+  /// same button over an overlapping list costs nothing. A song that fails is
+  /// logged and skipped; it stays uncached, and the count reflects that.
+  Future<void> downloadSongsToCache(Iterable<MyAudioMetadata> songs) async {
+    final list = songs.toList();
+    if (list.isEmpty) {
+      return;
+    }
+    precacheProgressNotifier.value = (0, list.length);
+    try {
+      for (var i = 0; i < list.length; i++) {
+        final song = list[i];
+        try {
+          await tryAddCache(song);
+        } catch (e) {
+          logger.output('[cache] download failed for ${song.id}: $e');
+        }
+        precacheProgressNotifier.value = (i + 1, list.length);
+      }
+    } finally {
+      precacheProgressNotifier.value = null;
+      await _accumulateCache();
+    }
+  }
+
   Future<void> tryAddCache(MyAudioMetadata song) async {
     if (sourceType == .local || song.cacheExist) {
       return;

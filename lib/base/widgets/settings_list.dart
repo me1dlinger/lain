@@ -1329,7 +1329,11 @@ class _CacheDetailViewState extends State<_CacheDetailView>
                 l10n: l10n,
                 title: playlist.name,
                 songs: playlist.songList,
-                onPrecache: () => library.precacheSongs(playlist.songList),
+                // Downloads the songs themselves: this button is the
+                // playlist's "make it available offline", not a metadata
+                // warm-up.
+                onPrecache: () =>
+                    library.downloadSongsToCache(playlist.songList),
               ),
           ],
         );
@@ -1381,7 +1385,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
                             songs: artist.songList,
                             coverCached: artist.picture.isExist,
                             onPrecache: () =>
-                                library.precacheSongs(artist.songList),
+                                library.downloadSongsToCache(artist.songList),
                           ),
                       ],
                     ),
@@ -1398,7 +1402,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
     required AppLocalizations l10n,
     required String title,
     required List<MyAudioMetadata> songs,
-    required VoidCallback onPrecache,
+    required Future<void> Function() onPrecache,
     bool? coverCached,
   }) {
     final cachedSongs = songs.where((song) => song.cacheExist).length;
@@ -1418,9 +1422,14 @@ class _CacheDetailViewState extends State<_CacheDetailView>
           if (!await showConfirmDialog(context, l10n.precacheAll)) {
             return;
           }
+          // Await it: the download runs for as long as the list takes, and a
+          // spinner removed right after it starts says nothing about progress.
           showCenterLoading();
-          onPrecache();
-          removeCenterLoading();
+          try {
+            await onPrecache();
+          } finally {
+            removeCenterLoading();
+          }
         },
       ),
     );
