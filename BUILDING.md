@@ -176,13 +176,24 @@ C++ 元数据生成会在 `build/jni/...` 写一个 timing 文件，**杀毒软�
 处理顺序：
 
 1. 关掉/停用实时扫描（最简单）。
-2. 或者只把 `jni` 模块的中间产物挪到另一个盘：
-   在 `~/.gradle/gradle.properties` 里加
-   ```properties
-   org.gradle.project.jniBuildDir=C:/jni-build
+2. 还不行就停掉 Gradle daemon 再试：`cd android && ./gradlew --stop`。
+3. 若杀毒软件没法关，可临时把 `jni` 模块的中间产物挪出工程目录：在 `android/build.gradle.kts`
+   末尾临时加
+   ```kotlin
+   subprojects {
+       if (project.name == "jni") {
+           project.layout.buildDirectory.value(
+               project.objects.directoryProperty().fileValue(
+                   File(System.getProperty("java.io.tmpdir"), "sylvakru-jni"),
+               ),
+           )
+       }
+   }
    ```
-   这是工程里预留的可选开关（`android/build.gradle.kts` 会读它），APK 输出路径不变。
-3. 还不行就停掉 Gradle daemon 再试：`cd android && ./gradlew --stop`。
+   **这是本机绕行补丁，打包成功后请删掉**（APK 输出路径不变）。
+
+> `:jni` 这个模块不是本工程加的，它来自 `path_provider` → `path_provider_android` → `jni` 这条
+> 普通插件依赖链，和 USB/DAC 分支无关，任何分支打包都会有。
 
 ### 6.2 Gradle 报 `Gradle requires JVM 17 or later ... currently JVM 8`
 
