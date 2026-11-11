@@ -8,6 +8,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/setting.dart';
 import 'package:sylvakru/base/services/logger.dart';
+import 'package:sylvakru/base/services/picture_load_scheduler.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
@@ -125,6 +126,7 @@ Future<void> saveArtistInfoCache() async {
 Future<void> clearArtistInfoCache() async {
   artistInfoCache.clear();
   for (final picture in artistPictureCache.values) {
+    pictureLoadScheduler.resetPicture(picture);
     try {
       final file = File(picture.path);
       if (await file.exists()) {
@@ -183,6 +185,10 @@ Future<bool> refreshArtistCache(Artist artist) async {
 
   final picture = artistPictureCache.remove(key);
   if (picture != null) {
+    // The scheduler remembers every id it has ever loaded and skips it from
+    // then on; without forgetting this one the rebuilt picture would never be
+    // fetched again, leaving the placeholder.
+    pictureLoadScheduler.resetPicture(picture);
     try {
       final file = File(picture.path);
       if (await file.exists()) {
