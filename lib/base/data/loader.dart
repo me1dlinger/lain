@@ -79,8 +79,11 @@ class Loader {
     audioHandler.loadStates();
 
     // Read before the lists are built, so a local library can show what
-    // Navidrome cached for the same artists.
+    // Navidrome cached for the same artists. Navidrome's own artist list then
+    // fills the cache (biographies, and whether each artist has an image) in
+    // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
+    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 
@@ -130,8 +133,11 @@ class Loader {
     audioHandler.sync();
 
     // Read before the lists are built, so a local library can show what
-    // Navidrome cached for the same artists.
+    // Navidrome cached for the same artists. Navidrome's own artist list then
+    // fills the cache (biographies, and whether each artist has an image) in
+    // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
+    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 
@@ -170,8 +176,11 @@ class Loader {
     audioHandler.loadStates();
 
     // Read before the lists are built, so a local library can show what
-    // Navidrome cached for the same artists.
+    // Navidrome cached for the same artists. Navidrome's own artist list then
+    // fills the cache (biographies, and whether each artist has an image) in
+    // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
+    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 

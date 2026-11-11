@@ -40,7 +40,7 @@ class MyPicture {
 
   final changeNotifier = ValueNotifier(0);
 
-  MyPicture(this.id, {String? md5Hash}) {
+  MyPicture(this.id, {String? md5Hash, String? explicitPath}) {
     if (id.isEmpty) {
       isExist = false;
       isLoaded = true;
@@ -48,13 +48,35 @@ class MyPicture {
       return;
     }
     md5Hash ??= md5.convert(utf8.encode(id)).toString();
-    path = '${getPicturesPath(sourceType)}/$md5Hash';
+    path =
+        explicitPath ?? '${getPicturesPath(sourceType)}/$md5Hash';
     if (File(path).existsSync()) {
       isLoaded = true;
       isExist = true;
     } else {
       isExist = false;
     }
+  }
+
+  /// An artist's picture, cached in one place for every source: the file is
+  /// keyed by the artist's name, so a local library shows what Navidrome
+  /// fetched for the same artist.
+  factory MyPicture.artist(String name, {String? artistId}) {
+    final key = name.trim().toLowerCase();
+    final hash = md5.convert(utf8.encode(key)).toString();
+    final picture = MyPicture(
+      'artist:$key',
+      explicitPath: '${appSupportDir.path}/artist_images/$hash',
+    );
+    picture.resolverFirst = true;
+    picture.remoteResolver = () async {
+      if (artistId == null || !isStreamSource) {
+        return null;
+      }
+      return streamClient?.getPictureBytes(artistId);
+    };
+    globalPictureList.add(picture);
+    return picture;
   }
 
   factory MyPicture.form(String id) {

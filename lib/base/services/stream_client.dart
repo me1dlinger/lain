@@ -203,6 +203,21 @@ abstract class StreamClient {
   ) async => null;
 
   /// An artist's image URL from the source's own API, for a server that reports
-  /// one its Subsonic endpoint omits. Null when there is none.
+/// one its Subsonic endpoint omits. Null when there is none.
   Future<String?> getArtistImageUrl(String artistId) async => null;
+
+  /// Every artist with its id, whether the server has an image for it, and its
+  /// biography, from the source's own list API. Null when unsupported.
+  Future<
+    List<
+      ({
+        String id,
+        String name,
+        bool hasImage,
+        String? biography,
+        String? imageUrl,
+      })
+    >?
+  >
+  getArtistSummaries() async => null;
 }

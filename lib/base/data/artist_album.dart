@@ -37,7 +37,27 @@ int _starredRank(ArtistAlbumBase entity) {
 /// Artist biographies and image URLs, kept across pages, sources and launches.
 /// Keyed by artist name, so a local library shows what Navidrome cached for the
 /// same artist, and so recreating the artist list never loses it.
-final Map<String, ({String? biography, String? imageUrl})> artistInfoCache = {};
+class CachedArtistInfo {
+  String? biography;
+  String? imageUrl;
+
+  /// Whether the server actually has an artist image. Decided from the server's
+  /// artist list, so the list and the detail page agree from the first frame -
+  /// no album cover that changes once a biography arrives.
+  bool hasImage;
+
+  /// The server id, kept so a local library can still find the cached image.
+  String? artistId;
+
+  CachedArtistInfo({
+    this.biography,
+    this.imageUrl,
+    this.hasImage = false,
+    this.artistId,
+  });
+}
+
+final Map<String, CachedArtistInfo> artistInfoCache = {};
 
 /// Artist pictures, kept per name for the same reason: the list is rebuilt on
 /// every load, and a rebuilt artist must not fall back to its album cover while
@@ -49,9 +69,8 @@ String artistKey(String name) => name.trim().toLowerCase();
 File? _artistInfoFile;
 bool _artistInfoLoaded = false;
 
-File _artistInfoFileOf() => _artistInfoFile ??= File(
-  '${appSupportDir.path}/artist_info_${sourceType.name}.json',
-);
+File _artistInfoFileOf() =>
+    _artistInfoFile ??= File('${appSupportDir.path}/artist_info.json');
 
 /// Reads the on-disk artist cache once per source.
 Future<void> loadArtistInfoCache() async {
@@ -70,9 +89,11 @@ Future<void> loadArtistInfoCache() async {
     }
     map.forEach((key, value) {
       if (value is Map) {
-        artistInfoCache['$key'] = (
+        artistInfoCache['$key'] = CachedArtistInfo(
           biography: value['biography'] as String?,
           imageUrl: value['imageUrl'] as String?,
+          hasImage: value['hasImage'] as bool? ?? false,
+          artistId: value['artistId'] as String?,
         );
       }
     });
@@ -81,7 +102,7 @@ Future<void> loadArtistInfoCache() async {
   }
 }
 
-Future<void> _saveArtistInfoCache() async {
+Future<void> saveArtistInfoCache() async {
   try {
     await _artistInfoFileOf().writeAsString(
       jsonEncode({
@@ -89,6 +110,8 @@ Future<void> _saveArtistInfoCache() async {
           entry.key: {
             'biography': entry.value.biography,
             'imageUrl': entry.value.imageUrl,
+            'hasImage': entry.value.hasImage,
+            'artistId': entry.value.artistId,
           },
       }),
     );
@@ -122,14 +145,37 @@ Future<void> clearArtistInfoCache() async {
   }
 }
 
-/// Fetches the artist's biography and image URL once and remembers them in
-/// [artistInfoCache] (keyed by name). A local library only reads the cache.
+/// Reads every artist's biography and whether it has an image in one go, from
+/// Navidrome's own artist list, and stores it. A local library reads the same
+/// cache afterwards.
+Future<void> prefetchArtistInfo() async {
+  await loadArtistInfoCache();
+  if (sourceType != .navidrome) {
+    return;
+  }
+  final summaries = await streamClient?.getArtistSummaries();
+  if (summaries == null || summaries.isEmpty) {
+    return;
+  }
+  for (final summary in summaries) {
+    final key = artistKey(summary.name);
+    final existing = artistInfoCache[key];
+    artistInfoCache[key] = CachedArtistInfo(
+      biography: summary.biography ?? existing?.biography,
+      imageUrl: summary.imageUrl ?? existing?.imageUrl,
+      hasImage: summary.hasImage,
+      artistId: summary.id,
+    );
+  }
+  await saveArtistInfoCache();
+}
+
+/// Fetches one artist's biography if the cache does not have it yet.
 Future<void> loadArtistInfoIfNeed(Artist artist) async {
   await loadArtistInfoCache();
   final key = artistKey(artist.name);
   final cached = artistInfoCache[key];
-  if (cached != null &&
-      (cached.biography != null || cached.imageUrl != null)) {
+  if (cached != null && (cached.biography ?? '').isNotEmpty) {
     return;
   }
   if (sourceType != .navidrome) {
@@ -143,8 +189,13 @@ Future<void> loadArtistInfoIfNeed(Artist artist) async {
   if (info == null) {
     return;
   }
-  artistInfoCache[key] = info;
-  await _saveArtistInfoCache();
+  artistInfoCache[key] = CachedArtistInfo(
+    biography: info.biography,
+    imageUrl: info.imageUrl,
+    hasImage: cached?.hasImage ?? (info.imageUrl ?? '').isNotEmpty,
+    artistId: id,
+  );
+  await saveArtistInfoCache();
 }
 
 class ArtistAlbumManager {
@@ -434,12 +485,12 @@ class Artist extends ArtistAlbumBase {
   String? get biography => artistInfoCache[artistKey(name)]?.biography;
   String? get imageUrl => artistInfoCache[artistKey(name)]?.imageUrl;
 
-  /// The artist's own image, decided the same way for the list and the detail
-/// page: the server's cover-art endpoint for this artist's id. It is kept per
-/// name so a rebuilt artist keeps the same picture, and never depends on an
-/// asynchronously fetched biography - that is what made the list and the page
-/// disagree (and flip when it arrived). An artist the server has no image for
-/// gets the placeholder, as it does on the server's own web UI.
+  /// The artist's own image, decided from the cache for the list and the detail
+/// page alike: the server's artist list says whether this artist has an image.
+/// When it does, that image is fetched (once) into a cache keyed by name, which
+/// a local library reads too. When it does not, the album cover is used - never
+/// the server's blank placeholder. Nothing here depends on a biography arriving
+/// asynchronously, so the picture cannot change under the user.
   @override
   MyPicture get picture {
     final key = artistKey(name);
@@ -447,11 +498,16 @@ class Artist extends ArtistAlbumBase {
     if (existing != null) {
       return existing;
     }
-    final id = sourceId;
-    if (id == null) {
+
+    final info = artistInfoCache[key];
+    if (info == null || !info.hasImage) {
       return super.picture;
     }
-    return artistPictureCache[key] = MyPicture.form(id);
+
+    return artistPictureCache[key] = MyPicture.artist(
+      name,
+      artistId: info.artistId ?? sourceId,
+    );
   }
 
   void combineAlbums() {

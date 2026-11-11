@@ -503,6 +503,86 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
+  Future<
+    List<
+      ({
+        String id,
+        String name,
+        bool hasImage,
+        String? biography,
+        String? imageUrl,
+      })
+    >?
+  >
+  getArtistSummaries() async {
+    final token = await _nativeTokenIfAvailable();
+    if (token == null) {
+      return null;
+    }
+
+    const pageSize = 500;
+    final result =
+        <
+          ({
+            String id,
+            String name,
+            bool hasImage,
+            String? biography,
+            String? imageUrl,
+          })
+        >[];
+    try {
+      for (var start = 0; ; start += pageSize) {
+        final response = await Dio().get(
+          '$_nativeRoot/api/artist',
+          queryParameters: {
+            '_start': start,
+            '_end': start + pageSize,
+            '_sort': 'name',
+            '_order': 'ASC',
+          },
+          options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
+        );
+        final page = response.data;
+        if (page is! List || page.isEmpty) {
+          break;
+        }
+        for (final raw in page) {
+          if (raw is! Map) {
+            continue;
+          }
+          final id = raw['id']?.toString() ?? '';
+          final name = raw['name']?.toString() ?? '';
+          if (id.isEmpty || name.isEmpty) {
+            continue;
+          }
+          final imageHash = raw['imageHash']?.toString() ?? '';
+          final biography = raw['biography']?.toString();
+          final imageUrl = raw['largeImageUrl']?.toString();
+          result.add((
+            id: id,
+            name: name,
+            // The list reports imageHash when the server has one, and
+            // imageAbsent when it really has none.
+            hasImage: imageHash.isNotEmpty || raw['imageAbsent'] == false,
+            biography: (biography == null || biography.isEmpty)
+                ? null
+                : biography,
+            imageUrl: (imageUrl == null || imageUrl.isEmpty) ? null : imageUrl,
+          ));
+        }
+        if (page.length < pageSize) {
+          break;
+        }
+      }
+    } catch (e) {
+      logger.output('[Navidrome] artist summaries: $e');
+      return result.isEmpty ? null : result;
+    }
+    return result;
+  }
+
+  @override
   Future<String> getLyricsById(String songId) async {
     final response = await safeRequest(
       '/rest/getLyricsBySongId.view',
