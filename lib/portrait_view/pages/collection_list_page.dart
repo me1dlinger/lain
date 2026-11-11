@@ -165,9 +165,7 @@ extension _CollectionListPage on CollectionListState {
                     );
                   },
                 ),
-                if (sortKeyNotifier != null &&
-                    sortKeyOptions != null &&
-                    !(randomizeNotifier?.value ?? false))
+                if (sortKeyNotifier != null && sortKeyOptions != null)
                   sortKeyTile(context),
                 ...sheetExtras(context),
               ],

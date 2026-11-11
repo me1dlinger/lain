@@ -997,6 +997,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResults => 'No results';
 
   @override
+  String get clearArtistsCache => 'Clear artist cache';
+
+  @override
   String get addToFavorites => 'Add to Favorites';
 
   @override

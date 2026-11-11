@@ -16,7 +16,9 @@ Widget playNextButton(
   return IconButton(
     icon: Icon(Icons.add_rounded, size: size),
     onPressed: () {
-      tryVibrate();
+      // The button changing the queue is worth feeling, so this is the direct
+      // feedback rather than the incidental one behind the vibration setting.
+      vibrateGestureFeedback();
       playSongNext(song, AppLocalizations.of(context).added2Next);
     },
   );

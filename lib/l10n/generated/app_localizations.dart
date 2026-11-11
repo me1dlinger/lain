@@ -2024,6 +2024,12 @@ abstract class AppLocalizations {
   /// **'No results'**
   String get noResults;
 
+  /// No description provided for @clearArtistsCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear artist cache'**
+  String get clearArtistsCache;
+
   /// No description provided for @addToFavorites.
   ///
   /// In en, this message translates to:

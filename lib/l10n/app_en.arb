@@ -376,6 +376,7 @@
   "songUnit": "Songs",
   "contributingArtists": "Contributing Artists",
   "noResults": "No results",
+  "clearArtistsCache": "Clear artist cache",
   "addToFavorites": "Add to Favorites",
   "removeFromFavorites": "Remove from Favorites"
 }

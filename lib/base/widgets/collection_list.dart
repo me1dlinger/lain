@@ -116,7 +116,7 @@ abstract class CollectionListState extends State<CollectionList> {
                 return MySheet(
                   Column(
                     children: [
-                      ListTile(title: Text(l10n.sortType)),
+                      ListTile(title: Text(l10n.selectSortingType)),
                       MyDivider(thickness: 0.5, height: 1, color: dividerColor),
                       Expanded(
                         child: ListView(
@@ -155,7 +155,9 @@ abstract class CollectionListState extends State<CollectionList> {
                                   vertical: -4,
                                 ),
                                 onTap: () {
-                                  randomizeNotifier!.value = true;
+                                  // Toggles, so shuffle can be turned off again
+                                  // by the same row that turns it on.
+                                  randomizeNotifier!.value = !randomizing;
                                   setting.save();
                                   Navigator.pop(sheetContext);
                                 },

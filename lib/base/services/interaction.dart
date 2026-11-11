@@ -1358,14 +1358,14 @@ void goToArtist(
       ),
     );
   } else {
-    // Straight to the artist's own page: the page it was opened from stays
-    // behind it, so going back returns there rather than to the artist list.
+    // Go to the artist list and open the artist's page there. Mounting the
+    // detail on the page it was opened from (the song list) left routes behind
+    // that showed up as blank pages on the way back, so the detail lives in its
+    // own layer: back returns to the artist list.
     showCenterLoading();
     await Future.delayed(Duration(milliseconds: 250));
-    await layersManager.pushDetailIfNeed(
-      artist,
-      mountOn: currentRootLabel.value,
-    );
+    await layersManager.switchRootLayerAndClose('artists');
+    await layersManager.pushDetailIfNeed(artist);
     removeCenterLoading();
   }
 }
@@ -1398,17 +1398,10 @@ void goToAlbum(MyAudioMetadata song, {BuildContext? context}) async {
     return;
   }
 
-  // Straight to the album's own page: the page it was opened from stays behind
-  // it, so going back returns there rather than to the album list.
+  // Go to the album list and open the album's page there; back returns to the
+  // album list rather than leaving routes behind (see goToArtist).
   showCenterLoading();
-  final mountOn = currentRootLabel.value;
-  if (isNotStreamSource) {
-    await layersManager.pushDetailIfNeed(
-      artistAlbumManager.albumOf(song),
-      mountOn: mountOn,
-    );
-  } else {
-    await layersManager.pushDetailIfNeed(album, mountOn: mountOn);
-  }
+  await layersManager.switchRootLayerAndClose('albums');
+  await layersManager.pushDetailIfNeed(album);
   removeCenterLoading();
 }

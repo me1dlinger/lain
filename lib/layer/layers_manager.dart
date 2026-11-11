@@ -319,13 +319,6 @@ class LayersManager {
     var mountLabel = (mountOn != null && mountOn.isNotEmpty) ? mountOn : label;
     final mountedOn = mountLabel == label ? null : _rootTargetOf(mountLabel);
     if (mountedOn == null) {
-      // The page asked for cannot host a detail of its own (the all-songs page
-      // has no navigator to push onto). Using the detail's own list means that
-      // layer has to be brought to the front, or the detail would be pushed
-      // into a hidden layer and nothing would seem to happen.
-      if (mountOn != null && mountOn.isNotEmpty && mountOn != label) {
-        switchRootLayer(label);
-      }
       mountLabel = label;
     }
     final rootLayer = getRootLayer(mountLabel);
@@ -492,6 +485,13 @@ class LayersManager {
   /// list rather than whatever was left open on top of it.
   Future<void> _closeDetails(String label) async {
     while (await popDetail(label)) {}
+  }
+
+  /// Closes [label]'s details and only then switches to it. Awaiting matters:
+  /// a detail pushed before the cleanup finishes would be popped by it.
+  Future<void> switchRootLayerAndClose(String label) async {
+    await _closeDetails(label);
+    switchRootLayer(label);
   }
 
   Future<void> pushDetailIfNeed(dynamic detail, {String? mountOn}) async {

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:lpinyin/lpinyin.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/setting.dart';
+import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/picture_service.dart';
 import 'package:sylvakru/base/services/stream_client.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
@@ -31,14 +34,104 @@ int _starredRank(ArtistAlbumBase entity) {
   return entity.starredAt?.millisecondsSinceEpoch ?? 1;
 }
 
-/// Artist biographies and images, kept across pages and visits. Only a
-/// Navidrome server provides them, and only its information is cached here -
-/// never a Feiniu cover, which its own page fetches.
+/// Artist biographies and image URLs, kept across pages, sources and launches.
+/// Keyed by artist name, so a local library shows what Navidrome cached for the
+/// same artist, and so recreating the artist list never loses it.
 final Map<String, ({String? biography, String? imageUrl})> artistInfoCache = {};
 
-/// Fetches the artist's biography and image once, then remembers them on the
-/// artist and in [artistInfoCache].
+/// Artist pictures, kept per name for the same reason: the list is rebuilt on
+/// every load, and a rebuilt artist must not fall back to its album cover while
+/// the already-cached image is on disk.
+final Map<String, MyPicture> artistPictureCache = {};
+
+String artistKey(String name) => name.trim().toLowerCase();
+
+File? _artistInfoFile;
+bool _artistInfoLoaded = false;
+
+File _artistInfoFileOf() => _artistInfoFile ??= File(
+  '${appSupportDir.path}/artist_info_${sourceType.name}.json',
+);
+
+/// Reads the on-disk artist cache once per source.
+Future<void> loadArtistInfoCache() async {
+  if (_artistInfoLoaded) {
+    return;
+  }
+  _artistInfoLoaded = true;
+  try {
+    final file = _artistInfoFileOf();
+    if (!await file.exists()) {
+      return;
+    }
+    final map = jsonDecode(await file.readAsString());
+    if (map is! Map) {
+      return;
+    }
+    map.forEach((key, value) {
+      if (value is Map) {
+        artistInfoCache['$key'] = (
+          biography: value['biography'] as String?,
+          imageUrl: value['imageUrl'] as String?,
+        );
+      }
+    });
+  } catch (e) {
+    logger.output('artist info cache: $e');
+  }
+}
+
+Future<void> _saveArtistInfoCache() async {
+  try {
+    await _artistInfoFileOf().writeAsString(
+      jsonEncode({
+        for (final entry in artistInfoCache.entries)
+          entry.key: {
+            'biography': entry.value.biography,
+            'imageUrl': entry.value.imageUrl,
+          },
+      }),
+    );
+  } catch (e) {
+    logger.output('artist info cache: $e');
+  }
+}
+
+/// Forgets every cached artist biography and image, on disk and in memory. The
+/// image files are removed too, so the cache screen's number really drops.
+Future<void> clearArtistInfoCache() async {
+  artistInfoCache.clear();
+  for (final picture in artistPictureCache.values) {
+    try {
+      final file = File(picture.path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+    picture.isExist = false;
+    picture.isLoaded = false;
+  }
+  artistPictureCache.clear();
+  try {
+    final file = _artistInfoFileOf();
+    if (await file.exists()) {
+      await file.delete();
+    }
+  } catch (e) {
+    logger.output('artist info cache: $e');
+  }
+}
+
+/// Fetches the artist's biography and image URL once and remembers them in
+/// [artistInfoCache] (keyed by name). A local library only reads the cache.
 Future<void> loadArtistInfoIfNeed(Artist artist) async {
+  await loadArtistInfoCache();
+  final key = artistKey(artist.name);
+  final cached = artistInfoCache[key];
+  if (cached != null &&
+      (cached.biography != null || cached.imageUrl != null)) {
+    return;
+  }
   if (sourceType != .navidrome) {
     return;
   }
@@ -46,19 +139,12 @@ Future<void> loadArtistInfoIfNeed(Artist artist) async {
   if (id == null) {
     return;
   }
-  final cached = artistInfoCache[id];
-  if (cached != null) {
-    artist.biography = cached.biography;
-    artist.imageUrl = cached.imageUrl;
-    return;
-  }
   final info = await streamClient?.getArtistInfo(id);
   if (info == null) {
     return;
   }
-  artistInfoCache[id] = info;
-  artist.biography = info.biography;
-  artist.imageUrl = info.imageUrl;
+  artistInfoCache[key] = info;
+  await _saveArtistInfoCache();
 }
 
 class ArtistAlbumManager {
@@ -343,39 +429,47 @@ class Artist extends ArtistAlbumBase {
   /// Number of non-empty albums by this artist.
   int get albumCount => albumSet.where((album) => !album.isEmpty).length;
 
-  /// Server biography and image URL, fetched lazily and cached; only a
-  /// Navidrome server provides them.
-  String? biography;
-  String? imageUrl;
+  /// Biography and image URL, read from the shared cache so they survive the
+  /// artist list being rebuilt and are shared with a local library.
+  String? get biography => artistInfoCache[artistKey(name)]?.biography;
+  String? get imageUrl => artistInfoCache[artistKey(name)]?.imageUrl;
 
-  MyPicture? _picture;
-
-  /// The artist's own image when the source serves one (Navidrome does, via the
-  /// same cover-art endpoint), and the first album's cover otherwise. When the
-  /// server has no artist image, the artist's external `largeImageUrl` is
-  /// fetched as a last resort, into the same on-disk cover cache.
+  /// The artist's own image, kept per name so a rebuilt artist does not lose it.
+  /// Its bytes come from the server's own API first - which reports an image
+  /// even when the Subsonic endpoint omits it, and otherwise points at the
+  /// external `largeImageUrl` - then from the Subsonic artist info, then from
+  /// the already-cached URL. A local library with no cached image falls back to
+  /// the first album's cover.
   @override
   MyPicture get picture {
-    if (isStreamSource) {
-      final id = sourceId;
-      if (id != null) {
-        final cached = _picture ??= MyPicture.form(id);
-        cached.remoteResolver ??= () async {
-          // The server's own API first (it reports an image even when the
-          // Subsonic endpoint does not), then the Subsonic artist info.
-          var url = await streamClient?.getArtistImageUrl(id);
-          if (url == null || url.isEmpty) {
-            url = (await streamClient?.getArtistInfo(id))?.imageUrl;
-          }
-          if (url == null || url.isEmpty) {
-            return null;
-          }
-          return fetchRemoteImageBytes(url);
-        };
-        return cached;
-      }
+    final key = artistKey(name);
+    final existing = artistPictureCache[key];
+    if (existing != null) {
+      return existing;
     }
-    return super.picture;
+
+    final id = sourceId;
+    if (!isStreamSource && (imageUrl == null || imageUrl!.isEmpty)) {
+      return super.picture;
+    }
+
+    final picture = MyPicture.form(id ?? name);
+    picture.resolverFirst = true;
+    picture.remoteResolver = () async {
+      var url = id == null ? null : await streamClient?.getArtistImageUrl(id);
+      if (url == null || url.isEmpty) {
+        url = imageUrl;
+      }
+      if (url == null || url.isEmpty) {
+        url = id == null ? null : (await streamClient?.getArtistInfo(id))?.imageUrl;
+      }
+      if (url == null || url.isEmpty) {
+        return null;
+      }
+      return fetchRemoteImageBytes(url);
+    };
+    artistPictureCache[key] = picture;
+    return picture;
   }
 
   void combineAlbums() {

@@ -32,6 +32,12 @@ class MyPicture {
   /// on-disk cache as every other cover.
   Future<Uint8List?> Function()? remoteResolver;
 
+  /// Whether [remoteResolver] is tried before the normal source. An artist
+  /// image needs this: the server answers the cover-art endpoint with a
+  /// placeholder for an artist it has no image for, so the "no bytes" fallback
+  /// would never be reached and the real image would never be used.
+  bool resolverFirst = false;
+
   final changeNotifier = ValueNotifier(0);
 
   MyPicture(this.id, {String? md5Hash}) {
@@ -101,30 +107,43 @@ Future<void> loadPictureSafe(
 
 Future<void> _loadPicture(MyPicture picture) async {
   Uint8List? bytes;
-  try {
-    switch (sourceType) {
-      case .local:
-        bytes = await readPictureAsync(picture.id);
-        break;
-      case .webdav:
-        final tmpPath = await covertToRedirectPathIfNeed(picture.id);
-        if (tmpPath == null) {
-          bytes = await readPictureAsync(
-            picture.id,
-            headers: webdavClient?.headers,
-          );
-        } else {
-          bytes = await readPictureAsync(tmpPath);
-        }
-        break;
-      default:
-        bytes = await streamClient?.getPictureBytes(picture.id);
-        break;
+
+  // An artist image is resolved first, because the server's cover-art endpoint
+  // answers with a placeholder rather than nothing for a missing artist image.
+  if (picture.resolverFirst && picture.remoteResolver != null) {
+    try {
+      bytes = await picture.remoteResolver!();
+    } catch (e) {
+      logger.output(e.toString());
     }
-  } catch (e) {
-    // A server that has no image for this id may answer with an error; that is
-    // not a reason to skip the fallback below.
-    logger.output(e.toString());
+  }
+
+  if (bytes == null) {
+    try {
+      switch (sourceType) {
+        case .local:
+          bytes = await readPictureAsync(picture.id);
+          break;
+        case .webdav:
+          final tmpPath = await covertToRedirectPathIfNeed(picture.id);
+          if (tmpPath == null) {
+            bytes = await readPictureAsync(
+              picture.id,
+              headers: webdavClient?.headers,
+            );
+          } else {
+            bytes = await readPictureAsync(tmpPath);
+          }
+          break;
+        default:
+          bytes = await streamClient?.getPictureBytes(picture.id);
+          break;
+      }
+    } catch (e) {
+      // A server that has no image for this id may answer with an error; that
+      // is not a reason to skip the fallback below.
+      logger.output(e.toString());
+    }
   }
 
   // Last resort: an artist's external image, fetched into the same cache.

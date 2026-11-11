@@ -172,6 +172,10 @@ class MyAudioHandler extends BaseAudioHandler {
   // between the home and away addresses.
   bool _retriedAfterAddressSwitch = false;
 
+  // Whether a stream that reported completion mid-song has already been resumed
+  // once for the current track.
+  bool _resumedAfterFakeComplete = false;
+
   // Work already started for a song, so a burst of publishes does not queue the
   // same download or URI resolution twice.
   final Set<String> _coverLoadInFlight = {};
@@ -212,16 +216,22 @@ class MyAudioHandler extends BaseAudioHandler {
         final position = _player.state.position;
         final duration = _player.state.duration;
 
-        // fake completed
-        if ((duration - position).inSeconds > 2) {
-          await pause();
-          return;
-        }
-
         if (Loader.busy) {
           await pause();
           return;
         }
+
+        // A streamed song can report completion at the end of a buffered
+        // segment while it is not over. Resuming once keeps it going; pausing
+        // here is what left a song stuck (and a car showing pause) with nothing
+        // playing. A second completion means the song really is done.
+        if ((duration - position).inSeconds > 2 && !_resumedAfterFakeComplete) {
+          _resumedAfterFakeComplete = true;
+          await _player.play();
+          updatePlaybackState();
+          return;
+        }
+
         if (playModeNotifier.value == 2) {
           // repeat
           await load();
@@ -884,6 +894,8 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> load({Duration? start}) async {
+    // A new track gets its own allowance of a mid-song "completed" resume.
+    _resumedAfterFakeComplete = false;
     // iOS only: request background execution time for the lyrics fetch,
     // stream ping, player open and buffering below.
     await _beginLoadGrace();
@@ -1359,8 +1371,14 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _player.play();
 
-    await updateIsPlaying(true);
+    // Publish "playing" before the widget bookkeeping below, which can throw on
+    // a device where the home widget is not set up - the media session would
+    // then keep showing paused while the song plays.
+    isPlayingNotifier.value = true;
+    _playLastSyncTime ??= DateTime.now();
     updatePlaybackState();
+
+    await updateIsPlaying(true);
 
     _positionTimer ??= Timer.periodic(Duration(seconds: 1), (_) {
       _positionState.writeAsString(getPosition().inMilliseconds.toString());

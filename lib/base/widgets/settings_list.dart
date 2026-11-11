@@ -1340,19 +1340,42 @@ class _CacheDetailViewState extends State<_CacheDetailView>
       valueListenable: cacheEntriesNotifier,
       builder: (context, entries, child) {
         final artists = artistAlbumManager.artistList;
-        if (artists.isEmpty) {
-          return Center(child: Text(l10n.cacheEmpty));
-        }
-        return ListView(
+        return Column(
           children: [
-            for (final artist in artists)
-              _cacheGroupTile(
-                l10n: l10n,
-                title: artist.name,
-                songs: artist.songList,
-                coverCached: artist.picture.isExist,
-                onPrecache: () => library.precacheSongs(artist.songList),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () async {
+                  if (!await showConfirmDialog(
+                    context,
+                    l10n.clearArtistsCache,
+                  )) {
+                    return;
+                  }
+                  await clearArtistInfoCache();
+                  setState(() {});
+                  showCenterMessage(l10n.savedSuccessfully);
+                },
+                child: Text(l10n.clearArtistsCache),
               ),
+            ),
+            Expanded(
+              child: artists.isEmpty
+                  ? Center(child: Text(l10n.cacheEmpty))
+                  : ListView(
+                      children: [
+                        for (final artist in artists)
+                          _cacheGroupTile(
+                            l10n: l10n,
+                            title: artist.name,
+                            songs: artist.songList,
+                            coverCached: artist.picture.isExist,
+                            onPrecache: () =>
+                                library.precacheSongs(artist.songList),
+                          ),
+                      ],
+                    ),
+            ),
           ],
         );
       },

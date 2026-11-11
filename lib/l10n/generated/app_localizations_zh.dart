@@ -988,6 +988,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noResults => '没有找到结果';
 
   @override
+  String get clearArtistsCache => '清空艺术家缓存';
+
+  @override
   String get addToFavorites => '添加到我喜欢的';
 
   @override
