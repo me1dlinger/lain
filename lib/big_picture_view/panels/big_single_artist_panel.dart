@@ -37,6 +37,24 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
   late final MyPicture? backgroundPictureTmp;
   final _scrollController = ScrollController();
 
+  /// The artist's albums with their songs decided on every build, so a tag
+  /// edit made while the panel is open neither hides nor keeps a song that is
+  /// no longer (or now is) credited to the artist.
+  List<(Album, List<MyAudioMetadata>)> get _albums => [
+    for (final album in widget.artist.albumList)
+      (
+        album,
+        album.songList
+            .where((song) => songByArtist(song, widget.artist.name))
+            .toList(),
+      ),
+  ].where((entry) => entry.$2.isNotEmpty).toList();
+
+  /// Every song actually shown, in the panels' order.
+  List<MyAudioMetadata> get _songs => [
+    for (final entry in _albums) ...entry.$2,
+  ];
+
   void update() {
     if (mounted) {
       setState(() {});
@@ -140,19 +158,13 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                         ),
                         IconButton(
                           onPressed: () async {
-                            await audioHandler.setPlayQueue(
-                              widget.artist.songList,
-                              1,
-                            );
+                            await audioHandler.setPlayQueue(_songs, 1);
                           },
                           icon: ImageIcon(shuffleImage),
                         ),
                         IconButton(
                           onPressed: () async {
-                            await audioHandler.setPlayQueue(
-                              widget.artist.songList,
-                              0,
-                            );
+                            await audioHandler.setPlayQueue(_songs, 0);
                           },
                           icon: Icon(Icons.play_arrow_rounded),
                           iconSize: 30,
@@ -162,10 +174,10 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                             Navigator.of(context).push(
                               ZoomPageRoute(
                                 builder: (_) => SelectableSongListPage(
-                                  songList: widget.artist.songList,
+                                  songList: _songs,
                                   reorderable: false,
                                   isSelectedNotifierMap: Map.fromEntries(
-                                    widget.artist.songList.map(
+                                    _songs.map(
                                       (e) => MapEntry(e, ValueNotifier(false)),
                                     ),
                                   ),
@@ -185,7 +197,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                     Row(
                       children: [
                         Text(
-                          '${widget.artist.albumList.length} ${l10n.albums}, ${l10n.songCount(widget.artist.songList.length)}',
+                          '${_albums.length} ${l10n.albums}, ${l10n.songCount(_songs.length)}',
                         ),
                       ],
                     ),
@@ -200,8 +212,8 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                   slivers: [
                     const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
-                    for (final album in widget.artist.albumList)
-                      albumContent(album, panelWidth),
+                    for (final entry in _albums)
+                      albumContent(entry.$1, panelWidth, entry.$2),
                   ],
                 ),
               ),
@@ -243,8 +255,11 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
     );
   }
 
-  Widget albumContent(Album album, double panelWidth) {
-    final songList = album.songList;
+  Widget albumContent(
+    Album album,
+    double panelWidth,
+    List<MyAudioMetadata> songList,
+  ) {
     if (songList.isEmpty) {
       return SliverToBoxAdapter(child: SizedBox());
     }
@@ -353,9 +368,6 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
             itemBuilder: (context, index) {
               final song = songList[index];
               final artist = getArtist(song);
-              if (!artist.contains(widget.artist.name)) {
-                return SizedBox.shrink();
-              }
               return Builder(
                 builder: (itemContext) {
                   return Material(
@@ -371,7 +383,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                         showSongOptions(
                           context: context,
                           song: song,
-                          includeGoToArtist: artist != widget.artist.name,
+                          includeGoToArtist: getArtists(artist).length > 1,
                           excludedArtist: widget.artist.name,
                           includeGoToAlbum: true,
                         );

@@ -22,12 +22,18 @@ String getArtist(MyAudioMetadata? song) {
   return song.artist!;
 }
 
+/// The separators between several artists in a tag: '/' and ',' (what the
+/// servers join their artist lists with), the ideographic comma '、' of the
+/// Chinese convention, and NFKD's full-width forms '／' and '，' (what a local
+/// file often carries, and what its very own player displays).
+final RegExp _artistSeparator = RegExp(r'[/,、，／]');
+
 List<String> getArtists(String artist) {
   List<String> artists = [];
   // '&' is part of an artist's own name as often as it separates two of them
   // ("MYTH & ROID", "AI MyGO & Ave Mujica"), and Navidrome keeps those as one
   // artist, so it must not split here.
-  for (String artistName in artist.split(RegExp(r'[/,]'))) {
+  for (String artistName in artist.split(_artistSeparator)) {
     final tmp = artistName.trim();
     if (tmp.isEmpty) {
       return [artist];
@@ -35,6 +41,22 @@ List<String> getArtists(String artist) {
     artists.add(tmp);
   }
   return artists;
+}
+
+/// Whether [song] credits the artist [name], compared exactly against each of
+/// its credited artists.
+///
+/// This is the one place the membership of a song in an artist is decided: the
+/// artist list, the artist pages and the "go to artist" menu all ask it, so a
+/// song cannot sit under an artist whose page then leaves it out. Substring
+/// matching is not enough - a tag holding "D、E" as one name contains "D" too,
+/// and a "25" would match "125".
+bool songByArtist(MyAudioMetadata song, String name) {
+  final credited = getArtists(getArtist(song));
+  if (credited.length == 1) {
+    return credited.first == name;
+  }
+  return credited.contains(name);
 }
 
 String getAlbum(MyAudioMetadata? song) {

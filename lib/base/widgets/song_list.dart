@@ -114,12 +114,18 @@ class SongList extends StatefulWidget {
   /// that page.
   final String? mountedOnLabel;
 
+  /// The songs to show, when they are not exactly [artist]'s stored list - an
+  /// artist page re-decides who belongs to the artist on every build, so a
+  /// stale membership cannot outlive a tag edit.
+  final List<MyAudioMetadata>? songListOverride;
+
   const SongList({
     super.key,
     this.playlist,
     this.artist,
     this.album,
     this.folder,
+    this.songListOverride,
     this.isFrequently = false,
     this.isRecently = false,
     this.isRecentlyAdded = false,
@@ -492,7 +498,7 @@ class _SongListState extends State<SongList> {
       }
     } else if (artist != null) {
       title = artist!.name;
-      songList = artist!.songList;
+      songList = widget.songListOverride ?? artist!.songList;
       sortTypeNotifier = songSortTypeNotifier('artist');
       rootVisibleNotifier = artistsVisibleNotifier;
       backToRoot = () {

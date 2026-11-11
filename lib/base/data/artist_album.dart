@@ -529,6 +529,8 @@ abstract class ArtistAlbumBase {
 class Artist extends ArtistAlbumBase {
   Artist({required super.name}) : super(isArtist: true);
 
+  /// Every album a song by this artist is on, including empty ones (whose songs
+  /// were all removed) - [albumCount] and [combineAlbums] skip those.
   Set<Album> albumSet = {};
 
   List<Album> albumList = [];
@@ -594,7 +596,11 @@ class Artist extends ArtistAlbumBase {
 
     for (final album in albumList) {
       for (final song in album.songList) {
-        if (getArtist(song).contains(name)) {
+        // The artist list credits a song to each of its artists; asking whether
+        // the tag merely *contains* the name answered a different question and
+        // went wrong on tags such as "D、E" for an artist called "D" (or "25"
+        // for "125").
+        if (songByArtist(song, name)) {
           songList.add(song);
         }
       }
