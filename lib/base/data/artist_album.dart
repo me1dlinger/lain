@@ -435,11 +435,10 @@ class Artist extends ArtistAlbumBase {
   String? get imageUrl => artistInfoCache[artistKey(name)]?.imageUrl;
 
   /// The artist's own image, kept per name so a rebuilt artist does not lose it.
-  /// Its bytes come from the server's own API first - which reports an image
-  /// even when the Subsonic endpoint omits it, and otherwise points at the
-  /// external `largeImageUrl` - then from the Subsonic artist info, then from
-  /// the already-cached URL. A local library with no cached image falls back to
-  /// the first album's cover.
+  /// It is used only when the server reports an artist image; otherwise the
+  /// first album's cover is shown, which reads better than the blank star the
+  /// cover-art endpoint returns for an artist it has no image for - and that
+  /// placeholder is never fetched or cached.
   @override
   MyPicture get picture {
     final key = artistKey(name);
@@ -449,27 +448,12 @@ class Artist extends ArtistAlbumBase {
     }
 
     final id = sourceId;
-    if (!isStreamSource && (imageUrl == null || imageUrl!.isEmpty)) {
+    final hasImage = (imageUrl ?? '').isNotEmpty;
+    if (id == null || !hasImage) {
       return super.picture;
     }
 
-    final picture = MyPicture.form(id ?? name);
-    picture.resolverFirst = true;
-    picture.remoteResolver = () async {
-      var url = id == null ? null : await streamClient?.getArtistImageUrl(id);
-      if (url == null || url.isEmpty) {
-        url = imageUrl;
-      }
-      if (url == null || url.isEmpty) {
-        url = id == null ? null : (await streamClient?.getArtistInfo(id))?.imageUrl;
-      }
-      if (url == null || url.isEmpty) {
-        return null;
-      }
-      return fetchRemoteImageBytes(url);
-    };
-    artistPictureCache[key] = picture;
-    return picture;
+    return artistPictureCache[key] = MyPicture.form(id);
   }
 
   void combineAlbums() {

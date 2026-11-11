@@ -991,6 +991,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearArtistsCache => '清空艺术家缓存';
 
   @override
+  String get addedTime => '添加时间';
+
+  @override
+  String get modifiedTime => '修改时间';
+
+  @override
+  String get playCountLabel => '播放次数';
+
+  @override
+  String get clearSuccess => '清除成功';
+
+  @override
   String get addToFavorites => '添加到我喜欢的';
 
   @override

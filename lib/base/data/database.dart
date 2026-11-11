@@ -11,6 +11,12 @@ class MetadataItems extends Table {
   TextColumn get id => text()();
   TextColumn get coverId => text().nullable()();
 
+  /// The server's album and artist ids. Kept so that a library reloaded from
+  /// the database still tells two same-named albums apart, can star an album or
+  /// an artist, and can fetch their artwork and description.
+  TextColumn get albumId => text().nullable()();
+  TextColumn get artistId => text().nullable()();
+
   TextColumn get path => text().nullable()();
 
   IntColumn get modified => integer().nullable()();
@@ -52,7 +58,7 @@ class MetadataDB extends _$MetadataDB {
   MetadataDB(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -83,6 +89,15 @@ class MetadataDB extends _$MetadataDB {
 
         if (from < 7) {
           await m.addColumn(metadataItems, metadataItems.size);
+        }
+
+        if (from < 8) {
+          await m.addColumn(metadataItems, metadataItems.albumId);
+          await m.addColumn(metadataItems, metadataItems.artistId);
+          // Rows written before these columns existed carry neither id, which
+          // merges same-named albums. They are dropped so the library is
+          // scanned again and filled in.
+          await m.database.customStatement('DELETE FROM metadata_items');
         }
       },
     );

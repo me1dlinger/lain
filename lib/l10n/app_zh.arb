@@ -321,6 +321,10 @@
   "contributingArtists": "参与创作的艺术家",
   "noResults": "没有找到结果",
   "clearArtistsCache": "清空艺术家缓存",
+  "addedTime": "添加时间",
+  "modifiedTime": "修改时间",
+  "playCountLabel": "播放次数",
+  "clearSuccess": "清除成功",
   "addToFavorites": "添加到我喜欢的",
   "removeFromFavorites": "取消喜欢"
 }

@@ -39,6 +39,9 @@ extension MetadataItemMapper on MetadataItem {
       coverId: coverId,
       path: validPath,
 
+      albumId: albumId,
+      artistId: artistId,
+
       modified: modified != null
           ? DateTime.fromMillisecondsSinceEpoch(modified!)
           : null,
@@ -61,6 +64,9 @@ extension MyAudioMetadataMapper on MyAudioMetadata {
     return MetadataItemsCompanion.insert(
       id: id,
       coverId: Value(coverId),
+
+      albumId: Value(albumId),
+      artistId: Value(artistId),
 
       path: Value(isStreamSource ? path : null),
 

@@ -1000,6 +1000,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearArtistsCache => 'Clear artist cache';
 
   @override
+  String get addedTime => 'Added Time';
+
+  @override
+  String get modifiedTime => 'Modified Time';
+
+  @override
+  String get playCountLabel => 'Play Count';
+
+  @override
+  String get clearSuccess => 'Cleared';
+
+  @override
   String get addToFavorites => 'Add to Favorites';
 
   @override

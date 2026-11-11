@@ -377,6 +377,10 @@
   "contributingArtists": "Contributing Artists",
   "noResults": "No results",
   "clearArtistsCache": "Clear artist cache",
+  "addedTime": "Added Time",
+  "modifiedTime": "Modified Time",
+  "playCountLabel": "Play Count",
+  "clearSuccess": "Cleared",
   "addToFavorites": "Add to Favorites",
   "removeFromFavorites": "Remove from Favorites"
 }

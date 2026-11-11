@@ -1339,7 +1339,15 @@ class _CacheDetailViewState extends State<_CacheDetailView>
     return ValueListenableBuilder(
       valueListenable: cacheEntriesNotifier,
       builder: (context, entries, child) {
-        final artists = artistAlbumManager.artistList;
+        // Only artists that actually have something cached: a list of every
+        // artist, mostly without a cover, is not a cache view.
+        final artists = artistAlbumManager.artistList.where((artist) {
+          final info = artistInfoCache[artistKey(artist.name)];
+          return artist.picture.isExist ||
+              (info != null &&
+                  ((info.biography ?? '').isNotEmpty ||
+                      (info.imageUrl ?? '').isNotEmpty));
+        }).toList();
         return Column(
           children: [
             Align(
@@ -1354,7 +1362,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
                   }
                   await clearArtistInfoCache();
                   setState(() {});
-                  showCenterMessage(l10n.savedSuccessfully);
+                  showCenterMessage(l10n.clearSuccess);
                 },
                 child: Text(l10n.clearArtistsCache),
               ),

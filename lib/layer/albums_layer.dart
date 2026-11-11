@@ -41,18 +41,16 @@ class _AlbumsLayerState extends CollectionListState {
     final list = artistAlbumManager.albumList
         .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
         .toList();
-    if (randomizeNotifier!.value) {
-      list.shuffle();
-    }
+    // Shuffled order is not offered for albums: the list has its own orders and
+    // a random one there is not useful.
     currentPictureList = list.map((e) => e.picture).toList();
     currentTextList = list.map((e) => e.name).toList();
 
     currentOnTapList = list
         .map(
           (e) => () {
-            if (e.picture.isLoaded) {
-              layersManager.pushDetail('albums', e);
-            }
+            // No waiting for the artwork; see the artist list.
+            layersManager.pushDetail('albums', e);
           },
         )
         .toList();

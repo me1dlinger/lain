@@ -32,6 +32,7 @@ import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/widgets/my_location.dart';
 import 'package:sylvakru/base/widgets/my_scaffold.dart';
 import 'package:sylvakru/base/widgets/my_sheet.dart';
+import 'package:sylvakru/base/widgets/sort_sheet.dart';
 import 'package:sylvakru/base/widgets/play_next_button.dart';
 import 'package:sylvakru/base/widgets/playlist_widgets.dart';
 import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
@@ -45,10 +46,79 @@ import 'package:sylvakru/layer/home_layer.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/playlists_layer.dart';
 import 'package:sylvakru/portrait_view/my_search_field.dart';
+import 'package:sylvakru/portrait_view/play_bar.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 part '../../landscape_view/panels/song_list_panel.dart';
 part '../../portrait_view/pages/song_list_page.dart';
+
+/// App-bar label of a detail opened as its own route; the leading action pops
+/// the route instead of going back to a layer.
+const pushedRouteLabel = '__pushed__';
+
+/// Opens an album's page as a route on top of whatever is showing, so going
+/// back returns there exactly. Used from a song's menu, the artist's album
+/// strip and the search results.
+void pushAlbumDetail(Album album) {
+  _pushSongListRoute(
+    (context) => SongList(album: album, isRoot: false, pushedRoute: true),
+  );
+}
+
+/// Opens an artist's page as a route; see [pushAlbumDetail].
+void pushArtistDetail(Artist artist) {
+  _pushSongListRoute(
+    (context) => SongList(artist: artist, isRoot: false, pushedRoute: true),
+  );
+}
+
+/// Opens a playlist's page as a route; see [pushAlbumDetail].
+void pushPlaylistDetail(Playlist playlist) {
+  _pushSongListRoute(
+    (context) =>
+        SongList(playlist: playlist, isRoot: false, pushedRoute: true),
+  );
+}
+
+/// A detail page floats over the current page: the route is transparent so the
+/// app's blurred backdrop still shows, and the play bar is drawn over the page
+/// (it lives below the root navigator, which this route covers).
+void _pushSongListRoute(WidgetBuilder builder) {
+  globalNavigatorKey.currentState?.push(
+    PageRouteBuilder<void>(
+      opaque: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        final page = builder(context);
+        if (!isTooNarrow(context)) {
+          return page;
+        }
+        return Stack(
+          children: [
+            Positioned.fill(child: page),
+            const Positioned(left: 20, right: 20, bottom: 40, child: PlayBar()),
+          ],
+        );
+      },
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        );
+      },
+    ),
+  );
+}
 
 class SongList extends StatefulWidget {
   final Playlist? playlist;
@@ -62,6 +132,12 @@ class SongList extends StatefulWidget {
   final bool isRoot;
 
   final bool isHomeDetail;
+
+  /// Whether this song list was opened as a plain route on the root navigator
+  /// (an album or artist opened directly from a song's menu). Its back button
+  /// then simply pops the route, which returns to exactly the page it was
+  /// opened from - no layer switching, and no leftover page behind it.
+  final bool pushedRoute;
 
   /// Label of the page this detail is mounted on, when it is not its own list
   /// (e.g. viewing an album from a song list). The back button then returns to
@@ -79,6 +155,7 @@ class SongList extends StatefulWidget {
     this.isRecentlyAdded = false,
     this.isRoot = true,
     this.isHomeDetail = false,
+    this.pushedRoute = false,
     this.mountedOnLabel,
   });
 
@@ -259,10 +336,7 @@ class _SongListState extends State<SongList> {
 
   /// Opens an album of the artist: the albums layer owns album detail pages.
   Future<void> openArtistAlbum(Album album) async {
-    layersManager.switchRootLayer('albums');
-    showCenterLoading();
-    await layersManager.pushDetailIfNeed(album);
-    removeCenterLoading();
+    pushAlbumDetail(album);
   }
 
   /// Horizontal strip of the artist's albums; tapping one opens that album.
@@ -510,6 +584,14 @@ class _SongListState extends State<SongList> {
       backToRoot = () {
         layersManager.popDetail(mountLabel);
       };
+    }
+
+    // A detail opened as its own route has no layer of its own: its back button
+    // is the route pop, handled by the app bar.
+    if (widget.pushedRoute) {
+      rootLabel = pushedRouteLabel;
+      rootVisibleNotifier = null;
+      backToRoot = () => globalNavigatorKey.currentState?.maybePop();
     }
     rootVisibleNotifier?.addListener(updateHideOthers);
 

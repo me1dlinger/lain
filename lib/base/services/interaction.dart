@@ -27,6 +27,7 @@ import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/widgets/my_sheet.dart';
 import 'package:sylvakru/base/widgets/playlist_widgets.dart';
 import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
+import 'package:sylvakru/base/widgets/song_list.dart';
 import 'package:sylvakru/base/widgets/song_info.dart';
 import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_single_artist_panel.dart';
@@ -1358,15 +1359,13 @@ void goToArtist(
       ),
     );
   } else {
-    // Go to the artist list and open the artist's page there. Mounting the
-    // detail on the page it was opened from (the song list) left routes behind
-    // that showed up as blank pages on the way back, so the detail lives in its
-    // own layer: back returns to the artist list.
+    // The artist's page opens directly, on top of whatever is showing, so going
+    // back returns there exactly (playlist, home, all songs) - no intermediate
+    // list, and no page left behind.
     showCenterLoading();
     await Future.delayed(Duration(milliseconds: 250));
-    await layersManager.switchRootLayerAndClose('artists');
-    await layersManager.pushDetailIfNeed(artist);
     removeCenterLoading();
+    pushArtistDetail(artist);
   }
 }
 
@@ -1398,10 +1397,9 @@ void goToAlbum(MyAudioMetadata song, {BuildContext? context}) async {
     return;
   }
 
-  // Go to the album list and open the album's page there; back returns to the
-  // album list rather than leaving routes behind (see goToArtist).
+  // The album's page opens directly, on top of whatever is showing; see
+  // goToArtist.
   showCenterLoading();
-  await layersManager.switchRootLayerAndClose('albums');
-  await layersManager.pushDetailIfNeed(album);
   removeCenterLoading();
+  pushAlbumDetail(album);
 }

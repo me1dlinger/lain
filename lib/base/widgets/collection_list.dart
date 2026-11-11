@@ -6,6 +6,7 @@ import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/base/widgets/my_scaffold.dart';
 import 'package:sylvakru/base/widgets/my_sheet.dart';
+import 'package:sylvakru/base/widgets/sort_sheet.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/base/data/setting.dart';
@@ -72,20 +73,16 @@ abstract class CollectionListState extends State<CollectionList> {
 
   void updateCurrentList();
 
-  /// "Sort by" entry of the sheet: one dialog holding the key, the shuffle
-/// option and the ascending/descending switch, instead of three separate rows.
+  /// "Sort by" entry of the settings sheet: the keys, then ascending and
+  /// descending, in the same sheet every list uses. Nothing is hidden when the
+  /// order changes, and the sheet stays open so another choice can be made.
   Widget sortKeyTile(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final notifier = sortKeyNotifier!;
     final options = sortKeyOptions!();
     return ListenableBuilder(
-      listenable: Listenable.merge([
-        notifier,
-        randomizeNotifier,
-        isAscendingNotifier,
-      ]),
+      listenable: Listenable.merge([notifier, isAscendingNotifier]),
       builder: (context, child) {
-        final randomizing = randomizeNotifier?.value ?? false;
         final current = options.firstWhere(
           (option) => option.$2 == notifier.value,
           orElse: () => options.first,
@@ -99,100 +96,29 @@ abstract class CollectionListState extends State<CollectionList> {
             l10n.sortType,
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text(
-            randomizing ? l10n.randomSort : '${current.$1} · $orderLabel',
-          ),
+          subtitle: Text('${current.$1} - $orderLabel'),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () {
-            // Close the settings sheet first, then open the sort sheet: the
-            // same one-step flow the song-list sort uses, rather than stacking
-            // a second sheet on top of the first.
+            // Close the settings sheet first, then open the sort sheet, so the
+            // two are not stacked.
             Navigator.pop(context);
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              useRootNavigator: true,
-              builder: (sheetContext) {
-                return MySheet(
-                  Column(
-                    children: [
-                      ListTile(title: Text(l10n.selectSortingType)),
-                      MyDivider(thickness: 0.5, height: 1, color: dividerColor),
-                      Expanded(
-                        child: ListView(
-                          children: [
-                            for (final option in options)
-                              ListTile(
-                                title: Text(option.$1),
-                                trailing: !randomizing &&
-                                        notifier.value == option.$2
-                                    ? const Icon(Icons.check)
-                                    : null,
-                                visualDensity: const VisualDensity(
-                                  horizontal: 0,
-                                  vertical: -4,
-                                ),
-                                onTap: () {
-                                  notifier.value = option.$2;
-                                  randomizeNotifier?.value = false;
-                                  // Favourites read best most-recently-starred
-                                  // first, so picking it flips to descending.
-                                  if (option.$2 == 5) {
-                                    isAscendingNotifier?.value = false;
-                                  }
-                                  setting.save();
-                                  Navigator.pop(sheetContext);
-                                },
-                              ),
-                            if (randomizeNotifier != null)
-                              ListTile(
-                                title: Text(l10n.randomSort),
-                                trailing: randomizing
-                                    ? const Icon(Icons.check)
-                                    : null,
-                                visualDensity: const VisualDensity(
-                                  horizontal: 0,
-                                  vertical: -4,
-                                ),
-                                onTap: () {
-                                  // Toggles, so shuffle can be turned off again
-                                  // by the same row that turns it on.
-                                  randomizeNotifier!.value = !randomizing;
-                                  setting.save();
-                                  Navigator.pop(sheetContext);
-                                },
-                              ),
-                            MyDivider(
-                              thickness: 0.5,
-                              height: 1,
-                              color: dividerColor,
-                            ),
-                            if (isAscendingNotifier != null)
-                              ListenableBuilder(
-                                listenable: isAscendingNotifier!,
-                                builder: (context, child) {
-                                  return ListTile(
-                                    title: Text(l10n.order),
-                                    trailing: MySwitch(
-                                      trueText: l10n.ascending,
-                                      falseText: l10n.descending,
-                                      valueNotifier: isAscendingNotifier!,
-                                      onToggleCallBack: setting.save,
-                                    ),
-                                    visualDensity: const VisualDensity(
-                                      horizontal: 0,
-                                      vertical: -4,
-                                    ),
-                                  );
-                                },
-                              ),
-                            const SizedBox(height: 50),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+            showSortSheet(
+              context,
+              title: l10n.selectSortingType,
+              entries: [
+                for (final option in options) SortEntry(option.$1, option.$2),
+              ],
+              selected: notifier,
+              ascending: isAscendingNotifier,
+              onSelected: (value) {
+                notifier.value = value;
+                randomizeNotifier?.value = false;
+                // Favourites read best most-recently-starred first, so picking
+                // it flips to descending.
+                if (value == 5) {
+                  isAscendingNotifier?.value = false;
+                }
+                setting.save();
               },
             );
           },

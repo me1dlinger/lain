@@ -2030,6 +2030,30 @@ abstract class AppLocalizations {
   /// **'Clear artist cache'**
   String get clearArtistsCache;
 
+  /// No description provided for @addedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Added Time'**
+  String get addedTime;
+
+  /// No description provided for @modifiedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Modified Time'**
+  String get modifiedTime;
+
+  /// No description provided for @playCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Count'**
+  String get playCountLabel;
+
+  /// No description provided for @clearSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared'**
+  String get clearSuccess;
+
   /// No description provided for @addToFavorites.
   ///
   /// In en, this message translates to:

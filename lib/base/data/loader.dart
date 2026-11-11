@@ -196,6 +196,21 @@ class Loader {
   }
 
   static void _handleLegacyVersionData() {
+    // The album/artist ids are saved with the library from now on. A library
+    // written before that has none, so its sync marker is dropped once and the
+    // library is fetched from the server again (the old rows were deleted by
+    // the database migration).
+    final metaFlag = File('${appSupportDir.path}/meta_v8.keep');
+    if (!metaFlag.existsSync()) {
+      for (final type in SourceType.values) {
+        final synced = File(getSyncedFilePath(type));
+        if (synced.existsSync()) {
+          synced.deleteSync();
+        }
+      }
+      metaFlag.createSync(recursive: true);
+    }
+
     File tmp = File('${appSupportDir.path}/version.json');
     if (tmp.existsSync()) {
       firstLaunch = false;

@@ -6,6 +6,7 @@ import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/song_list.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 
@@ -124,16 +125,6 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
   Widget _empty(AppLocalizations l10n) =>
       Center(child: Text(query.isEmpty ? l10n.searchHome : l10n.noResults));
 
-  /// Opens a result from another layer: the search page closes and the layer it
-/// belongs to is brought to the front before its detail is pushed, so the
-/// detail is not pushed into a hidden layer.
-  Future<void> _openLayer(String label, dynamic detail) async {
-    Navigator.of(context).pop();
-    layersManager.switchRootLayer(label);
-    await Future.delayed(const Duration(milliseconds: 300));
-    await layersManager.pushDetailIfNeed(detail);
-  }
-
   Widget _songResults(AppLocalizations l10n) {
     final list = songs;
     if (list.isEmpty) {
@@ -175,7 +166,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
             l10n.songCount(album.songList.length),
             style: const TextStyle(fontSize: 12),
           ),
-          onTap: () => _openLayer('albums', album),
+          onTap: () => pushAlbumDetail(album),
         );
       },
     );
@@ -203,7 +194,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
             '${l10n.songCount(artist.songList.length)}',
             style: const TextStyle(fontSize: 12),
           ),
-          onTap: () => _openLayer('artists', artist),
+          onTap: () => pushArtistDetail(artist),
         );
       },
     );
@@ -234,7 +225,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
             l10n.songCount(playlist.songList.length),
             style: const TextStyle(fontSize: 12),
           ),
-          onTap: () => _openLayer('playlists', playlist),
+          onTap: () => pushPlaylistDetail(playlist),
         );
       },
     );

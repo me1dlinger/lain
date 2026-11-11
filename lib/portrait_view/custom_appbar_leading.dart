@@ -9,6 +9,14 @@ Widget customAppBarLeading(BuildContext context, {String label = ''}) {
   return ValueListenableBuilder(
     valueListenable: currentRootLabel,
     builder: (context, root, child) {
+      // A detail opened as its own route simply pops it, returning to exactly
+      // the page it was opened from.
+      if (label == '__pushed__') {
+        return IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        );
+      }
       if (label.isNotEmpty) {
         return IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),

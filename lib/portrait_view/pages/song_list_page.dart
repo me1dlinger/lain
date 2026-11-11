@@ -136,98 +136,50 @@ extension _SongListPage on _SongListState {
               visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
               onTap: () {
                 Navigator.pop(context);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  useRootNavigator: true,
-                  builder: (context) {
-                    List<(String, int)> orderOptions = [
-                      (l10n.defaultText, 0),
-                      (l10n.titleAscending, 1),
-                      (l10n.titleDescending, 2),
-                      (l10n.artistAscending, 3),
-                      (l10n.artistDescending, 4),
-                      (l10n.albumAscending, 5),
-                      (l10n.albumDescending, 6),
-                      (l10n.durationAscending, 7),
-                      (l10n.durationDescending, 8),
-                      (l10n.addedTimeAscending, 13),
-                      (l10n.addedTimeDescending, 14),
-                      // Only the servers report a play count; Navidrome and
-                      // Emby both do, Feiniu has no such field.
-                      if (sourceType == .navidrome || sourceType == .emby)
-                        (l10n.mostPlayed, 17),
-                      // Track order only has a meaning inside an album, so these
-                      // two are offered there and nowhere else.
-                      if (widget.album != null) ...[
-                        (l10n.trackAscending, 15),
-                        (l10n.trackDescending, 16),
-                      ],
-                    ];
-                    if (isLibrary && isNotStreamSource || folder != null) {
-                      orderOptions.add((l10n.modifiedTimeAscending, 9));
-                      orderOptions.add((l10n.modifiedTimedescending, 10));
-                      orderOptions.add((l10n.randomizeTemp, 11));
-                      orderOptions.add((l10n.randomizePermanent, 12));
-                    }
-                    List<Widget> orderWidget = [];
-                    for (final (text, type) in orderOptions) {
-                      orderWidget.add(
-                        ValueListenableBuilder(
-                          valueListenable: sortTypeNotifier,
-                          builder: (context, value, child) {
-                            return ListTile(
-                              title: Text(text),
-                              onTap: () async {
-                                if (type == 12) {
-                                  if (!await showConfirmDialog(
-                                    context,
-                                    l10n.cannotBeUndone,
-                                  )) {
-                                    return;
-                                  }
-                                  sortTypeNotifier.value = 0;
-                                  if (isLibrary) {
-                                    library.shuffle();
-                                  } else {
-                                    folder!.shuffle();
-                                  }
-                                } else {
-                                  if (type == 11 &&
-                                      sortTypeNotifier.value == 11) {
-                                    updateSongList();
-                                  }
-                                  sortTypeNotifier.value = type;
-                                }
-                              },
-                              trailing: value == type ? Icon(Icons.check) : null,
-                              visualDensity: VisualDensity(
-                                horizontal: 0,
-                                vertical: -4,
-                              ),
-                            );
-                          },
-                        ),
+                showSortSheet(
+                  context,
+                  title: l10n.selectSortingType,
+                  entries: [
+                    SortEntry(l10n.defaultText, 0),
+                    SortEntry(l10n.title, 1, descValue: 2),
+                    SortEntry(l10n.artist, 3, descValue: 4),
+                    SortEntry(l10n.album, 5, descValue: 6),
+                    SortEntry(l10n.duration, 7, descValue: 8),
+                    SortEntry(l10n.addedTime, 13, descValue: 14),
+                    if (sourceType == .navidrome || sourceType == .emby)
+                      SortEntry(l10n.playCountLabel, 17),
+                    if (widget.album != null)
+                      SortEntry(l10n.track, 15, descValue: 16),
+                    if ((isLibrary && isNotStreamSource) || folder != null) ...[
+                      SortEntry(l10n.modifiedTime, 9, descValue: 10),
+                      SortEntry(l10n.randomizeTemp, 11),
+                      SortEntry(l10n.randomizePermanent, 12),
+                    ],
+                  ],
+                  selected: sortTypeNotifier,
+                  confirm: (value) async {
+                    if (value == 12) {
+                      return await showConfirmDialog(
+                        context,
+                        l10n.cannotBeUndone,
                       );
                     }
-                    return MySheet(
-                      Column(
-                        children: [
-                          ListTile(title: Text(l10n.selectSortingType)),
-                          MyDivider(
-                            thickness: 0.5,
-                            height: 1,
-                            color: dividerColor,
-                          ),
-
-                          Expanded(
-                            child: ListView(
-                              children: [...orderWidget, SizedBox(height: 50)],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                    return true;
+                  },
+                  onSelected: (value) {
+                    if (value == 12) {
+                      sortTypeNotifier.value = 0;
+                      if (isLibrary) {
+                        library.shuffle();
+                      } else {
+                        folder!.shuffle();
+                      }
+                      return;
+                    }
+                    if (value == 11 && sortTypeNotifier.value == 11) {
+                      updateSongList();
+                    }
+                    sortTypeNotifier.value = value;
                   },
                 );
               },
@@ -385,12 +337,18 @@ extension _SongListPage on _SongListState {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: ValueListenableBuilder(
-                      valueListenable: currentSongListNotifier,
-                      builder: (context, currentSongList, child) {
-                        return Text(l10n.songCount(currentSongList.length));
-                      },
-                    ),
+                    // The artist page's counts are in the details line below; repeating
+                    // a bare song count under the name adds nothing.
+                    subtitle: artist != null
+                        ? null
+                        : ValueListenableBuilder(
+                            valueListenable: currentSongListNotifier,
+                            builder: (context, currentSongList, child) {
+                              return Text(
+                                l10n.songCount(currentSongList.length),
+                              );
+                            },
+                          ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -932,7 +890,7 @@ extension _SongListPage on _SongListState {
       onTap: artist == null
           ? null
           : () {
-              layersManager.pushDetailIfNeed(artist, mountOn: rootLabel);
+              pushArtistDetail(artist);
             },
     );
   }
