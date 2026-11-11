@@ -245,13 +245,14 @@ class _SongListState extends State<SongList> {
     if (playlistCover != null) {
       return playlistCover;
     }
-    if (isStreamSource) {
-      if (artist != null) {
-        return artist!.picture;
-      }
-      if (album != null) {
-        return album!.picture;
-      }
+    if (isStreamSource && album != null) {
+      return album!.picture;
+    }
+    // An artist's picture is decided by Artist.picture for every source: it
+    // falls back to the album cover on its own when there is no artist image,
+    // so the detail page and the artist list always agree.
+    if (artist != null) {
+      return artist!.picture;
     }
     final song = coverSongNotifier.value ?? getFirstSong(songList);
     return song?.picture;

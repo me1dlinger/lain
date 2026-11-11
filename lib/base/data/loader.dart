@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -83,7 +84,14 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    await prefetchArtistInfo();
+    // One request refreshes every artist's biography and image presence, but it
+    // must not hold the first screen back. Only the very first run (no cache
+    // yet) waits for it.
+    if (artistInfoCache.isEmpty) {
+      await prefetchArtistInfo();
+    } else {
+      unawaited(prefetchArtistInfo());
+    }
 
     artistAlbumManager.classify();
 
@@ -137,7 +145,14 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    await prefetchArtistInfo();
+    // One request refreshes every artist's biography and image presence, but it
+    // must not hold the first screen back. Only the very first run (no cache
+    // yet) waits for it.
+    if (artistInfoCache.isEmpty) {
+      await prefetchArtistInfo();
+    } else {
+      unawaited(prefetchArtistInfo());
+    }
 
     artistAlbumManager.classify();
 
@@ -180,7 +195,14 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    await prefetchArtistInfo();
+    // One request refreshes every artist's biography and image presence, but it
+    // must not hold the first screen back. Only the very first run (no cache
+    // yet) waits for it.
+    if (artistInfoCache.isEmpty) {
+      await prefetchArtistInfo();
+    } else {
+      unawaited(prefetchArtistInfo());
+    }
 
     artistAlbumManager.classify();
 
@@ -218,6 +240,24 @@ class Loader {
         }
       }
       metaFlag.createSync(recursive: true);
+    }
+
+    // Covers are now requested at a sensible size; the ones cached from before
+    // (a playlist cover used to be a multi-megabyte original) would still be
+    // decoded on every visit, so they are dropped once.
+    final coversFlag = File('${appSupportDir.path}/covers_v600.keep');
+    if (!coversFlag.existsSync()) {
+      for (final type in SourceType.values) {
+        final dir = Directory(getPicturesPath(type));
+        if (dir.existsSync()) {
+          dir.deleteSync(recursive: true);
+        }
+      }
+      final artistDir = Directory('${appSupportDir.path}/artist_images');
+      if (artistDir.existsSync()) {
+        artistDir.deleteSync(recursive: true);
+      }
+      coversFlag.createSync(recursive: true);
     }
 
     File tmp = File('${appSupportDir.path}/version.json');

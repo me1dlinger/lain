@@ -353,7 +353,10 @@ class NavidromeClient extends StreamClient {
   Future<Uint8List?> getPictureBytes(String id) async {
     return safeRequest(
       '/rest/getCoverArt.view',
-      query: {'id': id},
+      // Navidrome can render a cover at a asked-for size; without it a playlist
+      // cover is a multi-megabyte original that has to be decoded every time it
+      // is shown. 600px is ample for every place the app draws one.
+      query: {'id': id, 'size': 600},
       options: Options(responseType: ResponseType.bytes),
     );
   }

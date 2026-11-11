@@ -33,7 +33,17 @@ Route<T> themedRoute<T>(
       return Stack(
         children: [
           Positioned.fill(child: themed),
-          const Positioned(left: 20, right: 20, bottom: 40, child: PlayBar()),
+          // Wrapped in a Material: text outside one renders in Flutter's
+          // missing-Material style (red, double underlined).
+          const Positioned(
+            left: 20,
+            right: 20,
+            bottom: 40,
+            child: Material(
+              type: MaterialType.transparency,
+              child: PlayBar(),
+            ),
+          ),
         ],
       );
     },

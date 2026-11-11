@@ -504,10 +504,18 @@ class Artist extends ArtistAlbumBase {
       return super.picture;
     }
 
-    return artistPictureCache[key] = MyPicture.artist(
+    final picture = MyPicture.artist(
       name,
       artistId: info.artistId ?? sourceId,
     );
+    // A local library cannot fetch the image; it can only use one that
+    // Navidrome already cached. Without the file, the album cover is used - the
+    // same picture the detail page shows, so the list never disagrees with it.
+    if (!isStreamSource && !picture.isExist) {
+      return super.picture;
+    }
+    artistPictureCache[key] = picture;
+    return picture;
   }
 
   void combineAlbums() {
