@@ -81,7 +81,20 @@ flutter build apk --release \
   --build-number 942068
 ```
 
-产物：`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
+产物：`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`（72 MB）
+
+**实测构建成功**（2026-11-11）：
+
+```
+✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (75.0MB)
+package: name='com.meidlinger.sylvakru' versionCode='944069' versionName='4.5.1'
+application-label:'Lain'
+application-label-zh:'临音'
+V2 Signer: certificate DN: CN=Lain Build Test, O=Local Test, C=CN
+```
+
+> versionCode 944069 = 942069 + 2000（arm64 偏移），说明 `--build-number`
+> 与 Flutter 的 ABI 偏移逻辑都按预期工作。
 
 ### 静态分析
 
