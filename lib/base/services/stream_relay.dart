@@ -33,6 +33,22 @@ class StreamRelay {
   /// URL can be built without awaiting anything.
   String? _lanBaseUrl;
 
+  /// When [_lanBaseUrl] was last confirmed. A phone moves between networks
+  /// (home Wi-Fi, a car's hotspot), and its address there changes with it: a
+  /// URL cached from the previous network is one the head unit can never
+  /// fetch, which shows up as a cover that stays stale or missing.
+  DateTime? _lanBaseUrlAt;
+
+  /// Bumped whenever the LAN base URL changes, so callers that cache URLs
+  /// built from it (the media session's cover URIs) can tell they are stale.
+  int _lanBaseUrlGeneration = 0;
+
+  int get lanBaseUrlGeneration => _lanBaseUrlGeneration;
+
+  /// Confirm the cached LAN URL this often. Cheap enough to run on every track
+  /// switch: it lists the interfaces, it does not open a socket.
+  static const _lanBaseUrlTtl = Duration(seconds: 20);
+
   String? get lanBaseUrl => _lanBaseUrl;
 
   /// Cover file path (or remote URL) -> its relay token. Keyed so the same
@@ -87,14 +103,20 @@ class StreamRelay {
   /// published in the same frame as the track, instead of a second later.
   Future<void> warmUp() async {
     await _ensureStarted();
-    if (_lanBaseUrl != null) {
+    // Re-confirm the address instead of trusting the first answer forever: it
+    // belongs to the network the phone is on right now, and a phone moves
+    // between its home Wi-Fi and a car's hotspot.
+    final resolvedAt = _lanBaseUrlAt;
+    if (_lanBaseUrl != null &&
+        resolvedAt != null &&
+        DateTime.now().difference(resolvedAt) < _lanBaseUrlTtl) {
       return;
     }
     // Not resolved yet, and asking again on every publish would list the
     // interfaces over and over: retry occasionally instead.
     final failed = _lanLookupFailedAt;
     if (failed != null &&
-        DateTime.now().difference(failed) < const Duration(seconds: 30)) {
+        DateTime.now().difference(failed) < const Duration(seconds: 5)) {
       return;
     }
     final running = _warmingUp;
@@ -116,11 +138,27 @@ class StreamRelay {
       if (address == null) {
         logger.output('[relay] no LAN address, covers stay on loopback');
         _lanLookupFailedAt = DateTime.now();
+        // A URL from a previous network is not usable here either: drop it so
+        // the caller falls back to a loopback/content URI until one is found.
+        _lanBaseUrl = null;
+        _lanBaseUrlAt = null;
         return;
       }
       final server = await _ensureLanStarted();
-      _lanBaseUrl = 'http://$address:${server.port}';
-      logger.output('[relay] LAN covers served from $_lanBaseUrl');
+      final base = 'http://$address:${server.port}';
+      final previous = _lanBaseUrl;
+      _lanBaseUrl = base;
+      _lanBaseUrlAt = DateTime.now();
+      _lanLookupFailedAt = null;
+      final rebuilt = previous != null && previous != base;
+      if (rebuilt) {
+        _lanBaseUrlGeneration++;
+      }
+      if (previous != base) {
+        // Every token is still served by the same server object; only the host
+        // it is reached through changed, so the published URLs are stale.
+        logger.output('[relay] LAN covers now served from $base');
+      }
     } catch (e) {
       logger.output('[relay] LAN cover server failed: $e');
       _lanLookupFailedAt = DateTime.now();

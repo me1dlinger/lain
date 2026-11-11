@@ -71,10 +71,31 @@ const _mediaChannel = MethodChannel('com.meidlinger.sylvakru.media');
 // item can be published synchronously once it has been resolved once.
 final Map<String, String> _coverUriCache = {};
 
+/// Cover file path -> its content:// URI, resolved once per file. Published in
+/// place of the file:// URI on Android (see [_artworkFor]) and reused, since
+/// asking the platform for it again on every publish would defeat the point of
+/// publishing synchronously.
+final Map<String, String> _contentUriCache = {};
+
+/// Cover paths whose content:// URI is being resolved, so a burst of publishes
+/// asks the platform once.
+final Set<String> _contentUriInFlight = {};
+
 // Covers that could not be exposed, with the modification time of the file
 // that failed: the same file is not retried, but a cover written since (which
 // is what happens the first time a local song's artwork is extracted) is.
-final Map<String, DateTime> _coverUriFailed = {};
+/// Cover path -> (file mtime, relay generation, time) at which resolving its
+/// URL failed. The generation lets a failure recorded on one network be retried
+/// on the next; the time lets a failure on a weak signal (a basement car park)
+/// be retried a little later instead of being remembered for good.
+final Map<String, ({DateTime mtime, int generation, DateTime at})>
+_coverUriFailed = {};
+
+/// How long a failed cover-URI resolution is remembered before another attempt
+/// is allowed. Long enough not to spin while the network is down, short enough
+/// that a cover appears once the signal comes back - without the user having
+/// to change track to force it.
+const _coverUriFailureTtl = Duration(seconds: 15);
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
@@ -82,7 +103,7 @@ Future<void> initAudioService() async {
     builder: () => MyAudioHandler(),
 
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.meidlinger.sylvakru.sylvakru',
+      androidNotificationChannelId: 'com.meidlinger.sylvakru',
       androidNotificationChannelName: 'Lain',
       androidNotificationOngoing: true,
     ),
@@ -225,7 +246,16 @@ class MyAudioHandler extends BaseAudioHandler {
         // segment while it is not over. Resuming once keeps it going; pausing
         // here is what left a song stuck (and a car showing pause) with nothing
         // playing. A second completion means the song really is done.
-        if ((duration - position).inSeconds > 2 && !_resumedAfterFakeComplete) {
+        //
+        // Only a stream can end a segment early: a local file has nowhere to
+        // stall, so applying this there means a position that lags the duration
+        // by a frame at the real end gets treated as a fake completion and the
+        // song restarts from the beginning. That was the "it plays the same
+        // song again instead of moving on" that only ever showed up randomly.
+        final couldBeSegmentEnd = isStreamSource;
+        if (couldBeSegmentEnd &&
+            !_resumedAfterFakeComplete &&
+            (duration - position).inSeconds > 2) {
           _resumedAfterFakeComplete = true;
           await _player.play();
           updatePlaybackState();
@@ -939,7 +969,29 @@ class MyAudioHandler extends BaseAudioHandler {
     // Announce the track before anything else. What a car shows comes from the
     // media session, so it has to switch in the same instant as the song - not
     // once the artwork has been fetched and the stream opened.
+    //
+    // Announce the track first, then let the relay re-confirm its LAN address
+    // in the background. Announcing must never wait on the network: the media
+    // session is updated through the main isolate's message loop, and holding
+    // this up is exactly what leaves a head unit showing the previous track
+    // while the phone has already moved on. Losing the cover for a moment is
+    // far cheaper than losing the title, the artist and the lyric line.
     currentSongNotifier.value = currentSong;
+
+    if (isMobile) {
+      final generation = streamRelay.lanBaseUrlGeneration;
+      unawaited(
+        streamRelay.warmUp().then((_) {
+          if (streamRelay.lanBaseUrlGeneration != generation) {
+            // The network changed under us: every URI built from the previous
+            // relay host is now unreachable for the head unit.
+            _coverUriCache.clear();
+            _coverUriFailed.clear();
+            refreshServiceMediaItem();
+          }
+        }),
+      );
+    }
 
     currentLyricsIndexNotifier.value = -1;
     _publishedLyric = null;
@@ -973,14 +1025,15 @@ class MyAudioHandler extends BaseAudioHandler {
     _prefetchNeighbours();
 
     if (!prepared) {
-      _mediaLog('not playing ${currentSong.id}: nothing to show yet');
-      showCenterMessage(getAppLocalizations().playFailed, duration: 3000);
-      // Nothing was opened, so a later play() must load again rather than
-      // resume a player that was never given this track.
-      _needsReload = true;
-      loadingSong = false;
-      stop();
-      return;
+      // Artwork/lyrics timed out. That used to stop here, which left the app
+      // sitting on a track that never opened: an automatic advance (the song
+      // before it finishing) could not be retried by itself, so the queue
+      // looked stuck on repeat until the user pressed next. Playing now and
+      // filling the artwork/lyrics in afterwards is what the stream sources
+      // already do, and a track with a late cover beats a track that never
+      // starts.
+      unawaited(setParsedLyrics(currentSong));
+      _mediaLog('playing ${currentSong.id} without waiting for artwork/lyrics');
     }
 
     try {
@@ -1171,10 +1224,18 @@ class MyAudioHandler extends BaseAudioHandler {
     final failedAt = _coverUriFailed[path];
     if (failedAt != null) {
       final file = File(path);
-      if (!file.existsSync() || file.statSync().modified == failedAt) {
+      final unchanged =
+          file.existsSync() && file.statSync().modified == failedAt.mtime;
+      final sameNetwork =
+          failedAt.generation == streamRelay.lanBaseUrlGeneration;
+      final stillFresh =
+          DateTime.now().difference(failedAt.at) < _coverUriFailureTtl;
+      // Retry when the cover was written since the failure, when the relay has
+      // a different LAN address, or once the failure has aged out - a weak
+      // signal is temporary, so the cover must not stay missing because of it.
+      if (unchanged && sameNetwork && stillFresh) {
         return;
       }
-      // The cover was written since the failure: try again.
       _coverUriFailed.remove(path);
     }
 
@@ -1198,9 +1259,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
     if (uri == null) {
       final file = File(path);
-      _coverUriFailed[path] = file.existsSync()
-          ? file.statSync().modified
-          : DateTime.fromMillisecondsSinceEpoch(0);
+      _coverUriFailed[path] = (
+        mtime: file.existsSync()
+            ? file.statSync().modified
+            : DateTime.fromMillisecondsSinceEpoch(0),
+        generation: streamRelay.lanBaseUrlGeneration,
+        at: DateTime.now(),
+      );
       _mediaLog('no fetchable cover URI for $path');
       return;
     }
@@ -1232,6 +1297,23 @@ class MyAudioHandler extends BaseAudioHandler {
     return null;
   }
 
+  /// Resolves a cover's content:// URI once and re-publishes when it arrives,
+  /// so the track that is playing now switches from file:// to content://.
+  Future<void> _cacheContentUri(MyAudioMetadata song, String path) async {
+    if (!_contentUriInFlight.add(path)) {
+      return;
+    }
+    final uri = await _contentUriFor(path);
+    _contentUriInFlight.remove(path);
+    if (uri == null || uri.isEmpty) {
+      return;
+    }
+    _contentUriCache[path] = uri;
+    if (currentSongNotifier.value?.id == song.id) {
+      refreshServiceMediaItem();
+    }
+  }
+
   /// The artwork to announce for [song]: a local URI for the notification's
   /// bitmap, plus one the head unit can fetch by itself.
   ///
@@ -1256,7 +1338,22 @@ class MyAudioHandler extends BaseAudioHandler {
     final onDisk = path.isNotEmpty && File(path).existsSync();
     if (onDisk) {
       _pubCoverPath = path;
-      _pubFileArtUri = File(path).uri.toString();
+      // Android: a content:// URI rather than file://. audio_service hands a
+      // file:// artwork to the platform on an unsynchronised async path - it is
+      // the one branch of its mediaItem handler with no "is this still the
+      // current item?" check - so two quick track switches can land in the
+      // wrong order and the head unit keeps showing the previous track's
+      // title, artist and cover while the phone has already moved on. A
+      // content:// URI is sent synchronously, in order, every time.
+      final contentUri = _contentUriCache[path];
+      if (contentUri != null) {
+        _pubFileArtUri = contentUri;
+      } else {
+        _pubFileArtUri = File(path).uri.toString();
+        if (Platform.isAndroid) {
+          unawaited(_cacheContentUri(song, path));
+        }
+      }
 
       // A downscaled copy is what goes to the car; the original can be several
       // megabytes and a head unit's screen is small.
