@@ -72,11 +72,15 @@ class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
 
   @override
   bool didPop(result) {
-    if (navigator?.userGestureInProgress == true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        layersManager.popDetail(label, executePop: false);
-      });
-    }
+    // Release this layer's detail bookkeeping whatever removed the route - a
+    // swipe, the Android system back, or the app bar. Only doing it for a swipe
+    // left the entry registered after a system-back pop, and the next back then
+    // popped the list page itself, showing an empty page. popDetail is
+    // idempotent: when popDetail is what popped the route, the entry is already
+    // gone and this does nothing.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      layersManager.popDetail(label, executePop: false);
+    });
     return super.didPop(result);
   }
 
