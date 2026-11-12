@@ -23,8 +23,8 @@
 ## 关于本工程
 
 临音是基于 [Sylvakru](https://github.com/AfalpHy/sylvakru)（原 Particle Music）的**二次开发**工程，原工程由
-[AfalpHy](https://github.com/AfalpHy) 创建。本仓库作为**独立工程**维护，不采用 GitHub fork 的形式：它有独立的
-应用标识、独立的发行渠道和独立的发展方向，也不再自动跟随上游仓库的改动。
+[AfalpHy](https://github.com/AfalpHy) 创建。本仓库作为**独立工程**维护，有独立的应用标识、独立的发行渠道和独立的
+发展方向，也不再自动跟随上游仓库的改动。
 
 上游工程是这里一切的基础，本仓库从它的最后一个提交出发，在此之上继续演进。本工程仍以与上游相同的许可证开源——
 [Apache License 2.0](./LICENSE)；上游的版权声明保留在 [NOTICE](./NOTICE) 中，本工程所做的每一处改动都记录在

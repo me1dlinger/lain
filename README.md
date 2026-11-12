@@ -24,8 +24,8 @@ Currently supports:
 
 Lain is a **derivative work** of [Sylvakru](https://github.com/AfalpHy/sylvakru) (formerly Particle Music),
 originally created by [AfalpHy](https://github.com/AfalpHy). It is developed here as an **independent project**,
-not as a GitHub fork: it has its own application identifier, its own release channel and its own development
-direction, and it no longer takes changes from the upstream repository automatically.
+with its own application identifier, its own release channel and its own development direction, and it no longer
+takes changes from the upstream repository automatically.
 
 The upstream project is the foundation of everything here; this repository starts from its last commit and moves
 on from there. It stays open source under the same license as the upstream project —
