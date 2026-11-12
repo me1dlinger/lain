@@ -33,6 +33,16 @@ abstract class CollectionListState extends State<CollectionList> {
   List<MyPicture?> currentPictureList = [];
   List<String> currentTextList = [];
 
+  /// Artwork to show when a row's own picture has none. The artist list uses
+  /// an album cover here, so a missing artist image never turns into a music
+  /// note. Layers that never fall back leave this empty.
+  List<MyPicture?> currentFallbackPictureList = [];
+
+  MyPicture? fallbackPictureAt(int index) =>
+      index < currentFallbackPictureList.length
+      ? currentFallbackPictureList[index]
+      : null;
+
   List<int>? currentSubCountList;
 
   /// Subtitle of each row in list view, when the layer shows more than a song

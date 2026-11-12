@@ -45,7 +45,7 @@ class IAPService {
     onMessage?.call(l10n.connectingToAppStore);
     if (products.isEmpty) {
       final ProductDetailsResponse response = await _iap.queryProductDetails({
-        'com.meidlinger.sylvakru.premium.lifetime',
+        'com.meidlinger.lain.premium.lifetime',
       });
       if (response.error != null) {
         logger.output(response.error.toString());

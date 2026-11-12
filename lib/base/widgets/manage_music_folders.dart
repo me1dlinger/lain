@@ -12,10 +12,8 @@ import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/utils/path.dart';
 import 'package:lain/base/services/webdav_client.dart';
 import 'package:lain/base/widgets/my_divider.dart';
-import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/tv_dir_picker.dart';
 import 'package:lain/base/widgets/webdav_dir_picker.dart';
-import 'package:lain/base/data/setting.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/loader.dart';
@@ -34,7 +32,6 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
   late List<String> currentFolderIdList;
 
   final updateNotifier = ValueNotifier(0);
-  late ValueNotifier<bool> tmpRecursiveScanNotifier;
 
   void updateFolders() async {
     await library.updateFolders(currentFolderIdList);
@@ -45,21 +42,15 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     super.initState();
 
     currentFolderIdList = library.folderList.map((e) => e.id).toList();
-    tmpRecursiveScanNotifier = ValueNotifier(recursiveScanNotifier.value);
 
     if (firstLaunch) {
       updateNotifier.addListener(updateFolders);
-      tmpRecursiveScanNotifier.addListener(() {
-        recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
-        setting.save();
-      });
     }
   }
 
   @override
   void dispose() {
     updateNotifier.dispose();
-    tmpRecursiveScanNotifier.dispose();
     super.dispose();
   }
 
@@ -235,13 +226,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
         return;
       }
 
-      bool needSync = await library.updateFolders(currentFolderIdList);
-
-      if (tmpRecursiveScanNotifier.value != recursiveScanNotifier.value) {
-        recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
-        setting.save();
-        needSync = true;
-      }
+      final needSync = await library.updateFolders(currentFolderIdList);
 
       if (context.mounted) {
         Navigator.pop(context);
@@ -282,24 +267,6 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           ),
           clipBehavior: .antiAlias,
           child: ListTile(
-            title: Text(l10n.recursiveScan),
-            contentPadding: .fromLTRB(15, 0, 0, 0),
-            dense: !firstLaunch,
-            trailing: SizedBox(
-              width: 70,
-              child: MySwitch(valueNotifier: tmpRecursiveScanNotifier),
-            ),
-          ),
-        ),
-
-        Material(
-          color: Colors.transparent,
-          shape: SmoothRectangleBorder(
-            smoothness: 1,
-            borderRadius: .all(.circular(10)),
-          ),
-          clipBehavior: .antiAlias,
-          child: ListTile(
             contentPadding: .fromLTRB(15, 0, 0, 0),
             dense: !firstLaunch,
             onTap: () {
@@ -308,25 +275,6 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
                   : _addWebdavFolder(context);
             },
             title: Text(l10n.addFolder),
-          ),
-        ),
-
-        Material(
-          color: Colors.transparent,
-          shape: SmoothRectangleBorder(
-            smoothness: 1,
-            borderRadius: .all(.circular(10)),
-          ),
-          clipBehavior: .antiAlias,
-          child: ListTile(
-            contentPadding: .fromLTRB(15, 0, 0, 0),
-            dense: !firstLaunch,
-            onTap: () {
-              sourceType == .local
-                  ? _addFolders(context)
-                  : _addWebdavFolders(context);
-            },
-            title: Text(l10n.addRecursiveFolder),
           ),
         ),
       ],
@@ -438,51 +386,6 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     updateNotifier.value++;
   }
 
-  void _addFolders(BuildContext context) async {
-    String? result;
-    if (isTV) {
-      result = await showAnimationDialog(
-        context: context,
-        child: SizedBox(
-          height: MediaQuery.heightOf(context) * 0.8,
-          width: 300,
-          child: TvDirPicker(),
-        ),
-      );
-    } else {
-      result = await FilePicker.getDirectoryPath();
-    }
-
-    if (result == null || !context.mounted) {
-      return;
-    }
-    if (Platform.isIOS && !await _checkAndConfigureIOSPath(context, result)) {
-      return;
-    }
-
-    Directory root = Directory(result);
-
-    List<String> pathList = root
-        .listSync(recursive: true)
-        .whereType<Directory>()
-        .map((d) => d.path)
-        .toList();
-
-    pathList.insert(0, result);
-
-    for (String path in pathList) {
-      String id = path;
-      if (Platform.isIOS) {
-        id = convertIOSPath(path);
-      }
-      if (!currentFolderIdList.contains(id)) {
-        currentFolderIdList.add(id);
-      }
-    }
-
-    updateNotifier.value++;
-  }
-
   Future<bool> _isWebdavValid(BuildContext context) async {
     if (webdavClient == null) {
       showCenterMessage('Please connect to WebDAV first');
@@ -521,33 +424,6 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
       return;
     }
     currentFolderIdList.add(id);
-    updateNotifier.value++;
-  }
-
-  void _addWebdavFolders(BuildContext context) async {
-    if (!await _isWebdavValid(context)) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-    String? root = await showAnimationDialog(
-      context: context,
-      child: SizedBox(height: 350, width: 300, child: WebdavDirPicker()),
-    );
-    if (root == null) {
-      return;
-    }
-    List<String> idList = [root];
-    final subDirectories = await webdavClient!.listSubDirectories(root);
-    idList.addAll(subDirectories);
-
-    for (final id in idList) {
-      if (currentFolderIdList.contains(id)) {
-        continue;
-      }
-      currentFolderIdList.add(id);
-    }
     updateNotifier.value++;
   }
 }

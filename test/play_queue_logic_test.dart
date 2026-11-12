@@ -15,7 +15,7 @@ void main() {
   // cached cover art file; it only needs to exist, not actually contain
   // anything relevant to these tests.
   setUpAll(() {
-    appSupportDir = Directory.systemTemp.createTempSync('sylvakru_test');
+    appSupportDir = Directory.systemTemp.createTempSync('lain_test');
   });
 
   group('PlayQueueLogic.insert2Next', () {

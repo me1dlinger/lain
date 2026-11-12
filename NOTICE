@@ -14,7 +14,7 @@ limited to:
 
   - Android 端界面重构（单一主页、服务器管理、排序抽屉、听歌统计、桌面小组件、
     媒体会话封面与歌词、下载与播放列表导入导出等）
-  - 应用标识改为 com.meidlinger.sylvakru，应用名改为 Lain（临音）
+  - 应用标识改为 com.meidlinger.lain，应用名改为 Lain（临音）
   - 构建与打包文档 (BUILDING.md)
 
 The original work's copyright notices, license text and contribution credits

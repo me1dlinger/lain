@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get sylvakru => '临音';
+  String get lain => '临音';
 
   @override
   String get title => '标题';
@@ -76,6 +76,80 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settings => '设置';
+
+  @override
+  String get settingsMusicSource => '音乐源';
+
+  @override
+  String get localMusicSource => '本地音乐源';
+
+  @override
+  String get longPressToConfigure => '长按进入配置';
+
+  @override
+  String get customFolders => '自定义文件夹';
+
+  @override
+  String get addCustomFolder => '添加自定义文件夹';
+
+  @override
+  String get startScan => '开始扫描';
+
+  @override
+  String get scanSubdirectories => '扫描子目录';
+
+  @override
+  String get blockedFolders => '被屏蔽的文件夹';
+
+  @override
+  String get addBlockedFolder => '添加屏蔽文件夹';
+
+  @override
+  String get noBlockedFolders => '没有被屏蔽的文件夹';
+
+  @override
+  String skipShortAudio(int seconds) {
+    return '不扫描 $seconds 秒以下音频';
+  }
+
+  @override
+  String get minimumAudioLength => '最短音频时长';
+
+  @override
+  String get manageStoragePermission => '管理外部存储权限';
+
+  @override
+  String get settingsUserInterface => '用户界面';
+
+  @override
+  String get settingsPlaybackLyrics => '播放和歌词';
+
+  @override
+  String get settingsNotifications => '通知';
+
+  @override
+  String get settingsStartupBackground => '启动和后台';
+
+  @override
+  String get settingsCacheDownloads => '缓存和下载';
+
+  @override
+  String get settingsHelpFeedback => '帮助和反馈';
+
+  @override
+  String get feedback => '反馈';
+
+  @override
+  String get customizeSettingsOrder => '自定义菜单顺序';
+
+  @override
+  String get offlineMode => '离线模式';
+
+  @override
+  String get offlineModeDescription => '只使用本地音乐，在线音源入口将被锁定';
+
+  @override
+  String get offlineModeBlocked => '离线模式已开启，在线音乐源已锁定';
 
   @override
   String get reload => '重新加载';
@@ -509,6 +583,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get streamFormat => '转码格式';
 
   @override
+  String get mobileDataWarning => '移动流量提醒';
+
+  @override
+  String get mobileDataNotice => '正在使用移动流量播放在线音乐';
+
+  @override
   String get serverScheme => '协议';
 
   @override
@@ -600,6 +680,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get precacheAll => '缓存全部歌曲信息';
+
+  @override
+  String get cacheTaskTitle => '缓存歌曲';
+
+  @override
+  String get cacheBackground => '后台运行';
+
+  @override
+  String get cacheMovedToBackground => '已转入后台继续缓存';
+
+  @override
+  String get cacheTaskDone => '缓存完成';
+
+  @override
+  String get cacheTaskCanceled => '已取消缓存';
+
+  @override
+  String get cacheTaskBusy => '已有缓存任务在进行';
+
+  @override
+  String cacheFailedCount(int count) {
+    return '$count 首失败';
+  }
+
+  @override
+  String get cacheBackPrompt => '缓存仍在进行，要取消还是放到后台？';
+
+  @override
+  String get cacheKeepRunning => '继续等待';
 
   @override
   String get added2Next => '已添加到下一首播放';
@@ -774,6 +883,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncingTryLater => '正在同步，请稍后再试';
+
+  @override
+  String get syncDone => '资料库同步完成';
+
+  @override
+  String get syncFailed => '同步失败';
 
   @override
   String get all => '全部';

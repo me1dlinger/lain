@@ -126,7 +126,10 @@ extension _SongListPage on _SongListState {
             ),
           // The artist view is grouped by album in track order, so a sort order
           // would have nothing to act on and is not offered there.
-          if (!isFrequently && !isRecently && !isRecentlyAdded && artist == null)
+          if (!isFrequently &&
+              !isRecently &&
+              !isRecentlyAdded &&
+              artist == null)
             ListTile(
               leading: ImageIcon(sequenceImage),
               title: Text(
@@ -149,11 +152,7 @@ extension _SongListPage on _SongListState {
                     if (sourceType == .navidrome || sourceType == .emby)
                       // 18 ascending, 17 descending: the entry carries both
                       // directions so the order switch acts on it.
-                      SortEntry(
-                        l10n.playCountLabel,
-                        18,
-                        descValue: 17,
-                      ),
+                      SortEntry(l10n.playCountLabel, 18, descValue: 17),
                     if (widget.album != null)
                       SortEntry(l10n.track, 15, descValue: 16),
                     if ((isLibrary && isNotStreamSource) || folder != null) ...[
@@ -305,7 +304,8 @@ extension _SongListPage on _SongListState {
             offset: -(MediaQuery.heightOf(context) - 60) / 2,
             offsetOf: artist == null
                 ? null
-                : (song) => artistRowOffsetOf(song, currentSongListNotifier.value),
+                : (song) =>
+                      artistRowOffsetOf(song, currentSongListNotifier.value),
           ),
         ),
       ],
@@ -473,10 +473,7 @@ extension _SongListPage on _SongListState {
                   },
                 ),
               ),
-              if (canFavorite) ...[
-                const SizedBox(width: 8),
-                favoriteButton(),
-              ],
+              if (canFavorite) ...[const SizedBox(width: 8), favoriteButton()],
             ],
           ),
         ),
@@ -495,7 +492,9 @@ extension _SongListPage on _SongListState {
     final parts = <String>[];
     final rate = song.samplerate;
     if (rate != null && rate > 0) {
-      parts.add('${(rate / 1000).toStringAsFixed(rate % 1000 == 0 ? 0 : 1)} kHz');
+      parts.add(
+        '${(rate / 1000).toStringAsFixed(rate % 1000 == 0 ? 0 : 1)} kHz',
+      );
     }
     final bitrate = song.bitrate;
     if (bitrate != null && bitrate > 0) {
@@ -558,10 +557,7 @@ extension _SongListPage on _SongListState {
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: textColor.withAlpha(150),
-              ),
+              style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
             ),
           ],
         ),
@@ -630,9 +626,7 @@ extension _SongListPage on _SongListState {
               toggleEntityFavorite(target);
             },
             icon: Icon(
-              starred
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
+              starred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               color: starred ? Colors.red : colorManager.getSpecificTextColor(),
             ),
           ),
@@ -735,8 +729,8 @@ extension _SongListPage on _SongListState {
   }
 
   /// The same list as [playAllButton], shuffled. Icon-only and round, sharing the
-/// play button's height so the header stays one clean line; long-pressing "play
-/// all" does this too, but a visible button is what most people reach for.
+  /// play button's height so the header stays one clean line; long-pressing "play
+  /// all" does this too, but a visible button is what most people reach for.
   Widget shuffleButton() {
     return ValueListenableBuilder(
       valueListenable: currentSongListNotifier,
@@ -925,11 +919,7 @@ extension _SongListPage on _SongListState {
                     ),
                   ),
                 ),
-              CoverArtWidget(
-                size: 40,
-                borderRadius: 4,
-                picture: song.picture,
-              ),
+              CoverArtWidget(size: 40, borderRadius: 4, picture: song.picture),
             ],
           ),
           title: ValueListenableBuilder(
@@ -953,6 +943,14 @@ extension _SongListPage on _SongListState {
 
           subtitle: Row(
             children: [
+              // Streamed sources only, and faint: it says "this one is on the
+              // phone", which the row otherwise gives no sign of. Kept beside
+              // the favourite star instead of at the row's trailing edge, where
+              // it crowded the play and menu buttons.
+              Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: CachedBadge(song: song),
+              ),
               ValueListenableBuilder(
                 valueListenable: song.isFavoriteNotifier,
                 builder: (_, value, _) {
@@ -974,12 +972,6 @@ extension _SongListPage on _SongListState {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12),
                 ),
-              ),
-              // Streamed sources only, and faint: it says "this one is on the
-              // phone", which the row otherwise gives no sign of.
-              Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: CachedBadge(song: song),
               ),
             ],
           ),

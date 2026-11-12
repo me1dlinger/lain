@@ -63,13 +63,13 @@ flutter build apk --release \
 | --- | --- |
 | 应用名 | 中文 **临音** / 英文 **Lain** |
 | Dart 包名 | `lain`（`package:lain/...`） |
-| Android applicationId / namespace | `com.meidlinger.sylvakru` |
-| MethodChannel 前缀 | `com.meidlinger.sylvakru.*` |
-| iOS bundle id / App Group | `com.meidlinger.sylvakru` / `group.com.meidlinger.sylvakru` |
+| Android applicationId / namespace | `com.meidlinger.lain` |
+| MethodChannel 前缀 | `com.meidlinger.lain.*` |
+| iOS bundle id / App Group | `com.meidlinger.lain` / `group.com.meidlinger.lain` |
 | macOS PRODUCT_NAME / Linux BINARY / Windows BINARY | Lain / lain / Lain |
 | 数据文件 | `lain_playlists.json`、`lain.lock`、`lain.port`、`lain.keep` |
 
-> ⚠️ 包名 `com.meidlinger.sylvakru` 里仍带 `sylvakru` 字样。用户明确指定的，**不要再自作主张改**。真要改需同步这 8 处：build.gradle.kts、kotlin 目录、iOS pbxproj、macOS AppInfo.xcconfig、linux CMakeLists、entitlements、main.dart 的 setAppGroupId、各 MethodChannel。
+> 2026-11-12 起包名已从 `com.meidlinger.sylvakru` 统一为 `com.meidlinger.lain`，以上各处（build.gradle.kts、Kotlin 目录、iOS/macOS pbxproj、AppInfo.xcconfig、linux CMakeLists、entitlements、main.dart 的 setAppGroupId、各 MethodChannel）均已同步。
 
 ---
 

@@ -13,7 +13,7 @@ import 'package:win32/win32.dart' as win32;
 // rules (e.g. Clash rule mode), so nothing here inspects domains.
 ({String host, int port})? systemProxy;
 
-const _channel = MethodChannel('com.meidlinger.sylvakru.system_proxy');
+const _channel = MethodChannel('com.meidlinger.lain.system_proxy');
 
 class _SystemProxyHttpOverrides extends HttpOverrides {
   @override

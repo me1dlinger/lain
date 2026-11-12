@@ -1,8 +1,9 @@
-package com.meidlinger.sylvakru
+package com.meidlinger.lain
 
 import com.ryanheise.audioservice.AudioServiceActivity
 
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.hardware.input.InputManager
 import android.os.Handler
@@ -25,10 +26,10 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
         super.configureFlutterEngine(flutterEngine)
 
         // Reports the system HTTP proxy (Wi-Fi/global proxy); Dart reads it via
-        // the com.meidlinger.sylvakru.system_proxy channel to route Dio and libmpv. VPN-mode
+        // the com.meidlinger.lain.system_proxy channel to route Dio and libmpv. VPN-mode
         // (TUN) proxies capture traffic transparently without a proxy config,
         // so this returns null then.
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.sylvakru.system_proxy").setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.lain.system_proxy").setMethodCallHandler { call, result ->
             when (call.method) {
                 "getProxy" -> result.success(getSystemProxy())
                 else -> result.notImplemented()
@@ -39,7 +40,7 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
         // FileProvider) so the media session metadata can carry artwork that
         // car head units are able to fetch. Returns null when the file is not
         // covered by the provider's configured paths.
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.sylvakru.media").setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.lain.media").setMethodCallHandler { call, result ->
             when (call.method) {
                 "getContentUri" -> {
                     val path = call.argument<String>("path")
@@ -72,6 +73,29 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                 }
                 else -> result.notImplemented()
             }
+        }
+
+        // Whether the active network is cellular. Dart uses it for the
+        // one-time data reminder before streaming starts.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.lain.mobile_network").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isCellular" -> result.success(isCellularData())
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun isCellularData(): Boolean {
+        return try {
+            val manager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val network = manager?.activeNetwork ?: return false
+            val capabilities = manager.getNetworkCapabilities(network) ?: return false
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        } catch (_: Exception) {
+            false
         }
     }
 

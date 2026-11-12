@@ -1,4 +1,3 @@
-
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/layer/layers_manager.dart';
@@ -18,6 +17,7 @@ class _PortraitViewState extends State<PortraitView>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
+  late Animation<Offset> _backSlideAnimation;
 
   void slideBegin() {
     _controller.forward(from: 0);
@@ -29,6 +29,7 @@ class _PortraitViewState extends State<PortraitView>
     }
     if (layersManager.bottomRootPage != null) {
       layersManager.bottomRootPage = null;
+      layersManager.rootGoingBack = false;
       if (mounted) {
         setState(() {});
       }
@@ -44,6 +45,13 @@ class _PortraitViewState extends State<PortraitView>
           ).animate(
             CurvedAnimation(parent: _controller, curve: Curves.linearToEaseOut),
           );
+      _backSlideAnimation =
+          Tween<Offset>(
+            begin: Offset.zero,
+            end: Offset(endDrawerNotifier.value ? 1.0 : -1.0, 0.0),
+          ).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.linearToEaseOut),
+          );
     });
   }
 
@@ -53,7 +61,9 @@ class _PortraitViewState extends State<PortraitView>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      // The same length as the settings sub-page transition and the app's
+      // standard page transition, so drawer moves feel like one system.
+      duration: const Duration(milliseconds: 300),
     );
 
     _controller.addStatusListener(statusListener);
@@ -62,6 +72,13 @@ class _PortraitViewState extends State<PortraitView>
         Tween<Offset>(
           begin: Offset(endDrawerNotifier.value ? 1.0 : -1.0, 0.0),
           end: Offset.zero,
+        ).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.linearToEaseOut),
+        );
+    _backSlideAnimation =
+        Tween<Offset>(
+          begin: Offset.zero,
+          end: Offset(endDrawerNotifier.value ? 1.0 : -1.0, 0.0),
         ).animate(
           CurvedAnimation(parent: _controller, curve: Curves.linearToEaseOut),
         );
@@ -91,6 +108,24 @@ class _PortraitViewState extends State<PortraitView>
           ValueListenableBuilder(
             valueListenable: layersManager.switchNotifier,
             builder: (context, _, _) {
+              // A step back slides the old page out, revealing the page it
+              // came from; a forward step slides the new page in. This keeps
+              // back the reverse of forward at the root layer too, as it
+              // already is for settings sub-pages.
+              if (layersManager.rootGoingBack &&
+                  layersManager.bottomRootPage != null &&
+                  layersManager.topRootPage != null) {
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    layersManager.topRootPage!,
+                    SlideTransition(
+                      position: _backSlideAnimation,
+                      child: layersManager.bottomRootPage!,
+                    ),
+                  ],
+                );
+              }
               return Stack(
                 children: [
                   ...layersManager.rootPageMap.values

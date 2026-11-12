@@ -4,7 +4,7 @@ import UIKit
 import WidgetKit
 
 private let appGroupIdentifier =
-  "group.com.meidlinger.sylvakru"
+  "group.com.meidlinger.lain"
 
 private let widgetDefaults =
   UserDefaults(

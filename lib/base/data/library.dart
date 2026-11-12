@@ -4,10 +4,12 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/database.dart';
+import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/extensions/metadata_extension.dart';
 import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/file_time.dart';
@@ -434,8 +436,7 @@ class Library {
     if (await file.exists()) {
       final size = await file.length();
       await file.delete();
-      cacheSizeNotifier.value = (cacheSizeNotifier.value -
-              size / (1024 * 1024))
+      cacheSizeNotifier.value = (cacheSizeNotifier.value - size / (1024 * 1024))
           .clamp(0, double.infinity);
     }
     if (entry.kind == CacheKind.song) {
@@ -474,9 +475,11 @@ class Library {
       if (await file.exists()) {
         final size = await file.length();
         await file.delete();
-        cacheSizeNotifier.value = (cacheSizeNotifier.value -
-                size / (1024 * 1024))
-            .clamp(0, double.infinity);
+        cacheSizeNotifier.value =
+            (cacheSizeNotifier.value - size / (1024 * 1024)).clamp(
+              0,
+              double.infinity,
+            );
       }
       if (entry.kind == CacheKind.song) {
         entry.song?.cacheExist = false;
@@ -548,46 +551,39 @@ class Library {
     await precacheSongs(songs);
   }
 
-  /// Downloads the audio of [songs] into the offline cache, reporting progress
-  /// through [precacheProgressNotifier] as it goes.
+  /// Songs whose audio is being fetched right now. Playback and a batch
+  /// download share the same fetch instead of writing the same `.part` twice.
+  final Map<String, Future<bool>> _cacheInFlight = {};
+
+  /// Downloads one song's audio into the offline cache.
   ///
-  /// This is what the download button on a cached playlist or artist means: the
-  /// songs themselves, so playing them needs no network. It is deliberately
-  /// separate from [precacheSongs], which only fetches artwork and lyrics - the
-  /// button used to run that, which is why the bar filled up, the whole album's
-  /// worth of data was spent, and not a single song became playable offline.
-  ///
-  /// Songs already on disk are counted as done and not fetched again, so the
-  /// same button over an overlapping list costs nothing. A song that fails is
-  /// logged and skipped; it stays uncached, and the count reflects that.
-  Future<void> downloadSongsToCache(Iterable<MyAudioMetadata> songs) async {
-    final list = songs.toList();
-    if (list.isEmpty) {
-      return;
+  /// Returns true when the song is on disk afterwards. [cancelToken] aborts the
+  /// request; the partial file is deleted, so a later retry starts from the
+  /// beginning rather than resuming.
+  Future<bool> tryAddCache(MyAudioMetadata song, {CancelToken? cancelToken}) {
+    if (sourceType == .local || song.cacheExist) {
+      return Future.value(true);
     }
-    precacheProgressNotifier.value = (0, list.length);
-    try {
-      for (var i = 0; i < list.length; i++) {
-        final song = list[i];
-        try {
-          await tryAddCache(song);
-        } catch (e) {
-          logger.output('[cache] download failed for ${song.id}: $e');
-        }
-        precacheProgressNotifier.value = (i + 1, list.length);
-      }
-    } finally {
-      precacheProgressNotifier.value = null;
-      await _accumulateCache();
+    final running = _cacheInFlight[song.id];
+    if (running != null) {
+      return running;
     }
+    final task = _downloadSongToCache(song, cancelToken);
+    _cacheInFlight[song.id] = task;
+    unawaited(
+      task
+          .then<void>((_) {}, onError: (Object _, StackTrace _) {})
+          .whenComplete(() => _cacheInFlight.remove(song.id)),
+    );
+    return task;
   }
 
-  Future<void> tryAddCache(MyAudioMetadata song) async {
-    if (sourceType == .local || song.cacheExist) {
-      return;
-    }
+  Future<bool> _downloadSongToCache(
+    MyAudioMetadata song,
+    CancelToken? cancelToken,
+  ) async {
     final savePath = "${song.cachePath!}.part";
-    late bool success;
+    var success = false;
 
     // iOS only: request background execution time so the download is not
     // suspended halfway when the app is backgrounded.
@@ -598,10 +594,17 @@ class Library {
             await webdavClient?.download(
               remotePath: song.path!,
               localPath: savePath,
+              cancelToken: cancelToken,
             ) ??
             false;
       } else {
-        success = await streamClient?.downloadSong(song.id, savePath) ?? false;
+        success =
+            await streamClient?.downloadSong(
+              song.id,
+              savePath,
+              cancelToken: cancelToken,
+            ) ??
+            false;
       }
       final tmp = File(savePath);
       if (await tmp.exists()) {
@@ -609,11 +612,18 @@ class Library {
           cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
           await tmp.rename(song.cachePath!);
           song.cacheExist = true;
-        } else {
-          await tmp.delete();
         }
       }
+      return success;
     } finally {
+      // A failed or canceled download leaves a fragment behind. Without resume
+      // support it is useless, and the cache view must not have to explain it.
+      final tmp = File(savePath);
+      if (!success && await tmp.exists()) {
+        try {
+          await tmp.delete();
+        } catch (_) {}
+      }
       await BackgroundTaskService.end(backgroundTask);
     }
   }
@@ -787,6 +797,15 @@ class Library {
       }
     }
     if (song != null) {
+      // Local libraries can leave very short clips out entirely.
+      if (sourceType == .local &&
+          skipShortAudioNotifier.value &&
+          song.duration != null &&
+          song.duration!.inSeconds > 0 &&
+          song.duration!.inSeconds < minAudioSecondsNotifier.value) {
+        library.id2Song.remove(id);
+        return null;
+      }
       // Fill in the local "added time" even when the metadata itself did not
       // change, so sorting by added time also works for a library that was
       // already scanned before this key existed.

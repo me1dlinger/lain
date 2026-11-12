@@ -12,6 +12,8 @@ import 'package:lain/base/my_audio_metadata.dart';
 final history = History();
 
 class History {
+  static const _historyLimit = 200;
+
   final List<MyAudioMetadata> frequentlySongList = [];
   final List<MyAudioMetadata> recentlySongList = [];
   final frequentlyChangeNotifier = ValueNotifier(0);
@@ -22,11 +24,13 @@ class History {
       frequentlySongList.addAll(
         await (streamClient as EmbyClient?)?.getFrequentlySongs() ?? [],
       );
+      _trim(frequentlySongList);
       frequentlyChangeNotifier.value++;
 
       recentlySongList.addAll(
         await (streamClient as EmbyClient?)?.getRecentlySongs() ?? [],
       );
+      _trim(recentlySongList);
       recentlyChangeNotifier.value++;
       return;
     }
@@ -44,17 +48,26 @@ class History {
       int tmp = b.playCount.compareTo(a.playCount);
       return tmp != 0 ? tmp : a.lastPlayed!.compareTo(b.lastPlayed!);
     });
+    _trim(frequentlySongList);
 
     if (sourceType != .feiniu) {
       recentlySongList.sort((a, b) => b.lastPlayed!.compareTo(a.lastPlayed!));
+      _trim(recentlySongList);
     } else {
       recentlySongList.addAll(
         await (streamClient as FeiniuClient?)?.getRecentlySongs() ?? [],
       );
+      _trim(recentlySongList);
     }
 
     frequentlyChangeNotifier.value++;
     recentlyChangeNotifier.value++;
+  }
+
+  void _trim(List<MyAudioMetadata> songs) {
+    if (songs.length > _historyLimit) {
+      songs.removeRange(_historyLimit, songs.length);
+    }
   }
 
   void _addSongTimes(MyAudioMetadata song, int times) {
@@ -76,6 +89,7 @@ class History {
       }
     }
     frequentlySongList[index] = song;
+    _trim(frequentlySongList);
     frequentlyChangeNotifier.value++;
   }
 
@@ -98,6 +112,7 @@ class History {
       if (songs?.isNotEmpty ?? false) {
         frequentlySongList.clear();
         frequentlySongList.addAll(songs!);
+        _trim(frequentlySongList);
         frequentlyChangeNotifier.value++;
       }
     }
@@ -108,11 +123,7 @@ class History {
   void _add2Recently(MyAudioMetadata song) {
     recentlySongList.remove(song);
     recentlySongList.insert(0, song);
-    if (sourceType == .emby || sourceType == .feiniu) {
-      if (recentlySongList.length > 100) {
-        recentlySongList.removeRange(100, recentlySongList.length);
-      }
-    }
+    _trim(recentlySongList);
     recentlyChangeNotifier.value++;
   }
 

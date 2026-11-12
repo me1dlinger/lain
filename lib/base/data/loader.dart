@@ -12,6 +12,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/data/history.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -49,6 +50,12 @@ class Loader {
     await config.load();
     await setting.load();
 
+    // Offline mode is persisted, so a launch that would otherwise come up on
+    // the last server always starts on the local library instead.
+    if (offlineModeNotifier.value && sourceType != .local) {
+      await config.activateLocal();
+    }
+
     colorManager.updateColors();
 
     await fontManager.loadFonts();
@@ -84,14 +91,9 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    // One request refreshes every artist's biography and image presence, but it
-    // must not hold the first screen back. Only the very first run (no cache
-    // yet) waits for it.
-    if (artistInfoCache.isEmpty) {
-      await prefetchArtistInfo();
-    } else {
-      unawaited(prefetchArtistInfo());
-    }
+    // Artist pictures (and default detection) depend on this, so it finishes
+    // before the artist list is built.
+    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 
@@ -120,60 +122,79 @@ class Loader {
     await load();
   }
 
-  static Future<void> sync() async {
+  /// Switches to the local library and scans it. Used when enabling offline
+  /// mode and when scanning from the local-music settings page.
+  static Future<void> switchToLocal() async {
+    if (sourceType == .local) {
+      return;
+    }
+    await config.activateLocal();
+    layersManager.clearDataLayers();
+    audioHandler.clear();
+    library = Library();
+    await library.initFolders();
+    await sync();
+  }
+
+  /// Syncs the current library. Returns false when it failed; the caller can
+  /// report the result. `_busy` is cleared even then, so a failed sync does not
+  /// leave the app unable to try again.
+  static Future<bool> sync() async {
     _busy = true;
     stateNotifier.value++;
 
-    if (viewModeNotifier.value == .normal) {
-      layersManager.clearDataLayers();
-    }
+    try {
+      if (viewModeNotifier.value == .normal) {
+        layersManager.clearDataLayers();
+      }
 
-    globalPictureList = [];
+      globalPictureList = [];
 
-    artistAlbumManager.clear();
+      artistAlbumManager.clear();
 
-    history.clear();
+      history.clear();
 
-    playlistManager.reset();
+      playlistManager.reset();
 
-    await library.sync();
+      await library.sync();
 
-    audioHandler.sync();
+      audioHandler.sync();
 
-    // Read before the lists are built, so a local library can show what
-    // Navidrome cached for the same artists. Navidrome's own artist list then
-    // fills the cache (biographies, and whether each artist has an image) in
-    // one go, so the artist lists are decided from the first frame.
-    await loadArtistInfoCache();
-    // One request refreshes every artist's biography and image presence, but it
-    // must not hold the first screen back. Only the very first run (no cache
-    // yet) waits for it.
-    if (artistInfoCache.isEmpty) {
+      // Read before the lists are built, so a local library can show what
+      // Navidrome cached for the same artists. Navidrome's own artist list then
+      // fills the cache (biographies, and whether each artist has an image) in
+      // one go, so the artist lists are decided from the first frame.
+      await loadArtistInfoCache();
+      // Artist pictures (and default detection) depend on this, so it finishes
+      // before the artist list is built.
       await prefetchArtistInfo();
-    } else {
-      unawaited(prefetchArtistInfo());
-    }
 
-    artistAlbumManager.classify();
+      artistAlbumManager.classify();
 
-    await history.load();
+      await history.load();
 
-    await playlistManager.sync();
+      await playlistManager.sync();
 
-    if (isStreamSource) {
-      File syncedFile = File(getSyncedFilePath(sourceType));
+      if (isStreamSource) {
+        File syncedFile = File(getSyncedFilePath(sourceType));
 
-      if (streamClient != null && !syncedFile.existsSync()) {
-        syncedFile.createSync(recursive: true);
+        if (streamClient != null && !syncedFile.existsSync()) {
+          syncedFile.createSync(recursive: true);
+        }
+
+        if (streamClient == null && syncedFile.existsSync()) {
+          syncedFile.deleteSync(recursive: true);
+        }
       }
 
-      if (streamClient == null && syncedFile.existsSync()) {
-        syncedFile.deleteSync(recursive: true);
-      }
+      return true;
+    } catch (e) {
+      logger.output('[sync] $e');
+      return false;
+    } finally {
+      _busy = false;
+      stateNotifier.value++;
     }
-
-    _busy = false;
-    stateNotifier.value++;
   }
 
   static Future<void> firstSync() async {
@@ -195,14 +216,9 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    // One request refreshes every artist's biography and image presence, but it
-    // must not hold the first screen back. Only the very first run (no cache
-    // yet) waits for it.
-    if (artistInfoCache.isEmpty) {
-      await prefetchArtistInfo();
-    } else {
-      unawaited(prefetchArtistInfo());
-    }
+    // Artist pictures (and default detection) depend on this, so it finishes
+    // before the artist list is built.
+    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 

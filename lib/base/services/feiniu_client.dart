@@ -230,7 +230,7 @@ class FeiniuClient extends StreamClient {
   }
 
   Future<List<MyAudioMetadata>?> getRecentlySongs() async {
-    final rows = await _list('/play-history/list', size: 100, offset: 0);
+    final rows = await _list('/play-history/list', size: 200, offset: 0);
 
     return rows == null ? null : _songs(rows);
   }
@@ -341,7 +341,7 @@ class FeiniuClient extends StreamClient {
       null;
 
   @override
-  Future<Uint8List?> getPictureBytes(String id) async {
+  Future<Uint8List?> getPictureBytes(String id, {int size = 600}) async {
     try {
       final response = await _openResource(
         '/static/cover',
@@ -435,11 +435,13 @@ class FeiniuClient extends StreamClient {
     String path,
     Map<String, dynamic> query, {
     bool retry = true,
+    CancelToken? cancelToken,
   }) async {
     try {
       return await dio.get<ResponseBody>(
         path,
         queryParameters: query,
+        cancelToken: cancelToken,
         options: Options(
           responseType: ResponseType.stream,
           headers: headers,
@@ -449,7 +451,12 @@ class FeiniuClient extends StreamClient {
     } on DioException catch (e) {
       if (retry && StreamClient.isNetworkFailure(e) && switchToAlternative()) {
         logger.output('[$runtimeType] switched to $baseUrl');
-        return _openResourceResponse(path, query, retry: false);
+        return _openResourceResponse(
+          path,
+          query,
+          retry: false,
+          cancelToken: cancelToken,
+        );
       }
       rethrow;
     }
@@ -459,10 +466,16 @@ class FeiniuClient extends StreamClient {
     String path, {
     required Map<String, dynamic> query,
     bool retry = true,
+    CancelToken? cancelToken,
   }) async {
     if (!await login()) return null;
     final requestToken = _token;
-    final response = await _openResourceResponse(path, query, retry: retry);
+    final response = await _openResourceResponse(
+      path,
+      query,
+      retry: retry,
+      cancelToken: cancelToken,
+    );
     if (response == null) return null;
     final body = response.data;
     if (body == null) return null;
@@ -486,7 +499,12 @@ class FeiniuClient extends StreamClient {
     if (expired) {
       if (_token == requestToken) _token = null;
       if (retry) {
-        return _openResource(path, query: query, retry: false);
+        return _openResource(
+          path,
+          query: query,
+          retry: false,
+          cancelToken: cancelToken,
+        );
       }
     }
     logger.output(
@@ -496,11 +514,16 @@ class FeiniuClient extends StreamClient {
   }
 
   @override
-  Future<bool> downloadSong(String songId, String savePath) async {
+  Future<bool> downloadSong(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) async {
     try {
       final response = await _openResource(
         '/track/stream',
         query: {'guid': songId},
+        cancelToken: cancelToken,
       );
       if (response == null) return false;
       final file = File(savePath);

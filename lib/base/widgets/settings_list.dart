@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:lain/base/audio_handler.dart';
-import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/notice_setting.dart';
+import 'package:lain/base/data/offline_setting.dart';
+import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -16,19 +20,21 @@ import 'package:lain/base/services/feiniu_client.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/navidrome_client.dart';
+import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/services/system_ui_service.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/media_query.dart';
-import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
 import 'package:lain/base/services/download_manager.dart';
+import 'package:lain/base/widgets/cache_download_dialog.dart';
 import 'package:lain/base/widgets/downloads_page.dart';
 import 'package:lain/base/widgets/home_layout_settings.dart';
-import 'package:lain/base/widgets/my_divider.dart';
-import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/local_music_page.dart';
+import 'package:lain/base/widgets/my_scaffold.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/stats_page.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/data/stream_quality.dart';
@@ -38,16 +44,147 @@ import 'package:lain/base/data/library.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/layer/premium_layer.dart';
-import 'package:lain/portrait_view/portrait_view.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+/// The top-right button that opens the first-level order window.
+Widget settingsOrderButton(BuildContext context) {
+  return IconButton(
+    tooltip: AppLocalizations.of(context).customizeSettingsOrder,
+    icon: const Icon(Icons.tune_rounded),
+    onPressed: () => showSettingsOrderDialog(context),
+  );
+}
+
+Future<void> showSettingsOrderDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final order = List<SettingsCategory>.of(settingsCategoryOrderNotifier.value);
+  await showAnimationDialog<void>(
+    context: context,
+    child: StatefulBuilder(
+      builder: (context, setState) {
+        return SizedBox(
+          width: 340,
+          height: 480,
+          child: Material(
+            shape: SmoothRectangleBorder(
+              smoothness: 1,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            color: Color.alphaBlend(
+              colorManager.getSpecificBgColor(),
+              colorManager.getSpecificBgBaseColor(),
+            ),
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                children: [
+                  Text(
+                    l10n.customizeSettingsOrder,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ReorderableListView.builder(
+                      itemCount: order.length,
+                      // The default proxy is an opaque Material, which shows
+                      // up as a white box against this themed window.
+                      proxyDecorator: (child, index, animation) {
+                        return Material(
+                          type: MaterialType.transparency,
+                          child: child,
+                        );
+                      },
+                      onReorderItem: (oldIndex, newIndex) {
+                        setState(() {
+                          final item = order.removeAt(oldIndex);
+                          order.insert(newIndex, item);
+                        });
+                        settingsCategoryOrderNotifier.value = List.of(order);
+                        setting.save();
+                      },
+                      itemBuilder: (context, index) {
+                        final category = order[index];
+                        return ListTile(
+                          key: ValueKey(category),
+                          tileColor: Colors.transparent,
+                          selectedTileColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          focusColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          leading: Icon(settingsCategoryIcon(category)),
+                          title: Text(settingsCategoryTitle(l10n, category)),
+                          trailing: ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(Icons.drag_handle_rounded),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n.confirm),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class SettingsCategoryPage extends StatelessWidget {
+  final SettingsCategory category;
+
+  const SettingsCategoryPage({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // The page slides in over the settings menu, so it has to paint an opaque
+    // background: with a transparent one the menu's text showed through the
+    // moving page.
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        layersManager.backgroundChangeNotifier,
+        panelColor.valueNotifier,
+        pageBackgroundColor.valueNotifier,
+      ]),
+      builder: (context, child) {
+        return Container(
+          color: colorManager.getSpecificOpaqueBgColor(),
+          child: myScaffold(
+            context: context,
+            body: SettingsList(category: category, iconSize: 30),
+            label: '__pushed__',
+            title: settingsCategoryTitle(l10n, category),
+          ),
+        );
+      },
+    );
+  }
+}
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
-  const SettingsList({super.key, this.iconSize});
+
+  /// Null shows the first-level category menu. A category shows only that
+  /// category's tiles, on a page pushed from the menu.
+  final SettingsCategory? category;
+
+  const SettingsList({super.key, this.iconSize, this.category});
 
   @override
   State<StatefulWidget> createState() => _SettingsListState();
@@ -65,172 +202,183 @@ class _SettingsListState extends State<SettingsList> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    bool isLandscape = !isTooNarrow(context);
-    return CustomScrollView(
-      slivers: [
-        if (viewModeNotifier.value == .bigPicture)
-          sliverBox(const SizedBox(height: 10)),
+    final isLandscape = !isTooNarrow(context);
 
-        if (isLandscape && viewModeNotifier.value != .bigPicture)
-          sliverBox(
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+    if (widget.category != null) {
+      return ListView(
+        padding: const EdgeInsets.only(top: 4, bottom: 100),
+        children: [
+          for (final tile in _categoryTiles(widget.category!, context, l10n))
+            paddingIfNeed(isLandscape, tile),
+        ],
+      );
+    }
 
-              child: Focus(
-                child: ListTile(
-                  leading: ImageIcon(settingImage, size: 50),
-                  title: Text(
-                    l10n.settings,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    // Counted from what this page actually renders: the tiles
-                    // shared by every build, plus the platform-specific ones.
-                    l10n.settingCount(
-                      (Platform.isAndroid
-                              ? 19
-                              : Platform.isIOS
-                              ? 17
-                              : 15) +
-                          (isNotStreamSource ? 1 : 0) +
-                          (isStreamSource ? 2 : 0),
-                    ),
-                    style: TextStyle(fontSize: 12),
-                  ),
+    return ValueListenableBuilder<List<SettingsCategory>>(
+      valueListenable: settingsCategoryOrderNotifier,
+      builder: (context, order, child) {
+        return CustomScrollView(
+          slivers: [
+            if (isLandscape || viewModeNotifier.value == .bigPicture)
+              sliverBox(_settingsHeader(context, l10n)),
+            for (final category in order)
+              sliverBox(
+                paddingIfNeed(
+                  isLandscape,
+                  _categoryListTile(context, l10n, category),
                 ),
               ),
-            ),
-          ),
-
-        if (isLandscape && viewModeNotifier.value != .bigPicture)
-          sliverBox(
-            MyDivider(
-              thickness: 0.5,
-              height: 0.5,
-              indent: 20,
-              endIndent: 20,
-              color: dividerColor,
-            ),
-          ),
-
-        if (isLandscape && viewModeNotifier.value != .bigPicture)
-          sliverBox(const SizedBox(height: 10)),
-
-        if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
-          sliverBox(
-            paddingIfNeed(isLandscape, premiumFeaturesListTile(context, l10n)),
-          ),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, serversListTile(context, l10n)),
-        ),
-
-        if (isNotStreamSource)
-          sliverBox(
-            paddingIfNeed(
-              isLandscape,
-              selectMusicFoldersListTile(context, l10n),
-            ),
-          ),
-
-        sliverBox(paddingIfNeed(isLandscape, syncListTile(context, l10n))),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
-        ),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, downloadsListTile(context, l10n)),
-        ),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, listeningReportListTile(context, l10n)),
-        ),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, homeLayoutListTile(context, l10n)),
-        ),
-
-        if (isStreamSource) ...[
-          sliverBox(
-            paddingIfNeed(isLandscape, streamQualityListTile(context, l10n)),
-          ),
-          sliverBox(
-            paddingIfNeed(isLandscape, streamFormatListTile(context, l10n)),
-          ),
-        ],
-
-        sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
-
-        sliverBox(paddingIfNeed(isLandscape, languageListTile(context, l10n))),
-
-        if (viewModeNotifier.value != .bigPicture)
-          sliverBox(paddingIfNeed(isLandscape, fontListTile(context, l10n))),
-
-        sliverBox(
-          paddingIfNeed(isLandscape, controlCenterLyricsListTile(l10n)),
-        ),
-
-        // The drawer side entry this used to gate was removed with the drawer
-        // itself; leaving the empty `if` here made it swallow the vibration
-        // tile, which only showed on iOS portrait.
-        if (isMobile && !isTV)
-          sliverBox(paddingIfNeed(isLandscape, vibrationListTile(l10n))),
-
-        if (isMobile)
-          sliverBox(
-            paddingIfNeed(
-              isLandscape,
-              sleepTimerListTile(context, l10n, iconSize: iconSize),
-            ),
-          ),
-
-        sliverBox(paddingIfNeed(isLandscape, equalizerListTile(context, l10n))),
-
-        if (Platform.isAndroid && !isTV) ...[
-          sliverBox(
-            paddingIfNeed(isLandscape, immersiveWideLayoutListTile(l10n)),
-          ),
-          sliverBox(
-            paddingIfNeed(isLandscape, wideSystemBarListTile(l10n, top: true)),
-          ),
-          sliverBox(
-            paddingIfNeed(isLandscape, wideSystemBarListTile(l10n, top: false)),
-          ),
-        ],
-
-        sliverBox(paddingIfNeed(isLandscape, autoPlayOnStartupListTile(l10n))),
-
-        if (!isMobile)
-          sliverBox(
-            paddingForLandscape(exitOnClose(l10n)),
-          ), // always landscape style
-
-        // Update checking is hidden for now: it is tied to the upstream
-        // repository, which this build is far from. It will come back with a
-        // channel of its own.
-        sliverBox(paddingIfNeed(isLandscape, viewLogListTile(context, l10n))),
-
-        if (viewModeNotifier.value != .bigPicture)
-          sliverBox(
-            paddingIfNeed(
-              isLandscape,
-              ListTile(
-                leading: ImageIcon(infoImage, size: iconSize),
-                title: Text(l10n.about),
-                onTap: () {
-                  layersManager.pushDetail('settings', 'about');
-                },
-              ),
-            ),
-          ),
-
-        if (!isLandscape) sliverBox(const SizedBox(height: 100)),
-
-        if (viewModeNotifier.value == .bigPicture)
-          sliverBox(const SizedBox(height: 75)),
-      ],
+            if (!isLandscape) sliverBox(const SizedBox(height: 100)),
+            if (viewModeNotifier.value == .bigPicture)
+              sliverBox(const SizedBox(height: 75)),
+          ],
+        );
+      },
     );
+  }
+
+  /// Header of the landscape/desktop settings panel. The portrait app bar
+  /// carries the same order button.
+  Widget _settingsHeader(BuildContext context, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          ImageIcon(settingImage, size: 50),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.settings,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          // Big-picture pages already have the app bar action; the panel view
+          // has no app bar, so the header carries it here.
+          if (viewModeNotifier.value != .bigPicture)
+            settingsOrderButton(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _categoryListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+    SettingsCategory category,
+  ) {
+    return ListTile(
+      leading: Icon(
+        settingsCategoryIcon(category),
+        size: iconSize ?? 30,
+        color: iconColor.value,
+      ),
+      title: Text(settingsCategoryTitle(l10n, category)),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () {
+        // The report is itself a page: opening the first-level entry goes
+        // straight to it instead of showing a second menu with its own name.
+        if (category == SettingsCategory.listeningReport) {
+          pushSettingsPage<void>(
+            context,
+            settingsPageRoute<void>(() => const StatsPage()),
+          );
+          return;
+        }
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(
+            () => SettingsCategoryPage(category: category),
+          ),
+        );
+      },
+    );
+  }
+
+  /// The tiles of one first-level category. Each existing setting belongs to
+  /// exactly one of them, and the platform-specific ones stay conditional.
+  List<Widget> _categoryTiles(
+    SettingsCategory category,
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    switch (category) {
+      case SettingsCategory.musicSource:
+        return [
+          localSourceListTile(context, l10n),
+          serversListTile(context, l10n),
+          offlineModeListTile(l10n),
+          // WebDAV still uses the generic folder manager; the local library
+          // has its own second-level page.
+          if (sourceType == .webdav) selectMusicFoldersListTile(context, l10n),
+          syncListTile(context, l10n),
+          if (isStreamSource) ...[
+            streamQualityListTile(context, l10n),
+            streamFormatListTile(context, l10n),
+          ],
+          if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
+            premiumFeaturesListTile(context, l10n),
+        ];
+      case SettingsCategory.userInterface:
+        return [
+          homeLayoutListTile(context, l10n),
+          themeListTile(context, l10n),
+          languageListTile(context, l10n),
+          if (viewModeNotifier.value != .bigPicture)
+            fontListTile(context, l10n),
+          if (Platform.isAndroid && !isTV) ...[
+            immersiveWideLayoutListTile(l10n),
+            wideSystemBarListTile(l10n, top: true),
+            wideSystemBarListTile(l10n, top: false),
+          ],
+        ];
+      case SettingsCategory.playbackLyrics:
+        return [
+          equalizerListTile(context, l10n),
+          if (isMobile && !isTV) vibrationListTile(l10n),
+          if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
+        ];
+      case SettingsCategory.notifications:
+        return [
+          mobileDataWarningListTile(l10n),
+          if (viewModeNotifier.value != .bigPicture)
+            controlCenterLyricsListTile(l10n),
+        ];
+      case SettingsCategory.startupBackground:
+        return [
+          autoPlayOnStartupListTile(l10n),
+          if (!isMobile) exitOnClose(l10n),
+        ];
+      case SettingsCategory.cacheDownloads:
+        return [
+          cleanCacheListTile(context, l10n),
+          downloadsListTile(context, l10n),
+        ];
+      case SettingsCategory.listeningReport:
+        return [listeningReportListTile(context, l10n)];
+      case SettingsCategory.helpFeedback:
+        return [
+          ListTile(
+            leading: Icon(
+              Icons.feedback_outlined,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.feedback),
+            onTap: () {
+              launchUrl(Uri.parse('https://github.com/me1dlinger/lain/issues'));
+            },
+          ),
+          viewLogListTile(context, l10n),
+          if (viewModeNotifier.value != .bigPicture)
+            ListTile(
+              leading: ImageIcon(infoImage, size: iconSize),
+              title: Text(l10n.about),
+              onTap: () {
+                layersManager.pushDetail('settings', 'about');
+              },
+            ),
+        ];
+    }
   }
 
   Widget paddingIfNeed(bool isLandscape, Widget child) {
@@ -252,6 +400,106 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
+  Widget localSourceListTile(BuildContext context, AppLocalizations l10n) {
+    final selected = sourceType == .local;
+    return ListTile(
+      leading: Icon(
+        Icons.folder_special_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.localMusic),
+      subtitle: Text(
+        l10n.longPressToConfigure,
+        style: const TextStyle(fontSize: 12),
+      ),
+      trailing: selected
+          ? Text(
+              l10n.inUse,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorManager.getSpecificTextColor().withAlpha(180),
+              ),
+            )
+          : null,
+      onTap: selected
+          ? null
+          : () {
+              _switchToLocalSource();
+            },
+      onLongPress: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const LocalMusicSettingsPage()),
+        );
+      },
+    );
+  }
+
+  Future<void> _switchToLocalSource() async {
+    if (sourceType == .local) {
+      return;
+    }
+    showCenterLoading();
+    try {
+      await Loader.switchToLocal();
+      playlistManager.updateNotifier.value++;
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      logger.output('[settings] could not switch to local: $e');
+      showCenterMessage('$e');
+    } finally {
+      removeCenterLoading();
+    }
+  }
+
+  Widget offlineModeListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.cloud_off_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.offlineMode),
+      subtitle: Text(l10n.offlineModeDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: offlineModeNotifier,
+          onToggleCallBack: () {
+            setting.save();
+            if (offlineModeNotifier.value) {
+              unawaited(_enterOfflineMode());
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Turning offline mode on moves to the local library right away; every
+  /// online activation path is refused while it stays on.
+  Future<void> _enterOfflineMode() async {
+    if (sourceType == .local) {
+      return;
+    }
+    showCenterLoading();
+    try {
+      await Loader.switchToLocal();
+      playlistManager.updateNotifier.value++;
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      logger.output('[settings] could not enter offline mode: $e');
+      showCenterMessage('$e');
+    } finally {
+      removeCenterLoading();
+    }
+  }
+
   Widget syncListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(reloadImage, size: iconSize),
@@ -264,7 +512,11 @@ class _SettingsListState extends State<SettingsList> {
             }
             return;
           }
-          await Loader.sync();
+          final synced = await Loader.sync();
+          tryVibrate();
+          if (context.mounted) {
+            showCenterMessage(synced ? l10n.syncDone : l10n.syncFailed);
+          }
         }
       },
     );
@@ -379,6 +631,26 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
+  Widget mobileDataWarningListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.signal_cellular_alt_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.mobileDataWarning),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: mobileDataWarningNotifier,
+          onToggleCallBack: () {
+            setting.save();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget streamFormatListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(optionImage, size: iconSize),
@@ -443,8 +715,9 @@ class _SettingsListState extends State<SettingsList> {
         builder: (context, items, child) => Text('${items.length}  '),
       ),
       onTap: () {
-        globalNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (context) => const DownloadsPage()),
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const DownloadsPage()),
         );
       },
     );
@@ -456,8 +729,9 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.listeningReport),
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
       onTap: () {
-        globalNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (context) => const StatsPage()),
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const StatsPage()),
         );
       },
     );
@@ -469,8 +743,9 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.homeLayout),
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
       onTap: () {
-        globalNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (context) => const HomeLayoutSettings()),
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const HomeLayoutSettings()),
         );
       },
     );
@@ -482,8 +757,9 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.servers),
       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
       onTap: () {
-        globalNavigatorKey.currentState?.push(
-          applePageRoute<void>(() => const ServerListPage()),
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const ServerListPage()),
         );
       },
     );
@@ -1168,8 +1444,43 @@ class _CacheDetailViewState extends State<_CacheDetailView>
     with SingleTickerProviderStateMixin {
   late final TabController _tab = TabController(length: 3, vsync: this);
 
+  Timer? _cacheRefreshDebounce;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    cacheSizeNotifier.addListener(_onCacheSizeChanged);
+    // The listing used to be rebuilt only when a download or precache run
+    // finished, so the MB total was whatever it had been when the view opened.
+    unawaited(_refreshCache());
+  }
+
+  Future<void> _refreshCache() async {
+    if (_refreshing) {
+      return;
+    }
+    _refreshing = true;
+    try {
+      await library.refreshCache();
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  void _onCacheSizeChanged() {
+    // One scan per burst of downloads: songs finish one after another, and
+    // rescanning the cache directory for each of them is pointless.
+    _cacheRefreshDebounce?.cancel();
+    _cacheRefreshDebounce = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_refreshCache());
+    });
+  }
+
   @override
   void dispose() {
+    cacheSizeNotifier.removeListener(_onCacheSizeChanged);
+    _cacheRefreshDebounce?.cancel();
     _tab.dispose();
     super.dispose();
   }
@@ -1257,37 +1568,24 @@ class _CacheDetailViewState extends State<_CacheDetailView>
               ),
             ),
             const Divider(height: 12),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () async {
-                    if (!await showConfirmDialog(context, l10n.precacheAll)) {
-                      return;
-                    }
-                    showCenterLoading();
-                    await library.precacheSongs(library.songList);
-                    removeCenterLoading();
-                  },
-                  child: Text(l10n.precacheAll),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () async {
-                    if (!await showConfirmDialog(context, l10n.clear)) {
-                      return;
-                    }
-                    showCenterLoading();
-                    layersManager.clearDataLayers();
-                    audioHandler.clear();
-                    await library.clearCache();
-                    await library.clearPicture();
-                    await library.clearLrcCache();
-                    playlistManager.updateNotifier.value++;
-                    removeCenterLoading();
-                  },
-                  child: Text(l10n.clear),
-                ),
-              ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () async {
+                  if (!await showConfirmDialog(context, l10n.clear)) {
+                    return;
+                  }
+                  showCenterLoading();
+                  layersManager.clearDataLayers();
+                  audioHandler.clear();
+                  await library.clearCache();
+                  await library.clearPicture();
+                  await library.clearLrcCache();
+                  playlistManager.updateNotifier.value++;
+                  removeCenterLoading();
+                },
+                child: Text(l10n.clear),
+              ),
             ),
           ],
         ),
@@ -1300,12 +1598,34 @@ class _CacheDetailViewState extends State<_CacheDetailView>
       valueListenable: cacheEntriesNotifier,
       builder: (context, entries, child) {
         final songs = groupCacheBySong(entries);
-        if (songs.isEmpty) {
-          return Center(child: Text(l10n.cacheEmpty));
-        }
-        return ListView(
+        return Column(
           children: [
-            for (final cached in songs) _cachedSongTile(context, l10n, cached),
+            Expanded(
+              child: songs.isEmpty
+                  ? Center(child: Text(l10n.cacheEmpty))
+                  : ListView(
+                      children: [
+                        for (final cached in songs)
+                          _cachedSongTile(context, l10n, cached),
+                      ],
+                    ),
+            ),
+            // Scoped to this tab: it caches the whole library's artwork and
+            // lyrics, but it is a song action, not a page-wide one.
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () async {
+                  if (!await showConfirmDialog(context, l10n.precacheAll)) {
+                    return;
+                  }
+                  // The progress bar above the tabs reports this; the old
+                  // blocking spinner is what made the button feel stuck.
+                  unawaited(library.precacheSongs(library.songList));
+                },
+                child: Text(l10n.precacheAll),
+              ),
+            ),
           ],
         );
       },
@@ -1325,15 +1645,12 @@ class _CacheDetailViewState extends State<_CacheDetailView>
         return ListView(
           children: [
             for (final playlist in playlists)
+              // Downloads the songs themselves: this button is the playlist's
+              // "make it available offline", not a metadata warm-up.
               _cacheGroupTile(
                 l10n: l10n,
                 title: playlist.name,
                 songs: playlist.songList,
-                // Downloads the songs themselves: this button is the
-                // playlist's "make it available offline", not a metadata
-                // warm-up.
-                onPrecache: () =>
-                    library.downloadSongsToCache(playlist.songList),
               ),
           ],
         );
@@ -1349,7 +1666,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
         // artist, mostly without a cover, is not a cache view.
         final artists = artistAlbumManager.artistList.where((artist) {
           final info = artistInfoCache[artistKey(artist.name)];
-          return artist.picture.isExist ||
+          return MyPicture.artistExists(artist.name) ||
               (info != null &&
                   ((info.biography ?? '').isNotEmpty ||
                       (info.imageUrl ?? '').isNotEmpty));
@@ -1383,9 +1700,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
                             l10n: l10n,
                             title: artist.name,
                             songs: artist.songList,
-                            coverCached: artist.picture.isExist,
-                            onPrecache: () =>
-                                library.downloadSongsToCache(artist.songList),
+                            coverCached: MyPicture.artistExists(artist.name),
                           ),
                       ],
                     ),
@@ -1402,7 +1717,6 @@ class _CacheDetailViewState extends State<_CacheDetailView>
     required AppLocalizations l10n,
     required String title,
     required List<MyAudioMetadata> songs,
-    required Future<void> Function() onPrecache,
     bool? coverCached,
   }) {
     final cachedSongs = songs.where((song) => song.cacheExist).length;
@@ -1422,19 +1736,16 @@ class _CacheDetailViewState extends State<_CacheDetailView>
           if (!await showConfirmDialog(context, l10n.precacheAll)) {
             return;
           }
-          // Await it: the download runs for as long as the list takes, and a
-          // spinner removed right after it starts says nothing about progress.
-          showCenterLoading();
-          try {
-            await onPrecache();
-          } finally {
-            removeCenterLoading();
+          if (!mounted) {
+            return;
           }
+          await showCacheDownloadDialog(context, songs);
         },
       ),
     );
   }
 }
+
 /// One cached song: what is on disk (song / cover / lyrics), how big it is, a
 /// detail view, and a delete that asks first.
 Widget _cachedSongTile(

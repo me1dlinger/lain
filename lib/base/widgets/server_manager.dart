@@ -8,11 +8,13 @@ import 'package:lain/base/services/webdav_client.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/music_server.dart';
+import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/custom_text_field.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
@@ -42,6 +44,7 @@ class _ServerListPageState extends State<ServerListPage> {
         layersManager.backgroundChangeNotifier,
         panelColor.valueNotifier,
         pageBackgroundColor.valueNotifier,
+        offlineModeNotifier,
       ]),
       builder: (context, child) {
         return Scaffold(
@@ -74,7 +77,11 @@ class _ServerListPageState extends State<ServerListPage> {
                       IconButton(
                         tooltip: l10n.addServer,
                         icon: Icon(Icons.add_rounded, color: textColor),
-                        onPressed: busy ? null : () => _edit(null),
+                        onPressed: busy
+                            ? null
+                            : offlineModeNotifier.value
+                            ? () => showCenterMessage(l10n.offlineModeBlocked)
+                            : () => _edit(null),
                       ),
                     ],
                   ),
@@ -84,10 +91,6 @@ class _ServerListPageState extends State<ServerListPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     children: [
-                      // A local library is not a server, but it is the other
-                      // kind of source the app can play from.
-                      _localRow(l10n, textColor),
-                      const Divider(height: 20),
                       for (final server in config.servers)
                         _serverRow(l10n, server, textColor),
                       if (config.servers.isEmpty)
@@ -108,33 +111,6 @@ class _ServerListPageState extends State<ServerListPage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _localRow(AppLocalizations l10n, Color textColor) {
-    final selected = sourceType == .local;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Image(
-        image: getSourceTypeImage(.local),
-        width: 30,
-        height: 30,
-      ),
-      title: Text(l10n.localMusic, style: TextStyle(color: textColor)),
-      trailing: selected ? Icon(Icons.check, color: textColor) : null,
-      onTap: busy
-          ? null
-          : () async {
-              if (selected) {
-                return;
-              }
-              setState(() => busy = true);
-              await config.activateLocal();
-              await _reloadLibrary();
-              if (mounted) {
-                setState(() => busy = false);
-              }
-            },
     );
   }
 
@@ -178,15 +154,31 @@ class _ServerListPageState extends State<ServerListPage> {
               l10n.inUse,
               style: TextStyle(fontSize: 12, color: textColor.withAlpha(180)),
             )
+          : offlineModeNotifier.value
+          ? Icon(
+              Icons.lock_outline_rounded,
+              size: 18,
+              color: textColor.withAlpha(120),
+            )
           : null,
-      onTap: busy ? null : () => _activate(server),
-      onLongPress: busy ? null : () => _menu(server),
+      onTap: busy
+          ? null
+          : offlineModeNotifier.value
+          ? () => showCenterMessage(l10n.offlineModeBlocked)
+          : () => _activate(server),
+      onLongPress: busy
+          ? null
+          : offlineModeNotifier.value
+          ? () => showCenterMessage(l10n.offlineModeBlocked)
+          : () => _menu(server),
     );
   }
 
   Future<void> _menu(MusicServer server) async {
     final l10n = AppLocalizations.of(context);
-    showAnimationDialog(
+    // Wait for the menu to close before navigating; pushing while its route is
+    // still popping left the menu on top of the edit page.
+    final action = await showAnimationDialog<String>(
       context: context,
       child: SizedBox(
         width: 280,
@@ -195,34 +187,39 @@ class _ServerListPageState extends State<ServerListPage> {
           children: [
             ListTile(
               title: Text(l10n.recheck),
-              onTap: () {
-                Navigator.pop(context);
-                _activate(server);
-              },
+              onTap: () => Navigator.pop(context, 'recheck'),
             ),
             ListTile(
               title: Text(l10n.edit),
-              onTap: () {
-                Navigator.pop(context);
-                _edit(server);
-              },
+              onTap: () => Navigator.pop(context, 'edit'),
             ),
             ListTile(
               title: Text(l10n.delete),
-              onTap: () async {
-                Navigator.pop(context);
-                await _delete(server);
-              },
+              onTap: () => Navigator.pop(context, 'delete'),
             ),
           ],
         ),
       ),
     );
+    if (!mounted) {
+      return;
+    }
+    switch (action) {
+      case 'recheck':
+        await _activate(server);
+      case 'edit':
+        await _edit(server);
+      case 'delete':
+        await _delete(server);
+      default:
+        break;
+    }
   }
 
   Future<void> _edit(MusicServer? server) async {
-    final saved = await Navigator.of(context).push<bool>(
-      applePageRoute<bool>(() => ServerEditPage(server: server)),
+    final saved = await pushSettingsPage<bool>(
+      context,
+      settingsPageRoute<bool>(() => ServerEditPage(server: server)),
     );
     if (saved == true && mounted) {
       setState(() {});
@@ -256,8 +253,6 @@ class _ServerListPageState extends State<ServerListPage> {
       setState(() {});
     }
   }
-
-
 
   Future<void> _delete(MusicServer server) async {
     final l10n = AppLocalizations.of(context);

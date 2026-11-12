@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 class BackgroundTaskService {
   static const MethodChannel _channel = MethodChannel(
-    'com.meidlinger.sylvakru.background_task',
+    'com.meidlinger.lain.background_task',
   );
 
   BackgroundTaskService._();

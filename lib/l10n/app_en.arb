@@ -1,5 +1,5 @@
 {
-  "sylvakru": "Lain",
+  "lain": "Lain",
   "title": "Title",
   "artist": "Artist",
   "album": "Album",
@@ -22,6 +22,37 @@
   "playQueue": "Play Queue",
   "followSystem": "Follow System",
   "settings": "Settings",
+  "settingsMusicSource": "Music Sources",
+  "localMusicSource": "Local Music Source",
+  "longPressToConfigure": "Long press to configure",
+  "customFolders": "Custom Folders",
+  "addCustomFolder": "Add Custom Folder",
+  "startScan": "Start Scan",
+  "scanSubdirectories": "Scan Subdirectories",
+  "blockedFolders": "Blocked Folders",
+  "addBlockedFolder": "Add Blocked Folder",
+  "noBlockedFolders": "No blocked folders",
+  "skipShortAudio": "Skip audio under {seconds} seconds",
+  "@skipShortAudio": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "minimumAudioLength": "Minimum Audio Length",
+  "manageStoragePermission": "Manage External Storage Permission",
+  "settingsUserInterface": "User Interface",
+  "settingsPlaybackLyrics": "Playback & Lyrics",
+  "settingsNotifications": "Notifications",
+  "settingsStartupBackground": "Startup & Background",
+  "settingsCacheDownloads": "Cache & Downloads",
+  "settingsHelpFeedback": "Help & Feedback",
+  "feedback": "Feedback",
+  "customizeSettingsOrder": "Customize Menu Order",
+  "offlineMode": "Offline Mode",
+  "offlineModeDescription": "Local music only; online sources are locked",
+  "offlineModeBlocked": "Offline mode is on; online music sources are locked",
   "reload": "Reload",
   "manageMusicFolder": "Manage Music Folders",
   "about": "About",
@@ -210,6 +241,8 @@
   "streamQualitySq": "SQ (320kbps)",
   "streamQualityOriginal": "Original (no transcoding)",
   "streamFormat": "Transcode Format",
+  "mobileDataWarning": "Cellular Data Warning",
+  "mobileDataNotice": "Streaming online music over mobile data",
   "serverScheme": "Scheme",
   "serverHost": "Host",
   "serverPort": "Port",
@@ -241,6 +274,22 @@
   "cacheTagCover": "Cover",
   "cacheTagLyric": "Lyrics",
   "precacheAll": "Cache Every Song's Info",
+  "cacheTaskTitle": "Caching songs",
+  "cacheBackground": "Run in Background",
+  "cacheMovedToBackground": "Caching continues in the background",
+  "cacheTaskDone": "Caching finished",
+  "cacheTaskCanceled": "Caching canceled",
+  "cacheTaskBusy": "A caching task is already running",
+  "cacheFailedCount": "{count} failed",
+  "@cacheFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cacheBackPrompt": "Caching is still running. Cancel it or run it in the background?",
+  "cacheKeepRunning": "Keep Waiting",
   "added2Next": "Playing next",
   "homeLayout": "Home layout",
   "homeTopButtons": "Top buttons",
@@ -299,6 +348,8 @@
   "refresh": "Refresh",
   "syncLibrary": "Synchronize Library",
   "syncingTryLater": "Syncing library, try again later",
+  "syncDone": "Library synced",
+  "syncFailed": "Sync failed",
   "all": "All",
   "folderExist": "The folder already exist",
   "folderNotSupportedYet": "The folder is not supported yet",

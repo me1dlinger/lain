@@ -7,7 +7,11 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
+import 'package:lain/base/data/notice_setting.dart';
+import 'package:lain/base/data/offline_setting.dart';
+import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/utils/path.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
@@ -119,6 +123,51 @@ class Setting {
 
     vibrationOnNoitifier.value =
         json['vibrationOn'] as bool? ?? vibrationOnNoitifier.value;
+
+    mobileDataWarningNotifier.value =
+        json['mobileDataWarning'] as bool? ?? mobileDataWarningNotifier.value;
+
+    offlineModeNotifier.value =
+        json['offlineMode'] as bool? ?? offlineModeNotifier.value;
+
+    final subdirectories = json['folderScanSubdirectories'];
+    if (subdirectories is Map) {
+      folderScanSubdirectories
+        ..clear()
+        ..addAll({
+          for (final entry in subdirectories.entries)
+            if (entry.value is bool) '${entry.key}': entry.value as bool,
+        });
+    }
+    final blocked = json['blockedFolders'];
+    if (blocked is List) {
+      blockedFoldersNotifier.value = [
+        for (final path in blocked)
+          if (path.toString().isNotEmpty) path.toString(),
+      ];
+    }
+    skipShortAudioNotifier.value =
+        json['skipShortAudio'] as bool? ?? skipShortAudioNotifier.value;
+    minAudioSecondsNotifier.value =
+        json['minAudioSeconds'] as int? ?? minAudioSecondsNotifier.value;
+
+    final savedCategories = json['settingsCategoryOrder'];
+    if (savedCategories is List) {
+      final order = <SettingsCategory>[];
+      for (final name in savedCategories) {
+        final category = SettingsCategory.values.asNameMap()[name.toString()];
+        if (category != null && !order.contains(category)) {
+          order.add(category);
+        }
+      }
+      // A category added by a later build still shows up.
+      for (final category in SettingsCategory.values) {
+        if (!order.contains(category)) {
+          order.add(category);
+        }
+      }
+      settingsCategoryOrderNotifier.value = order;
+    }
 
     final languageCode = json['language'] as String? ?? '';
 
@@ -234,6 +283,16 @@ class Setting {
         'endDrawer': endDrawerNotifier.value,
 
         'vibrationOn': vibrationOnNoitifier.value,
+        'mobileDataWarning': mobileDataWarningNotifier.value,
+        'offlineMode': offlineModeNotifier.value,
+        'folderScanSubdirectories': folderScanSubdirectories,
+        'blockedFolders': blockedFoldersNotifier.value,
+        'skipShortAudio': skipShortAudioNotifier.value,
+        'minAudioSeconds': minAudioSecondsNotifier.value,
+        'settingsCategoryOrder': [
+          for (final category in settingsCategoryOrderNotifier.value)
+            category.name,
+        ],
         'language': localeNotifier.value?.languageCode,
 
         'immersiveWideLayout': immersiveWideLayoutNotifier.value,
@@ -256,7 +315,9 @@ class Setting {
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,
 
-        'homeButtons': [for (final button in homeButtonOrder.value) button.name],
+        'homeButtons': [
+          for (final button in homeButtonOrder.value) button.name,
+        ],
         'homeButtonsHidden': [
           for (final button in homeButtonHidden.value) button.name,
         ],

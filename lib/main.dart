@@ -62,7 +62,7 @@ Future<void> main() async {
       screenTopLeftRadius = radius.topLeft;
       screenTopRightRadius = radius.topRight;
     });
-    await HomeWidget.setAppGroupId('group.com.meidlinger.sylvakru');
+    await HomeWidget.setAppGroupId('group.com.meidlinger.lain');
   } else {
     if (kReleaseMode) {
       await SingleInstance.start();

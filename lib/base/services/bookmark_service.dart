@@ -5,7 +5,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/services/logger.dart';
 
 class BookmarkService {
-  static const _channel = MethodChannel('com.meidlinger.sylvakru.bookmark_manager');
+  static const _channel = MethodChannel('com.meidlinger.lain.bookmark_manager');
   static const _fileName = 'directory_inventory.txt';
 
   static late File file;

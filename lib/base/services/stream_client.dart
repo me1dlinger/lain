@@ -157,7 +157,7 @@ abstract class StreamClient {
 
   Map<String, String>? get headers => null;
 
-  Future<Uint8List?> getPictureBytes(String songId);
+  Future<Uint8List?> getPictureBytes(String songId, {int size = 600});
 
   /// A URL anyone on the network can fetch to get the cover art, or null when
   /// the source cannot expose one (local files, header-authenticated servers).
@@ -167,14 +167,21 @@ abstract class StreamClient {
 
   Future<String> getLyricsById(String songId);
 
-  Future<bool> downloadSong(String songId, String savePath);
+  Future<bool> downloadSong(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  });
 
   /// Fetches the song as the server stores it, for the user to keep - unlike
   /// [downloadSong], which is what the offline cache holds and may be a
   /// transcoded copy. Sources without a "give me the original" endpoint inherit
   /// this.
-  Future<bool> downloadOriginal(String songId, String savePath) =>
-      downloadSong(songId, savePath);
+  Future<bool> downloadOriginal(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) => downloadSong(songId, savePath, cancelToken: cancelToken);
 
   Future<bool> scrobble(String songId);
 
@@ -186,9 +193,10 @@ abstract class StreamClient {
   Future<bool> setStarred(String id, bool starred) async => false;
 
   /// Ids of the starred albums, or of the starred artists, each with the time it
-/// was starred (null when the server does not report one).
-  Future<Map<String, DateTime?>> getStarredIds({required bool isArtist}) async =>
-      {};
+  /// was starred (null when the server does not report one).
+  Future<Map<String, DateTime?>> getStarredIds({
+    required bool isArtist,
+  }) async => {};
 
   /// The album's description/notes, or null when the source has none.
   Future<String?> getAlbumNotes(String albumId) async => null;
@@ -202,9 +210,12 @@ abstract class StreamClient {
     String artistId,
   ) async => null;
 
-  /// An artist's image URL from the source's own API, for a server that reports
-/// one its Subsonic endpoint omits. Null when there is none.
-  Future<String?> getArtistImageUrl(String artistId) async => null;
+  /// An artist's own image presence and external image URL from the source's
+  /// native API, for a server that reports them outside its Subsonic endpoint.
+  /// Null when the source cannot answer.
+  Future<({String? imageUrl, bool hasImage})?> getArtistImageInfo(
+    String artistId,
+  ) async => null;
 
   /// Every artist with its id, whether the server has an image for it, and its
   /// biography, from the source's own list API. Null when unsupported.

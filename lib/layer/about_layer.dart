@@ -96,7 +96,7 @@ class _AboutLayerState extends State<AboutLayer> {
             builder: (_, color, _) {
               return Center(
                 child: Text(
-                  l10n.sylvakru,
+                  l10n.lain,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -134,7 +134,7 @@ class _AboutLayerState extends State<AboutLayer> {
             ),
           ),
 
-          if (Platform.isIOS && l10n.sylvakru == '森露')
+          if (Platform.isIOS && l10n.lain == '森露')
             Center(
               child: TextButton(
                 onPressed: () {

@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get sylvakru => 'Lain';
+  String get lain => 'Lain';
 
   @override
   String get title => 'Title';
@@ -76,6 +76,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get settingsMusicSource => 'Music Sources';
+
+  @override
+  String get localMusicSource => 'Local Music Source';
+
+  @override
+  String get longPressToConfigure => 'Long press to configure';
+
+  @override
+  String get customFolders => 'Custom Folders';
+
+  @override
+  String get addCustomFolder => 'Add Custom Folder';
+
+  @override
+  String get startScan => 'Start Scan';
+
+  @override
+  String get scanSubdirectories => 'Scan Subdirectories';
+
+  @override
+  String get blockedFolders => 'Blocked Folders';
+
+  @override
+  String get addBlockedFolder => 'Add Blocked Folder';
+
+  @override
+  String get noBlockedFolders => 'No blocked folders';
+
+  @override
+  String skipShortAudio(int seconds) {
+    return 'Skip audio under $seconds seconds';
+  }
+
+  @override
+  String get minimumAudioLength => 'Minimum Audio Length';
+
+  @override
+  String get manageStoragePermission => 'Manage External Storage Permission';
+
+  @override
+  String get settingsUserInterface => 'User Interface';
+
+  @override
+  String get settingsPlaybackLyrics => 'Playback & Lyrics';
+
+  @override
+  String get settingsNotifications => 'Notifications';
+
+  @override
+  String get settingsStartupBackground => 'Startup & Background';
+
+  @override
+  String get settingsCacheDownloads => 'Cache & Downloads';
+
+  @override
+  String get settingsHelpFeedback => 'Help & Feedback';
+
+  @override
+  String get feedback => 'Feedback';
+
+  @override
+  String get customizeSettingsOrder => 'Customize Menu Order';
+
+  @override
+  String get offlineMode => 'Offline Mode';
+
+  @override
+  String get offlineModeDescription =>
+      'Local music only; online sources are locked';
+
+  @override
+  String get offlineModeBlocked =>
+      'Offline mode is on; online music sources are locked';
 
   @override
   String get reload => 'Reload';
@@ -509,6 +585,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streamFormat => 'Transcode Format';
 
   @override
+  String get mobileDataWarning => 'Cellular Data Warning';
+
+  @override
+  String get mobileDataNotice => 'Streaming online music over mobile data';
+
+  @override
   String get serverScheme => 'Scheme';
 
   @override
@@ -600,6 +682,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get precacheAll => 'Cache Every Song\'s Info';
+
+  @override
+  String get cacheTaskTitle => 'Caching songs';
+
+  @override
+  String get cacheBackground => 'Run in Background';
+
+  @override
+  String get cacheMovedToBackground => 'Caching continues in the background';
+
+  @override
+  String get cacheTaskDone => 'Caching finished';
+
+  @override
+  String get cacheTaskCanceled => 'Caching canceled';
+
+  @override
+  String get cacheTaskBusy => 'A caching task is already running';
+
+  @override
+  String cacheFailedCount(int count) {
+    return '$count failed';
+  }
+
+  @override
+  String get cacheBackPrompt =>
+      'Caching is still running. Cancel it or run it in the background?';
+
+  @override
+  String get cacheKeepRunning => 'Keep Waiting';
 
   @override
   String get added2Next => 'Playing next';
@@ -774,6 +886,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncingTryLater => 'Syncing library, try again later';
+
+  @override
+  String get syncDone => 'Library synced';
+
+  @override
+  String get syncFailed => 'Sync failed';
 
   @override
   String get all => 'All';

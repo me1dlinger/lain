@@ -141,8 +141,16 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
       itemBuilder: (context, index) {
         final song = list[index];
         return ListTile(
-          leading: CoverArtWidget(size: 42, borderRadius: 4, picture: song.picture),
-          title: Text(getTitle(song), maxLines: 1, overflow: TextOverflow.ellipsis),
+          leading: CoverArtWidget(
+            size: 42,
+            borderRadius: 4,
+            picture: song.picture,
+          ),
+          title: Text(
+            getTitle(song),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(
             '${getArtist(song)} - ${getAlbum(song)}',
             maxLines: 1,
@@ -166,7 +174,11 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
       itemBuilder: (context, index) {
         final album = list[index];
         return ListTile(
-          leading: CoverArtWidget(size: 42, borderRadius: 4, picture: album.picture),
+          leading: CoverArtWidget(
+            size: 42,
+            borderRadius: 4,
+            picture: album.picture,
+          ),
           title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
             l10n.songCount(album.songList.length),
@@ -193,8 +205,13 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
             size: 42,
             borderRadius: 21,
             picture: artist.picture,
+            fallbackPicture: artist.albumCoverPicture,
           ),
-          title: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(
+            artist.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(
             '${l10n.albumCount(artist.albumCount)} · '
             '${l10n.songCount(artist.songList.length)}',

@@ -78,17 +78,14 @@ void pushArtistDetail(Artist artist) {
 /// Opens a playlist's page as a route; see [pushAlbumDetail].
 void pushPlaylistDetail(Playlist playlist) {
   _pushSongListRoute(
-    (context) =>
-        SongList(playlist: playlist, isRoot: false, pushedRoute: true),
+    (context) => SongList(playlist: playlist, isRoot: false, pushedRoute: true),
     playlist.picture,
   );
 }
 
 /// A detail page floats over the current page, themed and keeping the play bar.
 void _pushSongListRoute(WidgetBuilder builder, MyPicture? picture) {
-  globalNavigatorKey.currentState?.push(
-    themedRoute(builder, picture: picture),
-  );
+  globalNavigatorKey.currentState?.push(themedRoute(builder, picture: picture));
 }
 
 class SongList extends StatefulWidget {
@@ -628,6 +625,7 @@ class _SongListState extends State<SongList> {
       listenable: Listenable.merge([
         currentSongListNotifier,
         coverSongNotifier,
+        if (artist != null) artist!.changeNotifier,
       ]),
       builder: (_, _) {
         MyPicture? picture = mainPicture;
@@ -637,19 +635,43 @@ class _SongListState extends State<SongList> {
             mainPageThemeNotifier,
             layersManager.backgroundChangeNotifier,
           ]),
-          builder: (_, _) {
+          builder: (context, _) {
             final coverArt = CoverArtWidget(
               size: size,
               borderRadius: size / 10,
               picture: picture,
+              fallbackPicture: artist?.albumCoverPicture,
               elevation: 5,
               color: colorManager.getSpecificMainPageCoverArtBaseColorForm(
                 picture,
               ), // keep stable color
             );
 
-            return widget.isRoot
+            // An artist's own header image can be refreshed here, the same
+            // gesture the artist list offers, instead of having to go back to
+            // the list for it.
+            final content = artist == null || sourceType != .navidrome
                 ? coverArt
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: () async {
+                      vibrateGestureFeedback();
+                      final l10n = AppLocalizations.of(context);
+                      final hasImage = await refreshArtistCache(artist!);
+                      if (!context.mounted) {
+                        return;
+                      }
+                      showCenterMessage(
+                        hasImage
+                            ? l10n.artistCacheRefreshed
+                            : l10n.artistCacheNoImage,
+                      );
+                    },
+                    child: coverArt,
+                  );
+
+            return widget.isRoot
+                ? content
                 : Hero(
                     tag:
                         (picture?.id ?? '') +
@@ -664,7 +686,7 @@ class _SongListState extends State<SongList> {
                           fromHeroContext,
                           toHeroContext,
                         ) => FittedBox(child: toHeroContext.widget),
-                    child: coverArt,
+                    child: content,
                   );
           },
         );

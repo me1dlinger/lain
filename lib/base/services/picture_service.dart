@@ -18,6 +18,10 @@ import 'package:lain/base/utils/path.dart';
 
 List<MyPicture> globalPictureList = [];
 
+/// Below this many bytes a server "artist image" is the placeholder star, not
+/// a real picture.
+const _artistPlaceholderMinBytes = 2048;
+
 class MyPicture {
   String id;
   bool isLoaded = false;
@@ -26,17 +30,12 @@ class MyPicture {
   Color? color;
   Color? lowerLuminance;
 
-  /// Last-resort source of this picture's bytes, used when the normal path
-  /// yields nothing - an artist whose server has no image but whose external
-  /// info does (a `largeImageUrl`). Kept here so the bytes land in the same
-  /// on-disk cache as every other cover.
+  /// The one source of this picture's bytes when it is set. An artist image
+  /// needs this: the server answers the cover-art endpoint with a placeholder
+  /// (a star) for an artist it has no image for, so the generic fallbacks must
+  /// not run for it. The bytes still land in the same on-disk cache as every
+  /// other cover.
   Future<Uint8List?> Function()? remoteResolver;
-
-  /// Whether [remoteResolver] is tried before the normal source. An artist
-  /// image needs this: the server answers the cover-art endpoint with a
-  /// placeholder for an artist it has no image for, so the "no bytes" fallback
-  /// would never be reached and the real image would never be used.
-  bool resolverFirst = false;
 
   final changeNotifier = ValueNotifier(0);
 
@@ -48,8 +47,7 @@ class MyPicture {
       return;
     }
     md5Hash ??= md5.convert(utf8.encode(id)).toString();
-    path =
-        explicitPath ?? '${getPicturesPath(sourceType)}/$md5Hash';
+    path = explicitPath ?? '${getPicturesPath(sourceType)}/$md5Hash';
     if (File(path).existsSync()) {
       isLoaded = true;
       isExist = true;
@@ -58,22 +56,51 @@ class MyPicture {
     }
   }
 
-  /// An artist's picture, cached in one place for every source: the file is
-  /// keyed by the artist's name, so a local library shows what Navidrome
-  /// fetched for the same artist.
-  factory MyPicture.artist(String name, {String? artistId}) {
+  /// Whether an artist image is already on disk. Used before deciding to fall
+  /// back to an album cover: a cached image wins even when the server's current
+  /// metadata does not mention one.
+  static bool artistExists(String name) => File(artistPath(name)).existsSync();
+
+  /// Where [MyPicture.artist] keeps its file, keyed by the artist's name so a
+  /// local library can reuse what Navidrome fetched for the same artist.
+  static String artistPath(String name) {
     final key = name.trim().toLowerCase();
     final hash = md5.convert(utf8.encode(key)).toString();
-    final picture = MyPicture(
-      'artist:$key',
-      explicitPath: '${appSupportDir.path}/artist_images/$hash',
-    );
-    picture.resolverFirst = true;
+    return '${appSupportDir.path}/artist_images/$hash';
+  }
+
+  /// An artist's picture, cached in one place for every source.
+  ///
+  /// The server's own image ([allowServerCover]) is tried first: it lives on
+  /// the server, is fast, and `hasImage` guarantees the cover-art endpoint has
+  /// real bytes. [imageUrl] is the external image used when the server has
+  /// none; an `imageAbsent` artist must never hit the cover-art endpoint,
+  /// because that answers with a star placeholder.
+  factory MyPicture.artist(
+    String name, {
+    String? artistId,
+    String? imageUrl,
+    bool allowServerCover = false,
+  }) {
+    final key = name.trim().toLowerCase();
+    final picture = MyPicture('artist:$key', explicitPath: artistPath(name));
     picture.remoteResolver = () async {
-      if (artistId == null || !isStreamSource) {
+      if (!isStreamSource) {
         return null;
       }
-      return streamClient?.getPictureBytes(artistId);
+      if (allowServerCover && artistId != null) {
+        final bytes = await streamClient?.getPictureBytes(artistId, size: 400);
+        // Navidrome answers an artist without a local image with a tiny star
+        // placeholder (a few hundred bytes). Treat anything that small as "no
+        // image" instead of caching it as the avatar.
+        if (bytes != null && bytes.length >= _artistPlaceholderMinBytes) {
+          return bytes;
+        }
+      }
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        return fetchRemoteImageBytes(imageUrl);
+      }
+      return null;
     };
     globalPictureList.add(picture);
     return picture;
@@ -95,16 +122,39 @@ class MyPicture {
   }
 }
 
+/// Some image CDNs (NetEase among them) answer Dart's default User-Agent with
+/// 403 and only serve a real image to a browser-like one.
+const _imageRequestUserAgent =
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+
 /// Fetches an absolute image URL, used for an artist's external
 /// `largeImageUrl` when the server itself has no artist image.
 Future<Uint8List?> fetchRemoteImageBytes(String url) async {
   try {
+    var target = Uri.parse(url);
+    // NetEase image URLs carry their size in a `param` query. The server hands
+    // out 1200x1200 (~900 KB), which is far more than an avatar needs and can
+    // take longer than the timeout on a slow phone link; 600x600 is ample.
+    if (target.queryParameters.containsKey('param')) {
+      target = target.replace(
+        queryParameters: {...target.queryParameters, 'param': '600y600'},
+      );
+    }
+    final headers = <String, String>{'User-Agent': _imageRequestUserAgent};
+    if (target.host.endsWith('music.126.net') ||
+        target.host.endsWith('music.163.com')) {
+      headers['Referer'] = 'https://music.163.com/';
+    }
     final response = await http
-        .get(Uri.parse(url))
-        .timeout(const Duration(seconds: 20));
+        .get(target, headers: headers)
+        // An image that takes longer than this is not worth holding the row
+        // blank for; the album cover is shown instead and a long-press retries.
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
       return response.bodyBytes;
     }
+    logger.output('image $target: HTTP ${response.statusCode}');
   } catch (e) {
     logger.output('image $url: $e');
   }
@@ -130,17 +180,17 @@ Future<void> loadPictureSafe(
 Future<void> _loadPicture(MyPicture picture) async {
   Uint8List? bytes;
 
-  // An artist image is resolved first, because the server's cover-art endpoint
-  // answers with a placeholder rather than nothing for a missing artist image.
-  if (picture.resolverFirst && picture.remoteResolver != null) {
+  final resolver = picture.remoteResolver;
+  if (resolver != null) {
+    // An artist image decides its own source. Running the generic fallbacks as
+    // well called the resolver twice (a long blank while the external URL
+    // timed out) and let the cover-art endpoint cache its star placeholder.
     try {
-      bytes = await picture.remoteResolver!();
+      bytes = await resolver();
     } catch (e) {
       logger.output(e.toString());
     }
-  }
-
-  if (bytes == null) {
+  } else {
     try {
       switch (sourceType) {
         case .local:
@@ -163,16 +213,7 @@ Future<void> _loadPicture(MyPicture picture) async {
       }
     } catch (e) {
       // A server that has no image for this id may answer with an error; that
-      // is not a reason to skip the fallback below.
-      logger.output(e.toString());
-    }
-  }
-
-  // Last resort: an artist's external image, fetched into the same cache.
-  if (bytes == null && picture.remoteResolver != null) {
-    try {
-      bytes = await picture.remoteResolver!();
-    } catch (e) {
+      // is not a reason to fail the picture load.
       logger.output(e.toString());
     }
   }

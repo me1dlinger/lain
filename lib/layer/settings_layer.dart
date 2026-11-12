@@ -24,6 +24,7 @@ class SettingsLayer extends StatelessWidget {
             context: context,
             body: SettingsList(iconSize: 30),
             title: AppLocalizations.of(context).settings,
+            actions: [settingsOrderButton(context)],
           );
         },
       ),

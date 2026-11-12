@@ -65,13 +65,130 @@ final Map<String, CachedArtistInfo> artistInfoCache = {};
 /// the already-cached image is on disk.
 final Map<String, MyPicture> artistPictureCache = {};
 
+/// Artists whose image fetch produced nothing. They show the album cover until
+/// a long-press clears the entry and tries again; without this, every rebuild
+/// of the list would start the same fruitless download.
+final Set<String> failedArtistPictures = {};
+
+/// NetEase's generic "no artist picture" asset. It is reused for every artist
+/// the service has no portrait for, so it must never become an avatar.
+const _knownDefaultArtistImageIds = {'5639395138885805'};
+
+/// Image URLs shared by more than one artist: almost always a service default.
+final Set<String> _sharedArtistImageUrls = {};
+
+void _refreshSharedArtistImageUrls() {
+  final counts = <String, int>{};
+  for (final info in artistInfoCache.values) {
+    final url = info.imageUrl;
+    if (url != null && url.isNotEmpty) {
+      counts[url] = (counts[url] ?? 0) + 1;
+    }
+  }
+  _sharedArtistImageUrls
+    ..clear()
+    ..addAll(
+      counts.entries
+          .where((entry) => entry.value >= 2)
+          .map((entry) => entry.key),
+    );
+}
+
+/// Whether [url] is a service default rather than a picture of this artist.
+bool isDefaultArtistImage(String? url) {
+  if (url == null || url.isEmpty) {
+    return false;
+  }
+  if (_sharedArtistImageUrls.contains(url)) {
+    return true;
+  }
+  try {
+    final uri = Uri.parse(url);
+    if (!uri.host.endsWith('music.126.net') &&
+        !uri.host.endsWith('music.163.com')) {
+      return false;
+    }
+    return _knownDefaultArtistImageIds.any((id) => uri.path.contains(id));
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Removes a cached artist picture, including its file and decoded image, when
+/// it turns out to be a service default.
+Future<void> _dropArtistPicture(String key, String name) async {
+  final picture = artistPictureCache.remove(key);
+  if (picture != null) {
+    pictureLoadScheduler.resetPicture(picture);
+  }
+  final file = File(MyPicture.artistPath(name));
+  PaintingBinding.instance.imageCache.evict(FileImage(file));
+  try {
+    if (await file.exists()) {
+      await file.delete();
+    }
+  } catch (e) {
+    logger.output('artist image cache: $e');
+  }
+}
+
 String artistKey(String name) => name.trim().toLowerCase();
 
 File? _artistInfoFile;
 bool _artistInfoLoaded = false;
 
+/// Set when the artist image cache migration also has to clear the old
+/// "external URL means the server has an image" flag from the info entries.
+bool _resetConflatedArtistImages = false;
+
 File _artistInfoFileOf() =>
     _artistInfoFile ??= File('${appSupportDir.path}/artist_info.json');
+
+/// Bump when the meaning of the files in `artist_images/` changes.
+const _artistImageCacheVersion = '4';
+
+/// Artist images written by older builds were fetched from the cover-art
+/// endpoint, which answers an artist without a local image with a placeholder
+/// (the music note seen in the list). The cache is dropped once so every image
+/// is fetched again from the artist's real image URL.
+Future<void> _migrateArtistImageCache() async {
+  final versionFile = File('${appSupportDir.path}/artist_image_cache_version');
+  var current = '';
+  try {
+    if (await versionFile.exists()) {
+      current = (await versionFile.readAsString()).trim();
+    }
+  } catch (_) {}
+  if (current == _artistImageCacheVersion) {
+    return;
+  }
+  // A local library cannot fetch an artist image again, so its cached files
+  // are kept. The migration runs the first time a streamed source is active,
+  // which is also when the images can be replaced.
+  if (isNotStreamSource) {
+    return;
+  }
+
+  try {
+    final dir = Directory('${appSupportDir.path}/artist_images');
+    if (await dir.exists()) {
+      await dir.delete(recursive: true);
+    }
+  } catch (e) {
+    logger.output('artist image cache: $e');
+  }
+  artistPictureCache.clear();
+  failedArtistPictures.clear();
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache.clear();
+  imageCache.clearLiveImages();
+  _resetConflatedArtistImages = true;
+  try {
+    await versionFile.writeAsString(_artistImageCacheVersion);
+  } catch (e) {
+    logger.output('artist image cache: $e');
+  }
+}
 
 /// Reads the on-disk artist cache once per source.
 Future<void> loadArtistInfoCache() async {
@@ -79,6 +196,7 @@ Future<void> loadArtistInfoCache() async {
     return;
   }
   _artistInfoLoaded = true;
+  await _migrateArtistImageCache();
   try {
     final file = _artistInfoFileOf();
     if (!await file.exists()) {
@@ -98,6 +216,28 @@ Future<void> loadArtistInfoCache() async {
         );
       }
     });
+    for (final info in artistInfoCache.values) {
+      // Older builds stored Navidrome's server-proxied share URL as the
+      // artist's image URL, which hides the original (default-image detection
+      // then fails). Drop it; the native API and prefetch refill the real one.
+      if ((info.imageUrl ?? '').contains('/share/img/')) {
+        info.imageUrl = null;
+      }
+    }
+    if (_resetConflatedArtistImages) {
+      for (final info in artistInfoCache.values) {
+        // Older builds treated "has an external image URL" as "the server has
+        // an image", which let imageAbsent artists fall back to the star
+        // placeholder. Clear that; prefetchArtistInfo refills the accurate
+        // server flag from the artist list.
+        if ((info.imageUrl ?? '').isNotEmpty) {
+          info.hasImage = false;
+        }
+      }
+      _resetConflatedArtistImages = false;
+      await saveArtistInfoCache();
+    }
+    _refreshSharedArtistImageUrls();
   } catch (e) {
     logger.output('artist info cache: $e');
   }
@@ -125,6 +265,8 @@ Future<void> saveArtistInfoCache() async {
 /// image files are removed too, so the cache screen's number really drops.
 Future<void> clearArtistInfoCache() async {
   artistInfoCache.clear();
+  failedArtistPictures.clear();
+  _sharedArtistImageUrls.clear();
   for (final picture in artistPictureCache.values) {
     pictureLoadScheduler.resetPicture(picture);
     try {
@@ -172,13 +314,21 @@ Future<void> prefetchArtistInfo() async {
       artistId: summary.id,
     );
   }
+  _refreshSharedArtistImageUrls();
   await saveArtistInfoCache();
+  // The list may already be on screen with album covers: rebuild it now that
+  // every artist's image URL is known.
+  artistAlbumManager.updateNotifier.value++;
 }
 
 /// Drops one artist's cached biography and image (missing ones are fine) and
 /// fetches them again. Returns whether the server now reports an artist image;
 /// when it does not, the album cover is used instead.
 Future<bool> refreshArtistCache(Artist artist) async {
+  // Only Navidrome has an artist image to fetch again.
+  if (sourceType != .navidrome) {
+    return false;
+  }
   final key = artistKey(artist.name);
   final info = artistInfoCache[key];
   final artistId = info?.artistId ?? artist.sourceId;
@@ -205,6 +355,7 @@ Future<bool> refreshArtistCache(Artist artist) async {
   imageCache.clear();
   imageCache.clearLiveImages();
   artistInfoCache.remove(key);
+  failedArtistPictures.remove(key);
   await saveArtistInfoCache();
 
   if (artistId == null || sourceType != .navidrome) {
@@ -214,13 +365,32 @@ Future<bool> refreshArtistCache(Artist artist) async {
   }
 
   final fresh = await streamClient?.getArtistInfo(artistId);
-  final hasImage = (fresh?.imageUrl ?? '').isNotEmpty;
+  // Keep the external URL. The Subsonic response's image URL is a
+  // server-proxied /share/img/ URL, which hides what the picture really is
+  // (and, for NetEase, replaces the default-image URL with a proxy).
+  var imageUrl = info?.imageUrl;
+  var serverHasImage = info?.hasImage ?? false;
+  if (sourceType == .navidrome) {
+    // One call to the server's own artist API gives both the real image URL
+    // and whether the server actually has an image. That second flag decides
+    // whether the cover-art endpoint is safe to use: for an imageAbsent artist
+    // it answers with a star placeholder.
+    final native = await streamClient?.getArtistImageInfo(artistId);
+    if (native != null) {
+      imageUrl = native.imageUrl ?? imageUrl;
+      serverHasImage = native.hasImage;
+    }
+  }
+  final isDefault = isDefaultArtistImage(imageUrl);
+  final hasImage =
+      !isDefault && ((imageUrl ?? '').isNotEmpty || serverHasImage);
   artistInfoCache[key] = CachedArtistInfo(
     biography: fresh?.biography,
-    imageUrl: fresh?.imageUrl,
-    hasImage: hasImage,
+    imageUrl: imageUrl,
+    hasImage: serverHasImage,
     artistId: artistId,
   );
+  _refreshSharedArtistImageUrls();
   await saveArtistInfoCache();
 
   artist.changeNotifier.value++;
@@ -247,12 +417,24 @@ Future<void> loadArtistInfoIfNeed(Artist artist) async {
   if (info == null) {
     return;
   }
+  // The Subsonic image URL is Navidrome's /share/img/ proxy; keep the cached
+  // external URL and let the native API replace it when it has one.
+  var imageUrl = cached?.imageUrl;
+  var serverHasImage = cached?.hasImage ?? false;
+  if (sourceType == .navidrome) {
+    final native = await streamClient?.getArtistImageInfo(id);
+    if (native != null) {
+      imageUrl = native.imageUrl ?? imageUrl;
+      serverHasImage = native.hasImage;
+    }
+  }
   artistInfoCache[key] = CachedArtistInfo(
     biography: info.biography,
-    imageUrl: info.imageUrl,
-    hasImage: cached?.hasImage ?? (info.imageUrl ?? '').isNotEmpty,
+    imageUrl: imageUrl,
+    hasImage: serverHasImage,
     artistId: id,
   );
+  _refreshSharedArtistImageUrls();
   await saveArtistInfoCache();
 }
 
@@ -472,6 +654,20 @@ abstract class ArtistAlbumBase {
 
   MyPicture get picture => songList.first.picture;
 
+  /// The artwork shown when the entity has no image of its own: the first
+  /// song's cover that is actually on disk, falling back to the first song.
+  /// Choosing the first *existing* cover avoids a music note when the first
+  /// track of an artist happens to have no embedded artwork while later albums
+  /// do.
+  MyPicture get albumCoverPicture {
+    for (final song in songList) {
+      if (song.picture.isExist) {
+        return song.picture;
+      }
+    }
+    return songList.first.picture;
+  }
+
   ArtistAlbumBase({required this.name, required this.isArtist}) {
     compareName = PinyinHelper.getPinyinE(name);
   }
@@ -482,8 +678,7 @@ abstract class ArtistAlbumBase {
 
   /// Total plays across every song here, which is what the server would report
   /// for the album or the artist as a whole.
-  int get playCount =>
-      songList.fold(0, (sum, song) => sum + song.playCount);
+  int get playCount => songList.fold(0, (sum, song) => sum + song.playCount);
 
   /// Space the songs take up, in bytes; 0 when the source does not report it.
   int get size => songList.fold(0, (sum, song) => sum + (song.size ?? 0));
@@ -498,8 +693,7 @@ abstract class ArtistAlbumBase {
     DateTime? earliest;
     for (final song in songList) {
       final created = song.created;
-      if (created != null &&
-          (earliest == null || created.isBefore(earliest))) {
+      if (created != null && (earliest == null || created.isBefore(earliest))) {
         earliest = created;
       }
     }
@@ -546,33 +740,64 @@ class Artist extends ArtistAlbumBase {
   String? get imageUrl => artistInfoCache[artistKey(name)]?.imageUrl;
 
   /// The artist's own image, decided from the cache for the list and the detail
-/// page alike: the server's artist list says whether this artist has an image.
-/// When it does, that image is fetched (once) into a cache keyed by name, which
-/// a local library reads too. When it does not, the album cover is used - never
-/// the server's blank placeholder. Nothing here depends on a biography arriving
-/// asynchronously, so the picture cannot change under the user.
+  /// page alike: the server's artist list says whether this artist has an image.
+  /// When it does, that image is fetched (once) into a cache keyed by name, which
+  /// a local library reads too. When it does not, the album cover is used - never
+  /// the server's blank placeholder. Nothing here depends on a biography arriving
+  /// asynchronously, so the picture cannot change under the user.
   @override
   MyPicture get picture {
     final key = artistKey(name);
-    final existing = artistPictureCache[key];
-    if (existing != null) {
-      return existing;
+    final info = artistInfoCache[key];
+    // A service default is not this artist's picture: use the album cover and
+    // make sure a copy cached by an older build is removed.
+    if (isDefaultArtistImage(info?.imageUrl)) {
+      unawaited(_dropArtistPicture(key, name));
+      return albumCoverPicture;
     }
 
-    final info = artistInfoCache[key];
-    if (info == null || !info.hasImage) {
-      return super.picture;
+    final existing = artistPictureCache[key];
+    if (existing != null) {
+      if (existing.isLoaded && !existing.isExist) {
+        // The fetch produced nothing. Remember that, so the album cover is
+        // used until a long-press deliberately tries again.
+        failedArtistPictures.add(key);
+        artistPictureCache.remove(key);
+      } else {
+        return existing;
+      }
+    }
+    if (failedArtistPictures.contains(key)) {
+      return albumCoverPicture;
+    }
+
+    final artistId = info?.artistId ?? sourceId;
+    final hasServerImage =
+        info != null && (info.hasImage || (info.imageUrl ?? '').isNotEmpty);
+    final hasCachedImage = MyPicture.artistExists(name);
+    // A streamed artist with an id can be asked directly, even when the cached
+    // flag is stale: the cover-art placeholder is rejected by its size. A
+    // local library can only show an already-cached file.
+    final canFetchImage = isStreamSource && artistId != null;
+    if (!hasServerImage && !hasCachedImage && !canFetchImage) {
+      return albumCoverPicture;
+    }
+    if (!isStreamSource && !hasCachedImage) {
+      return albumCoverPicture;
     }
 
     final picture = MyPicture.artist(
       name,
-      artistId: info.artistId ?? sourceId,
+      artistId: artistId,
+      imageUrl: info?.imageUrl,
+      allowServerCover: true,
     );
-    // A local library cannot fetch the image; it can only use one that
-    // Navidrome already cached. Without the file, the album cover is used - the
-    // same picture the detail page shows, so the list never disagrees with it.
-    if (!isStreamSource && !picture.isExist) {
-      return super.picture;
+    if (picture.isExist) {
+      artistPictureCache[key] = picture;
+      return picture;
+    }
+    if (!isStreamSource) {
+      return albumCoverPicture;
     }
     artistPictureCache[key] = picture;
     return picture;

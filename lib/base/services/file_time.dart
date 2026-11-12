@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/services/logger.dart';
 
-const _fileTimeChannel = MethodChannel('com.meidlinger.sylvakru.media');
+const _fileTimeChannel = MethodChannel('com.meidlinger.lain.media');
 
 /// Local file creation times, used as the "added time" sort key.
 ///

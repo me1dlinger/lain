@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/music_server.dart';
+import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/services/cert_policy.dart';
 import 'package:lain/base/services/emby_client.dart';
 import 'package:lain/base/services/feiniu_client.dart';
@@ -36,8 +37,10 @@ class Config {
     return null;
   }
 
-  List<MusicServer> serversOf(SourceType type) =>
-      [for (final server in servers) if (server.type == type) server];
+  List<MusicServer> serversOf(SourceType type) => [
+    for (final server in servers)
+      if (server.type == type) server,
+  ];
 
   static const _secureStorage = FlutterSecureStorage(
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
@@ -210,9 +213,10 @@ class Config {
         );
         return await client.ping().timeout(const Duration(seconds: 5));
       }
-      return await _buildStreamClient(server, address)
-          .ping()
-          .timeout(const Duration(seconds: 5));
+      return await _buildStreamClient(
+        server,
+        address,
+      ).ping().timeout(const Duration(seconds: 5));
     } catch (error) {
       logger.output('[servers] ${server.name} $address: $error');
       return false;
@@ -318,6 +322,11 @@ class Config {
   /// Switches the app to [server]: probes its addresses (LAN first) and only
   /// connects when one of them answers.
   Future<bool> activateServer(MusicServer server) async {
+    // Offline mode is the single gate every activation path goes through,
+    // including the first-launch source picker and the server editor.
+    if (offlineModeNotifier.value) {
+      return false;
+    }
     // Set before probing, so the probe itself accepts the certificate too.
     ignoreServerCert = server.ignoresCert;
 

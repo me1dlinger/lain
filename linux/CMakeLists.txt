@@ -8,7 +8,7 @@ add_compile_options(-Wno-error=deprecated-declarations)
 set(BINARY_NAME "lain")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.meidlinger.sylvakru")
+set(APPLICATION_ID "com.meidlinger.lain")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

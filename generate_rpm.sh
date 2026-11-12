@@ -46,7 +46,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.meidlinger.sylvakru
+StartupWMClass=com.meidlinger.lain
 Terminal=false
 EOL
 
@@ -60,7 +60,7 @@ Version:        $APP_VERSION
 Release:        1
 Summary:        $APP_NAME Desktop Application
 License:        Proprietary
-URL:            https://github.com/me1dlinger/sylvakru
+URL:            https://github.com/me1dlinger/lain
 BuildArch:      x86_64
 
 Requires:       $DEPENDS

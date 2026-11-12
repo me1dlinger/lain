@@ -75,7 +75,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.meidlinger.sylvakru
+StartupWMClass=com.meidlinger.lain
 Terminal=false
 EOL
 

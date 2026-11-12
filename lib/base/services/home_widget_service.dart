@@ -16,8 +16,8 @@ class HomeWidgetService {
   /// home_widget plugin resolves `androidName` against the application id, and
   /// these providers live in a sub-package.
   static const _androidPlayerProviders = [
-    'com.meidlinger.sylvakru.widget.PlayerWidget2x2Provider',
-    'com.meidlinger.sylvakru.widget.PlayerWidget4x2Provider',
+    'com.meidlinger.lain.widget.PlayerWidget2x2Provider',
+    'com.meidlinger.lain.widget.PlayerWidget4x2Provider',
   ];
 
   static Future<void> reloadNowPlayingWidget() async {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
@@ -12,6 +13,7 @@ import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/mobile_data_notice.dart';
 import 'package:lain/base/services/my_window_listener.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/play_queue_logic.dart';
@@ -65,7 +67,7 @@ bool loadingSong = false;
 // Android side helper that turns an app-private cover file into a
 // content:// URI (see MainActivity.kt / the media_provider FileProvider), so
 // the media session can expose artwork that other processes can read.
-const _mediaChannel = MethodChannel('com.meidlinger.sylvakru.media');
+const _mediaChannel = MethodChannel('com.meidlinger.lain.media');
 
 // cover file path -> a URI that other processes can fetch, so a track's media
 // item can be published synchronously once it has been resolved once.
@@ -103,7 +105,7 @@ Future<void> initAudioService() async {
     builder: () => MyAudioHandler(),
 
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.meidlinger.sylvakru',
+      androidNotificationChannelId: 'com.meidlinger.lain',
       androidNotificationChannelName: 'Lain',
       androidNotificationOngoing: true,
     ),
@@ -130,7 +132,7 @@ Future<void> initAudioService() async {
   });
 
   if (isMobile) {
-    const channel = MethodChannel('com.meidlinger.sylvakru.audio_control');
+    const channel = MethodChannel('com.meidlinger.lain.audio_control');
 
     channel.setMethodCallHandler((call) async {
       switch (call.method) {
@@ -162,6 +164,15 @@ class MyAudioHandler extends BaseAudioHandler {
   int _tmpPlayMode = 0;
   DateTime? _playLastSyncTime;
   Duration _playedDuration = Duration.zero;
+
+  /// The next track whose audio is being fetched for the queue's upcoming
+  /// switch, and the token that lets a later queue change stop it.
+  String? _nextCacheSongId;
+  CancelToken? _nextCacheToken;
+
+  /// Bumped whenever a track load starts the cache chain. A chain that finds a
+  /// newer generation has been superseded and must not prefetch anything.
+  int _cacheFlowGeneration = 0;
 
   File? _playQueueState;
   late File _playState;
@@ -643,6 +654,11 @@ class MyAudioHandler extends BaseAudioHandler {
             (playModeNotifier.value == 2 && audioHandler._tmpPlayMode == 1))) {
       _playQueueTmp.add(song);
     }
+    // Appending can change what modulo wraps to when this is the last index.
+    final current = currentSongNotifier.value;
+    if (current != null && current.cacheExist) {
+      _cacheNextSong();
+    }
     return true;
   }
 
@@ -848,16 +864,83 @@ class MyAudioHandler extends BaseAudioHandler {
   /// Only worth doing on a phone, where something other than this app displays
   /// them (a head unit); on a desktop it would just do work for nothing.
   void _prefetchNeighbours() {
-    if (!isMobile) {
+    if (isMobile) {
+      for (final delta in const [1, -1]) {
+        final neighbour = currentIndex + delta;
+        if (neighbour < 0 || neighbour >= playQueue.length) {
+          continue;
+        }
+        unawaited(_prefetch(playQueue[neighbour]));
+      }
+    }
+    // Queue changes can alter which track is next. The next track's audio only
+    // starts once the current track is on disk; the cache chain does that.
+    final current = currentSongNotifier.value;
+    if (current != null && current.cacheExist) {
+      _cacheNextSong();
+    }
+  }
+
+  /// Starts downloading the queue's next track.
+  ///
+  /// The transition is the same one [skipToNext] and the automatic advance use,
+  /// `(currentIndex + 1) % playQueue.length`, so the file is on disk by the time
+  /// the switch happens. Only the latest prefetch is kept: quick skipping
+  /// cancels the one that no longer matters instead of piling up downloads.
+  void _cacheNextSong() {
+    if (isNotStreamSource || playQueue.isEmpty || currentIndex < 0) {
+      _cancelNextCacheIfNotCurrent();
       return;
     }
-    for (final delta in const [1, -1]) {
-      final neighbour = currentIndex + delta;
-      if (neighbour < 0 || neighbour >= playQueue.length) {
-        continue;
-      }
-      unawaited(_prefetch(playQueue[neighbour]));
+    // Repeat-one plays this track again: there is no next track to warm.
+    if (playModeNotifier.value == 2) {
+      _cancelNextCacheIfNotCurrent();
+      return;
     }
+    final next = playQueue[(currentIndex + 1) % playQueue.length];
+    if (next.id == currentSongNotifier.value?.id || next.cacheExist) {
+      _cancelNextCacheIfNotCurrent();
+      return;
+    }
+    if (_nextCacheSongId == next.id) {
+      return;
+    }
+    _cancelNextCacheIfNotCurrent();
+    final token = CancelToken();
+    _nextCacheSongId = next.id;
+    _nextCacheToken = token;
+    unawaited(() async {
+      try {
+        final cached = await library.tryAddCache(next, cancelToken: token);
+        if (cached) {
+          library.changeNotifier.value++;
+        }
+      } catch (_) {
+        // Cancellation and network failures both end here; neither is a
+        // reason to interrupt playback.
+      } finally {
+        if (identical(_nextCacheToken, token)) {
+          _nextCacheToken = null;
+          _nextCacheSongId = null;
+        }
+      }
+    }());
+  }
+
+  /// Drops the pending prefetch unless the song being fetched just became the
+  /// one playing: that download is wanted now, so it is left to finish.
+  void _cancelNextCacheIfNotCurrent() {
+    final token = _nextCacheToken;
+    if (token == null) {
+      return;
+    }
+    final id = _nextCacheSongId;
+    _nextCacheToken = null;
+    _nextCacheSongId = null;
+    if (id != null && id == currentSongNotifier.value?.id) {
+      return;
+    }
+    token.cancel('next-track prefetch superseded');
   }
 
   Future<void> _prefetch(MyAudioMetadata song) async {
@@ -992,6 +1075,42 @@ class MyAudioHandler extends BaseAudioHandler {
     await BackgroundTaskService.end(token);
   }
 
+  /// Fills the current track's cache, then warms the queue's next track.
+  ///
+  /// The two downloads are deliberately sequential: on a slow link they would
+  /// otherwise compete, and the current track's own cache would be the one
+  /// that suffered. A track already on disk skips the first step, so the next
+  /// one starts immediately.
+  Future<void> _cacheCurrentThenNext(MyAudioMetadata song) async {
+    final generation = ++_cacheFlowGeneration;
+    if (isNotStreamSource) {
+      return;
+    }
+
+    if (!song.cacheExist) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (generation != _cacheFlowGeneration ||
+          currentSongNotifier.value != song) {
+        return;
+      }
+      try {
+        final cached = await library.tryAddCache(song);
+        if (cached) {
+          library.changeNotifier.value++;
+        }
+      } catch (e) {
+        logger.output('[cache] while-playing cache failed for ${song.id}: $e');
+      }
+    }
+
+    // A newer track load owns the flow now; it will prefetch its own next.
+    if (generation != _cacheFlowGeneration ||
+        currentSongNotifier.value != song) {
+      return;
+    }
+    _cacheNextSong();
+  }
+
   Future<void> load({Duration? start}) async {
     // A queued switch can reach load() with the track it already opened: a
     // completion handler and a command must never open the same index twice,
@@ -1095,7 +1214,9 @@ class MyAudioHandler extends BaseAudioHandler {
     // lyrics arrive with the stream, and holding the stream back for them would
     // stall the first play of every track. They are parsed in parallel instead.
     final gatesPlayback = isMobile && isNotStreamSource;
-    final prepared = gatesPlayback ? await _prepareForPlayback(currentSong) : true;
+    final prepared = gatesPlayback
+        ? await _prepareForPlayback(currentSong)
+        : true;
     if (!gatesPlayback) {
       unawaited(setParsedLyrics(currentSong));
     }
@@ -1149,7 +1270,16 @@ class MyAudioHandler extends BaseAudioHandler {
           ),
           play: isPlayingNotifier.value,
         );
+        // This track is not on disk, so it is being streamed: warn once when
+        // that happens over a cellular connection.
+        if (!isNotStreamSource) {
+          unawaited(mobileDataNotice.maybeWarn(usesNetwork: true));
+        }
       }
+
+      // Cache the track that just started; when that finishes, the queue's
+      // next track is fetched so the switch can open a local file.
+      unawaited(_cacheCurrentThenNext(currentSong));
 
       if (isPlayingNotifier.value) {
         _playLastSyncTime = DateTime.now();
@@ -1268,7 +1398,8 @@ class MyAudioHandler extends BaseAudioHandler {
     if (!_probedStreams.add(source.sourceUrl)) {
       return;
     }
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
     final started = DateTime.now();
     try {
       final request = await client.getUrl(Uri.parse(source.sourceUrl));
@@ -1490,10 +1621,9 @@ class MyAudioHandler extends BaseAudioHandler {
       return null;
     }
     try {
-      final uri = await _mediaChannel.invokeMethod<String>(
-        'getContentUri',
-        {'path': path},
-      );
+      final uri = await _mediaChannel.invokeMethod<String>('getContentUri', {
+        'path': path,
+      });
       if (uri != null && uri.isNotEmpty) {
         return uri;
       }
@@ -1527,7 +1657,7 @@ class MyAudioHandler extends BaseAudioHandler {
   /// line, say) carries the same artwork instead of dropping it - that dropping
   /// is what made a cover appear and then disappear.
   ({String? fileUri, String? coverPath, String? smallArtPath, String? fetchUri})
-      _artworkFor(MyAudioMetadata song) {
+  _artworkFor(MyAudioMetadata song) {
     if (_pubSongId != song.id) {
       _pubSongId = song.id;
       _pubFileArtUri = null;

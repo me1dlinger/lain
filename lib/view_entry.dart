@@ -7,6 +7,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/emby_client.dart';
@@ -26,6 +27,8 @@ import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/landscape_view/landscape_view.dart';
 import 'package:lain/layer/layers_manager.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
+import 'package:lain/layer/settings_layer.dart';
 import 'package:lain/mini_view/mini_view.dart';
 import 'package:lain/portrait_view/portrait_view.dart';
 
@@ -104,21 +107,30 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           return;
         }
 
-        // 2) A root page other than home (the hub switches root layers): go back
+        // 2) A route pushed inside the settings navigator (a category page, the
+        //    server list, the report) goes back one level. Checked with our own
+        //    counter: the layer navigator always has an extra blank Android
+        //    page, so canPop() is true even on the settings root.
+        if (currentRootLabel.value == 'settings' && hasSettingsPushedPage) {
+          settingsKey.currentState?.pop();
+          return;
+        }
+
+        // 3) A root page other than home (the hub switches root layers): go back
         //    to the page we came from. On home itself "back" means leaving the
         //    app, never stepping back into whatever page was open before.
         if (currentRootLabel.value != 'home' && layersManager.popRootLayer()) {
           return;
         }
 
-        // 3) A page other than home that could not be popped: fall back to
+        // 4) A page other than home that could not be popped: fall back to
         //    home rather than leaving, so a stuck stack cannot trap the user.
         if (currentRootLabel.value != 'home') {
           layersManager.switchRootLayer('home');
           return;
         }
 
-        // 4) On home itself there is nothing left to go back to: leave the app
+        // 5) On home itself there is nothing left to go back to: leave the app
         //    straight away, with no "tap again" prompt.
         SystemNavigator.pop();
       },
@@ -258,7 +270,9 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
                               size: 16,
                             ),
                             onTap: () => globalNavigatorKey.currentState?.push(
-                              applePageRoute<void>(() => const ServerListPage()),
+                              applePageRoute<void>(
+                                () => const ServerListPage(),
+                              ),
                             ),
                           ),
                         ),
@@ -340,6 +354,12 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         child: InkWell(
           mouseCursor: SystemMouseCursors.click,
           onTap: () async {
+            if (offlineModeNotifier.value && thisSourceType != .local) {
+              showCenterMessage(
+                AppLocalizations.of(context).offlineModeBlocked,
+              );
+              return;
+            }
             final existing = config.serversOf(thisSourceType);
             if (existing.isNotEmpty) {
               // Reuse the server already configured for this kind: it probes its

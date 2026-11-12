@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:lain/base/app.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/interaction.dart';
@@ -44,6 +45,9 @@ class _ArtistsLayerState extends CollectionListState {
         .toList();
     // Shuffled order is not offered for artists; see the album list.
     currentPictureList = list.map((e) => e.picture).toList();
+    // A singer without an artist image uses one of their album covers; the
+    // music note is never shown.
+    currentFallbackPictureList = list.map((e) => e.albumCoverPicture).toList();
     currentTextList = list.map((e) => e.name).toList();
     currentOnTapList = list
         .map(
@@ -55,21 +59,25 @@ class _ArtistsLayerState extends CollectionListState {
         )
         .toList();
     // Long-pressing an avatar drops that artist's cached biography and image
-    // and fetches them again - for an artist the server had no image for, the
-    // image may have appeared online since.
+    // and fetches them again. Only Navidrome can refresh an artist image; the
+    // other sources have nothing to ask.
     final l10n = AppLocalizations.of(context);
-    currentOnLongPressList = list
-        .map(
-          (e) => () async {
-            vibrateGestureFeedback();
-            final hasImage = await refreshArtistCache(e);
-            updateCurrentList();
-            showCenterMessage(
-              hasImage ? l10n.artistCacheRefreshed : l10n.artistCacheNoImage,
-            );
-          },
-        )
-        .toList();
+    currentOnLongPressList = sourceType == .navidrome
+        ? list
+              .map(
+                (e) => () async {
+                  vibrateGestureFeedback();
+                  final hasImage = await refreshArtistCache(e);
+                  updateCurrentList();
+                  showCenterMessage(
+                    hasImage
+                        ? l10n.artistCacheRefreshed
+                        : l10n.artistCacheNoImage,
+                  );
+                },
+              )
+              .toList()
+        : null;
 
     changeNotifier.value++;
   }

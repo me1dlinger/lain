@@ -67,7 +67,7 @@ struct NowPlayingWidgetTimelineProvider: TimelineProvider {
 
   func makeEntry(in context: Context) -> NowPlayingWidgetEntry {
     let sharedDefaults = UserDefaults(
-      suiteName: "group.com.meidlinger.sylvakru"
+      suiteName: "group.com.meidlinger.lain"
     )
 
     // Fresh install: nothing synced yet. Missing color keys read back as 0

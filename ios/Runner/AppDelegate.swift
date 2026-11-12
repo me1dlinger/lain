@@ -40,12 +40,12 @@ import home_widget
     let registrar = self.registrar(forPlugin: "NativeBridge")
 
     audioControlChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.audio_control",
+      name: "com.meidlinger.lain.audio_control",
       binaryMessenger: registrar!.messenger()
     )
 
     let bookmarkChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.bookmark_manager",
+      name: "com.meidlinger.lain.bookmark_manager",
       binaryMessenger: registrar!.messenger())
 
     bookmarkChannel.setMethodCallHandler({
@@ -106,7 +106,7 @@ import home_widget
     })
 
     let menuChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.menu",
+      name: "com.meidlinger.lain.menu",
       binaryMessenger: registrar!.messenger())
     self.menuChannel = menuChannel
 
@@ -155,7 +155,7 @@ import home_widget
     // Reports which widgets of a given kind are actually placed on the home
     // screen (one entry per instance, so multiple sizes are all listed).
     let widgetConfigChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.widget_config",
+      name: "com.meidlinger.lain.widget_config",
       binaryMessenger: registrar!.messenger())
 
     widgetConfigChannel.setMethodCallHandler({
@@ -194,7 +194,7 @@ import home_widget
     // Each "begin" returns a token that the matching "end" must pass back; the
     // expiration handler ends the task itself or iOS terminates the app.
     let backgroundTaskChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.background_task",
+      name: "com.meidlinger.lain.background_task",
       binaryMessenger: registrar!.messenger())
 
     backgroundTaskChannel.setMethodCallHandler({
@@ -233,11 +233,11 @@ import home_widget
     })
 
     // Reports the system HTTP proxy (e.g. a Wi-Fi/global HTTP proxy set by a
-    // proxy app); Dart reads it via the com.meidlinger.sylvakru.system_proxy channel to
+    // proxy app); Dart reads it via the com.meidlinger.lain.system_proxy channel to
     // route Dio and libmpv. VPN-mode (TUN) proxies capture traffic
     // transparently without setting these keys, so this returns nil then.
     let systemProxyChannel = FlutterMethodChannel(
-      name: "com.meidlinger.sylvakru.system_proxy",
+      name: "com.meidlinger.lain.system_proxy",
       binaryMessenger: registrar!.messenger())
 
     systemProxyChannel.setMethodCallHandler({

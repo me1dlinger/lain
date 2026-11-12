@@ -20,7 +20,7 @@
 
 1. **新建 `NOTICE` 文件** —— 声明这是 Sylvakru 的衍生作品、保留上游版权、列明主要修改。
 2. **README 增加 `## About this project` 段** —— 明确指向原工程、说明是独立维护（非 fork）、保持开源。
-3. **应用标识改为 `com.meidlinger.sylvakru`** —— 使用你自己的 GitHub 用户名作为包名前缀，彻底脱离上游作者域名。
+3. **应用标识改为 `com.meidlinger.lain`** —— 使用你自己的 GitHub 用户名作为包名前缀，彻底脱离上游作者域名。
 
 ### 仍需你手动完成的事（本鱼无法代做）
 
@@ -29,9 +29,9 @@
    - 方式 B：在仓库 Settings 里操作 detach fork 关系（GitHub 支持从网络里摘除）。
 2. **商标/命名提示**：Apache-2.0 **不包含商标授权**（§6）。既然已改名为 Lain（临音），并更换了包名与图标，就没有混淆风险；但**不要把 Lain 的发布包装成「Sylvakru 官方版」**。
 
-### ⚠️ 一个你可能想再改的点
+### ✅ 包名已统一（2026-11-12 补充）
 
-你指定的包名 `com.meidlinger.sylvakru` 里仍带着 `sylvakru` 字样，与「所有 sylvakru 字眼改为 lain」有出入。如果之后想统一，只需改这几处：
+后来用户要求把所有 `sylvakru` 字眼改为 `lain`，包名已从 `com.meidlinger.sylvakru` 统一为 `com.meidlinger.lain`。当时需要同步的位置如下，现已全部改完并重新打包：
 
 ```
 android/app/build.gradle.kts          namespace / applicationId
@@ -87,7 +87,7 @@ flutter build apk --release \
 
 ```
 ✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (75.0MB)
-package: name='com.meidlinger.sylvakru' versionCode='944069' versionName='4.5.1'
+package: name='com.meidlinger.lain' versionCode='944069' versionName='4.5.1'
 application-label:'Lain'
 application-label-zh:'临音'
 V2 Signer: certificate DN: CN=Lain Build Test, O=Local Test, C=CN
@@ -208,9 +208,9 @@ Linux 用户只能用已导入的字体，系统字体列表为空。上游遗�
 | 应用名（中文） | 森露 | **临音** |
 | 应用名（英文） | Sylvakru | **Lain** |
 | Dart 包名 | `sylvakru` | `lain` |
-| Android applicationId / namespace | `com.afalphy.sylvakru` | `com.meidlinger.sylvakru` |
-| MethodChannel 前缀 | `com.afalphy.*` | `com.meidlinger.sylvakru.*` |
-| iOS bundle id / App Group | `com.afalphy.sylvakru` / `group.com.afalphy.sylvakru` | `com.meidlinger.sylvakru` / `group.com.meidlinger.sylvakru` |
+| Android applicationId / namespace | `com.afalphy.sylvakru` | `com.meidlinger.lain` |
+| MethodChannel 前缀 | `com.afalphy.*` | `com.meidlinger.lain.*` |
+| iOS bundle id / App Group | `com.afalphy.sylvakru` / `group.com.afalphy.sylvakru` | `com.meidlinger.lain` / `group.com.meidlinger.lain` |
 | macOS PRODUCT_NAME | sylvakru | Lain |
 | Linux BINARY_NAME | sylvakru | lain |
 | Windows BINARY_NAME | Sylvakru | Lain |
@@ -220,6 +220,6 @@ Linux 用户只能用已导入的字体，系统字体列表为空。上游遗�
 | iOS 容器目录映射前缀 | `Sylvakru` | `Lain` |
 | Emby Client 标识 | `Client="Sylvakru"` | `Client="Lain"` |
 | Navidrome Client 标识 | `c=Sylvakru` | `c=Lain` |
-| 更新检查 API | `AfalpHy/sylvakru` | `me1dlinger/sylvakru` |
+| 更新检查 API | `AfalpHy/sylvakru` | `me1dlinger/lain` |
 
 > ⚠️ **数据迁移**：按你的选择，数据文件名**未做迁移**。老版本用户升级后播放列表会丢失（新包名与新文件名双重隔离）。

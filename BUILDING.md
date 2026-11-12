@@ -43,7 +43,7 @@ flutter.sdk=E:\\Work\\flutter
 `app/build.gradle.kts` 里 release 用这里的签名；缺少它只能打 debug。示例：
 
 ```properties
-storeFile=E:/Fun/code/sylvakru/android/app/sylvakru.jks
+storeFile=E:/Fun/code/sylvakru/android/app/lain.jks
 storePassword=******
 keyAlias=lain
 keyPassword=******

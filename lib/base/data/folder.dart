@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -14,7 +15,6 @@ import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/webdav_client.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/path.dart';
-import 'package:lain/base/widgets/manage_music_folders.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:path/path.dart';
 
@@ -118,10 +118,11 @@ class Folder {
   }
 
   Future<void> setFileAndModified() async {
+    final scanSubdirectories = folderScansSubdirectories(id);
     if (isWebdav) {
       await for (final file in webdavClient!.listStream(
         path,
-        recursive: recursiveScanNotifier.value,
+        recursive: scanSubdirectories,
       )) {
         if (!file.isDirectory) {
           final ext = extension(file.path).toLowerCase();
@@ -134,10 +135,11 @@ class Folder {
       }
     } else {
       final paths = <String>[];
-      await for (final file in _dir!.list(
-        recursive: recursiveScanNotifier.value,
-      )) {
+      await for (final file in _dir!.list(recursive: scanSubdirectories)) {
         if (file is File) {
+          if (isBlockedFolderPath(file.path)) {
+            continue;
+          }
           final ext = extension(file.path).toLowerCase();
 
           if (!_loftySupportedExts.contains(ext)) {

@@ -98,11 +98,11 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
-  /// No description provided for @sylvakru.
+  /// No description provided for @lain.
   ///
   /// In en, this message translates to:
   /// **'Lain'**
-  String get sylvakru;
+  String get lain;
 
   /// No description provided for @title.
   ///
@@ -235,6 +235,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @settingsMusicSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Music Sources'**
+  String get settingsMusicSource;
+
+  /// No description provided for @localMusicSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Music Source'**
+  String get localMusicSource;
+
+  /// No description provided for @longPressToConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press to configure'**
+  String get longPressToConfigure;
+
+  /// No description provided for @customFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Folders'**
+  String get customFolders;
+
+  /// No description provided for @addCustomFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Custom Folder'**
+  String get addCustomFolder;
+
+  /// No description provided for @startScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Scan'**
+  String get startScan;
+
+  /// No description provided for @scanSubdirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Subdirectories'**
+  String get scanSubdirectories;
+
+  /// No description provided for @blockedFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked Folders'**
+  String get blockedFolders;
+
+  /// No description provided for @addBlockedFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Blocked Folder'**
+  String get addBlockedFolder;
+
+  /// No description provided for @noBlockedFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'No blocked folders'**
+  String get noBlockedFolders;
+
+  /// No description provided for @skipShortAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip audio under {seconds} seconds'**
+  String skipShortAudio(int seconds);
+
+  /// No description provided for @minimumAudioLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum Audio Length'**
+  String get minimumAudioLength;
+
+  /// No description provided for @manageStoragePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage External Storage Permission'**
+  String get manageStoragePermission;
+
+  /// No description provided for @settingsUserInterface.
+  ///
+  /// In en, this message translates to:
+  /// **'User Interface'**
+  String get settingsUserInterface;
+
+  /// No description provided for @settingsPlaybackLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback & Lyrics'**
+  String get settingsPlaybackLyrics;
+
+  /// No description provided for @settingsNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsNotifications;
+
+  /// No description provided for @settingsStartupBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Startup & Background'**
+  String get settingsStartupBackground;
+
+  /// No description provided for @settingsCacheDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache & Downloads'**
+  String get settingsCacheDownloads;
+
+  /// No description provided for @settingsHelpFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Feedback'**
+  String get settingsHelpFeedback;
+
+  /// No description provided for @feedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedback;
+
+  /// No description provided for @customizeSettingsOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize Menu Order'**
+  String get customizeSettingsOrder;
+
+  /// No description provided for @offlineMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline Mode'**
+  String get offlineMode;
+
+  /// No description provided for @offlineModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Local music only; online sources are locked'**
+  String get offlineModeDescription;
+
+  /// No description provided for @offlineModeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode is on; online music sources are locked'**
+  String get offlineModeBlocked;
 
   /// No description provided for @reload.
   ///
@@ -1070,6 +1214,18 @@ abstract class AppLocalizations {
   /// **'Transcode Format'**
   String get streamFormat;
 
+  /// No description provided for @mobileDataWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Cellular Data Warning'**
+  String get mobileDataWarning;
+
+  /// No description provided for @mobileDataNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming online music over mobile data'**
+  String get mobileDataNotice;
+
   /// No description provided for @serverScheme.
   ///
   /// In en, this message translates to:
@@ -1255,6 +1411,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cache Every Song\'s Info'**
   String get precacheAll;
+
+  /// No description provided for @cacheTaskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching songs'**
+  String get cacheTaskTitle;
+
+  /// No description provided for @cacheBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Run in Background'**
+  String get cacheBackground;
+
+  /// No description provided for @cacheMovedToBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching continues in the background'**
+  String get cacheMovedToBackground;
+
+  /// No description provided for @cacheTaskDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching finished'**
+  String get cacheTaskDone;
+
+  /// No description provided for @cacheTaskCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching canceled'**
+  String get cacheTaskCanceled;
+
+  /// No description provided for @cacheTaskBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'A caching task is already running'**
+  String get cacheTaskBusy;
+
+  /// No description provided for @cacheFailedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String cacheFailedCount(int count);
+
+  /// No description provided for @cacheBackPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching is still running. Cancel it or run it in the background?'**
+  String get cacheBackPrompt;
+
+  /// No description provided for @cacheKeepRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Waiting'**
+  String get cacheKeepRunning;
 
   /// No description provided for @added2Next.
   ///
@@ -1603,6 +1813,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Syncing library, try again later'**
   String get syncingTryLater;
+
+  /// No description provided for @syncDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Library synced'**
+  String get syncDone;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
 
   /// No description provided for @all.
   ///

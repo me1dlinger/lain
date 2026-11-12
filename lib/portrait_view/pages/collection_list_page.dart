@@ -197,6 +197,7 @@ extension _CollectionListPage on CollectionListState {
                 size: 50,
                 borderRadius: 5,
                 picture: picture,
+                fallbackPicture: fallbackPictureAt(index),
               ),
             ),
             title: Text(text, style: .new(overflow: .ellipsis)),
@@ -256,6 +257,7 @@ extension _CollectionListPage on CollectionListState {
                           size: constraints.maxWidth,
                           borderRadius: constraints.maxWidth / 10,
                           picture: picture,
+                          fallbackPicture: fallbackPictureAt(index),
                         ),
                       ),
                       onTap: () {

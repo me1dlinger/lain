@@ -350,13 +350,14 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
-  Future<Uint8List?> getPictureBytes(String id) async {
+  Future<Uint8List?> getPictureBytes(String id, {int size = 600}) async {
     return safeRequest(
       '/rest/getCoverArt.view',
-      // Navidrome can render a cover at a asked-for size; without it a playlist
-      // cover is a multi-megabyte original that has to be decoded every time it
-      // is shown. 600px is ample for every place the app draws one.
-      query: {'id': id, 'size': 600},
+      // Navidrome can render a cover at an asked-for size; without it a
+      // playlist cover is a multi-megabyte original that has to be decoded
+      // every time it is shown. 600px is ample for most places the app draws
+      // one; artist thumbnails ask for less.
+      query: {'id': id, 'size': size},
       options: Options(responseType: ResponseType.bytes),
     );
   }
@@ -389,7 +390,9 @@ class NavidromeClient extends StreamClient {
     if (response == null) {
       return {};
     }
-    final items = normalize(response['starred2'][isArtist ? 'artist' : 'album']);
+    final items = normalize(
+      response['starred2'][isArtist ? 'artist' : 'album'],
+    );
     return {
       for (final item in items ?? [])
         item['id'].toString(): item['starred'] != null
@@ -421,8 +424,8 @@ class NavidromeClient extends StreamClient {
       return null;
     }
     final biography = info['biography']?.toString();
-    final imageUrl =
-        (info['largeImageUrl'] ?? info['mediumImageUrl'])?.toString();
+    final imageUrl = (info['largeImageUrl'] ?? info['mediumImageUrl'])
+        ?.toString();
     return (
       biography: (biography == null || biography.isEmpty) ? null : biography,
       imageUrl: (imageUrl == null || imageUrl.isEmpty) ? null : imageUrl,
@@ -462,7 +465,9 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
-  Future<String?> getArtistImageUrl(String artistId) async {
+  Future<({String? imageUrl, bool hasImage})?> getArtistImageInfo(
+    String artistId,
+  ) async {
     final token = await _nativeTokenIfAvailable();
     if (token == null) {
       return null;
@@ -472,9 +477,14 @@ class NavidromeClient extends StreamClient {
         '$_nativeRoot/api/artist/$artistId',
         options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
       );
-      final url = (response.data?['largeImageUrl'] ?? response.data?['imageUrl'])
-          ?.toString();
-      return (url == null || url.isEmpty) ? null : url;
+      final data = response.data;
+      final url = (data?['largeImageUrl'] ?? data?['imageUrl'])?.toString();
+      final imageUrl = (url == null || url.isEmpty) ? null : url;
+      // The same test the artist list uses: an image hash means the server has
+      // its own image, and imageAbsent false means it visibly has one.
+      final imageHash = data?['imageHash']?.toString() ?? '';
+      final hasImage = imageHash.isNotEmpty || data?['imageAbsent'] == false;
+      return (imageUrl: imageUrl, hasImage: hasImage);
     } catch (e) {
       logger.output('[Navidrome] artist image $artistId: $e');
       return null;
@@ -616,15 +626,23 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
-  Future<bool> downloadSong(String songId, String savePath) async {
-    return _download(getStreamUrl(songId), savePath);
+  Future<bool> downloadSong(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) async {
+    return _download(getStreamUrl(songId), savePath, cancelToken: cancelToken);
   }
 
   /// `/rest/download` with `format=raw&bitrate=0` hands over the file itself,
   /// where `/rest/stream` would honour the stream quality settings. A download
   /// is meant to be the original.
   @override
-  Future<bool> downloadOriginal(String songId, String savePath) async {
+  Future<bool> downloadOriginal(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) async {
     final url = Uri.parse(baseUrl)
         .resolve('rest/download.view')
         .replace(
@@ -635,12 +653,20 @@ class NavidromeClient extends StreamClient {
           }),
         )
         .toString();
-    return _download(url, savePath);
+    return _download(url, savePath, cancelToken: cancelToken);
   }
 
-  Future<bool> _download(String url, String savePath) async {
+  Future<bool> _download(
+    String url,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final response = await dio.download(url, savePath);
+      final response = await dio.download(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+      );
       return response.statusCode == 200;
     } on DioException catch (e) {
       logger.output('[$runtimeType] Download failed: ${e.message}');
@@ -739,8 +765,9 @@ void _writeCuedEntry(StringBuffer buffer, Map entry, List entries) {
   for (final index in layers.keys.toList()..sort()) {
     final cueLines = layers[index]!;
     final lineMeta = index >= 0 && index < lines.length ? lines[index] : null;
-    final fallbackStart =
-        lineMeta is Map && lineMeta['start'] is num ? lineMeta['start'] as num : null;
+    final fallbackStart = lineMeta is Map && lineMeta['start'] is num
+        ? lineMeta['start'] as num
+        : null;
     final startRaw = cueLines.first['start'];
     final start = startRaw is num ? startRaw : fallbackStart;
     if (start == null) {
@@ -750,7 +777,8 @@ void _writeCuedEntry(StringBuffer buffer, Map entry, List entries) {
 
     final cues = <(int, String)>[];
     for (final cueLine in cueLines) {
-      for (final cue in ((cueLine['cue'] ?? const []) as List).whereType<Map>()) {
+      for (final cue
+          in ((cueLine['cue'] ?? const []) as List).whereType<Map>()) {
         final cueStart = cue['start'];
         if (cueStart is! num) {
           continue;

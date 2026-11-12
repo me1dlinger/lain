@@ -270,6 +270,7 @@ class WebDavClient {
     required String remotePath,
     required String localPath,
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     return _boolRequest(
       'download $remotePath',
@@ -277,6 +278,7 @@ class WebDavClient {
         remotePath,
         localPath,
         onReceiveProgress: onReceiveProgress,
+        cancelToken: cancelToken,
       ),
     );
   }

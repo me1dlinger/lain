@@ -252,7 +252,7 @@ class EmbyClient extends StreamClient {
           'IncludeItemTypes': 'Audio',
           'Recursive': true,
           'StartIndex': 0,
-          'Limit': 100,
+          'Limit': 200,
         },
       ),
       parser: (res) => res.data as Map<String, dynamic>?,
@@ -459,13 +459,13 @@ class EmbyClient extends StreamClient {
         'AudioCodec': streamFormatNotifier.value.embyValue,
       },
     };
-    return Uri.parse('${dio.options.baseUrl}/Audio/$id/stream')
-        .replace(queryParameters: query)
-        .toString();
+    return Uri.parse(
+      '${dio.options.baseUrl}/Audio/$id/stream',
+    ).replace(queryParameters: query).toString();
   }
 
   @override
-  Future<Uint8List?> getPictureBytes(String id) async {
+  Future<Uint8List?> getPictureBytes(String id, {int size = 600}) async {
     return safeRequest<Uint8List>(
       () => dio.get<List<int>>(
         '/Items/$id/Images/Primary',
@@ -490,12 +490,17 @@ class EmbyClient extends StreamClient {
   }
 
   @override
-  Future<bool> downloadSong(String songId, String savePath) async {
+  Future<bool> downloadSong(
+    String songId,
+    String savePath, {
+    CancelToken? cancelToken,
+  }) async {
     try {
       final response = await dio.download(
         '/Items/$songId/Download',
         savePath,
         queryParameters: {'api_key': accessToken},
+        cancelToken: cancelToken,
       );
       return response.statusCode == 200;
     } on DioException catch (e) {

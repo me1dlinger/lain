@@ -23,6 +23,18 @@ Widget customAppBarLeading(BuildContext context, {String label = ''}) {
           onPressed: () => layersManager.popDetail(label),
         );
       }
+      // Settings is left the same way the system back gesture leaves it, with
+      // the reverse drawer animation, instead of switching forward to home.
+      if (root == 'settings') {
+        return IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            if (!layersManager.popRootLayer()) {
+              layersManager.switchRootLayer('home');
+            }
+          },
+        );
+      }
       if (root == 'home') {
         return IconButton(
           icon: const Icon(Icons.settings_outlined),

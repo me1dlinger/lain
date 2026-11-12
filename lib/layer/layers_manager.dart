@@ -66,6 +66,10 @@ class LayersManager {
   Widget? topRootPage;
   Widget? bottomRootPage;
 
+  /// True while the animation is a step back to the previous root page: the
+  /// old page slides out instead of the new one sliding in.
+  bool rootGoingBack = false;
+
   final backgroundChangeNotifier = ValueNotifier(0);
   final switchNotifier = ValueNotifier(0);
 
@@ -187,6 +191,7 @@ class LayersManager {
       );
     }
 
+    rootGoingBack = !record;
     currentRootLabel.value = label;
     if (record) {
       // Like a browser: re-visiting a page drops whatever came after it.
@@ -281,7 +286,9 @@ class LayersManager {
 
   /// The navigator and visibility of a root page, by its label; null when the
   /// label names no page.
-  (GlobalKey<NavigatorState>, ValueNotifier<bool>)? _rootTargetOf(String label) {
+  (GlobalKey<NavigatorState>, ValueNotifier<bool>)? _rootTargetOf(
+    String label,
+  ) {
     switch (label) {
       case 'artists':
         return (artistsKey, artistsVisibleNotifier);
@@ -568,7 +575,7 @@ class LayersManager {
   }
 
   /// Gives a page opened as a route the same backdrop a root layer has, coloured
-/// from [picture]; the page is wrapped with createPage by the caller.
+  /// from [picture]; the page is wrapped with createPage by the caller.
   Future<void> styleRouteLayer(Widget layer, MyPicture? picture) async {
     final color = await computeColor(picture);
     _updateLayerInfo(layer, picture, color);

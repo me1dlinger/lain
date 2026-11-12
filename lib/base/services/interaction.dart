@@ -434,29 +434,39 @@ Future<void> showFullTextDialog(
 ) {
   return showAnimationDialog<void>(
     context: context,
-    child: GestureDetector(
-      onTap: () => Navigator.pop(context),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Text(
-                  cleanRichText(text),
-                  style: const TextStyle(height: 1.5),
+    child: SizedBox(
+      // 90% of the screen keeps a gap on both sides, so this reads as a card
+      // rather than a full-width sheet. Capped on wide screens.
+      width: (MediaQuery.sizeOf(context).width * 0.9)
+          .clamp(0.0, 720.0)
+          .toDouble(),
+      child: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(
+                    cleanRichText(text),
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -673,7 +683,7 @@ class MenuPositionDelegate extends SingleChildLayoutDelegate {
 }
 
 class NativeMenu {
-  static const _channel = MethodChannel('com.meidlinger.sylvakru.menu');
+  static const _channel = MethodChannel('com.meidlinger.lain.menu');
 
   static final Map<IconData, Uint8List> _iconMap = {};
 
@@ -892,6 +902,7 @@ void showSongOptions({
   String? excludedArtist,
   bool includeGoToAlbum = false,
   bool includeEdit = false,
+
   /// Offers "view the cache" for a streamed song; a local one has none.
   bool includeCacheInfo = false,
   Playlist? playlist,

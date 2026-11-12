@@ -10,6 +10,11 @@ class CoverArtWidget extends StatelessWidget {
   final double? size;
   final double borderRadius;
   final MyPicture? picture;
+
+  /// Shown when [picture] has nothing to display (an artist without an image
+  /// uses an album cover). A music note is only used when this is null too.
+  final MyPicture? fallbackPicture;
+
   final String? picturePath;
   final double elevation;
   final Color? color;
@@ -20,6 +25,7 @@ class CoverArtWidget extends StatelessWidget {
     this.size,
     this.borderRadius = 0,
     this.picture,
+    this.fallbackPicture,
     this.picturePath,
     this.elevation = 0,
     this.color,
@@ -46,17 +52,35 @@ class CoverArtWidget extends StatelessWidget {
       return imageWidget(picturePath!);
     }
     if (picture == null) {
-      return musicNote();
+      return fallbackContent();
     }
 
     if (picture!.isLoaded) {
-      return picture!.isExist ? imageWidget(picture!.path) : musicNote();
+      return picture!.isExist ? imageWidget(picture!.path) : fallbackContent();
     }
     return _FuturePicture(
       picture: picture!,
       size: size,
       imageWidget: imageWidget,
-      musicNote: musicNote,
+      fallback: fallbackContent,
+      // An artist image can take a while (an external URL); show the album
+      // cover in the meantime instead of an empty hole.
+      loading: fallbackPicture == null ? null : fallbackContent(),
+    );
+  }
+
+  /// The album cover to use when the requested picture is missing. A picture
+  /// that is itself the fallback (or no fallback at all) shows the note.
+  Widget fallbackContent() {
+    final fallback = fallbackPicture;
+    if (fallback == null || fallback.id == picture?.id) {
+      return musicNote();
+    }
+    return CoverArtWidget(
+      size: size,
+      borderRadius: borderRadius,
+      picture: fallback,
+      useResize: useResize,
     );
   }
 
@@ -72,7 +96,7 @@ class CoverArtWidget extends StatelessWidget {
       fit: size != null ? .contain : .cover,
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
-        return musicNote();
+        return fallbackContent();
       },
     );
   }
@@ -88,13 +112,18 @@ class _FuturePicture extends StatefulWidget {
   final MyPicture picture;
   final double? size;
   final Widget Function(String) imageWidget;
-  final Widget Function() musicNote;
+  final Widget Function() fallback;
+
+  /// Shown while the load is in progress, when there is something better than
+  /// empty space to show (an album cover for an artist image).
+  final Widget? loading;
 
   const _FuturePicture({
     required this.picture,
     required this.size,
     required this.imageWidget,
-    required this.musicNote,
+    required this.fallback,
+    this.loading,
   });
   @override
   State<StatefulWidget> createState() => _FuturePictureState();
@@ -120,11 +149,14 @@ class _FuturePictureState extends State<_FuturePicture> {
       future: loadPictureSafe(widget.picture, widgetId: widgetId),
       builder: (context, asyncSnapshot) {
         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
-          return SizedBox(width: widget.size, height: widget.size);
+          return widget.loading ??
+              SizedBox(width: widget.size, height: widget.size);
         }
 
-        if (asyncSnapshot.hasError) {
-          return widget.musicNote();
+        // A load that produced no file is the same as a missing image: the
+        // album cover replaces it instead of a music note.
+        if (asyncSnapshot.hasError || !widget.picture.isExist) {
+          return widget.fallback();
         }
         return widget.imageWidget(widget.picture.path);
       },

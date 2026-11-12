@@ -174,6 +174,7 @@ extension _CollectionListPanel on CollectionListState {
                                 size: constraints.maxWidth,
                                 borderRadius: constraints.maxWidth / 10,
                                 picture: picture,
+                                fallbackPicture: fallbackPictureAt(index),
                               ),
                             ),
                             onTap: () {
