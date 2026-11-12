@@ -116,6 +116,8 @@ audio_service 包内部 `_observeMediaItem()` 的 `file://` 分支是唯一没�
 1. **不要自己打包** —— 用户明确要求：**不要在本机打包**（NAS 内存不够，打包会把机器打崩）。
    做完就**提交代码**，用户会去另一台电脑 `git pull` 自己打包。提交可以主动。
 2. **不要自己拉上游仓库** —— 用户说"我跟上游已经几乎没关系了"。
+   现在工程已独立成 `git@github.com:me1dlinger/lain.git`（远端名 `lain`，主分支 `main`），
+   本地工作分支仍是 `rebrand/lain`，跟踪 `lain/main`。原来的 `origin`（me1dlinger/sylvakru）已移除。
 3. **不要自作主张改包名/品牌** —— 命名已定，改动前必须问。
 4. 用户会中途喊"你一直停" —— 意思是 agent 卡住了，**直接继续干活**，不要解释。
 
