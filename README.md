@@ -1,185 +1,133 @@
-# English | [简体中文](./README-zh.md)
+# 简体中文 | [English](./README-en.md)
 
 <div align="center">
   <img src="./app_icons/icon.png" width="160" alt="Lain Icon"/>
 
   <br />
 
-  # Lain (临音)
+  # 临音 (Lain)
 
-  _"A private music oasis in the digital world."_
+  _"数字世界里的私人音乐绿洲。"_
 
 </div>
 
-Lain is a cross-platform music player for local libraries and self-hosted media services, supporting Android, iOS, Windows, Linux, and macOS.
+临音是一个面向本地曲库与自建媒体服务的跨平台音乐播放器，支持 Android、iOS、Windows、Linux 与 macOS。
 
-Currently supports:
-- Local
+目前支持的音源：
+- 本地
 - WebDAV
 - Navidrome
 - Emby
-- Feiniu Music (special thanks to [huya688zdx](https://github.com/huya688zdx) for the contribution)
+- 飞牛音乐（特别感谢 [huya688zdx](https://github.com/huya688zdx) 的贡献）
 
-## About this project
+## 关于本工程
 
-Lain is a **derivative work** of [Sylvakru](https://github.com/AfalpHy/sylvakru) (formerly Particle Music),
-originally created by [AfalpHy](https://github.com/AfalpHy). It is developed here as an **independent project**,
-with its own application identifier, its own release channel and its own development direction, and it no longer
-takes changes from the upstream repository automatically.
+临音是基于 [Sylvakru](https://github.com/AfalpHy/sylvakru)（原 Particle Music）的**二次开发**工程，原工程由
+[AfalpHy](https://github.com/AfalpHy) 创建。本仓库作为**独立工程**维护，有独立的应用标识、独立的发行渠道和独立的
+发展方向，也不再自动跟随上游仓库的改动。
 
-The upstream project is the foundation of everything here; this repository starts from its last commit and moves
-on from there. It stays open source under the same license as the upstream project —
-the [Apache License 2.0](./LICENSE). Upstream copyright notices are kept in [NOTICE](./NOTICE); every change made
-here is listed in the git history and summarised below and in the release notes.
+上游工程是这里一切的基础，本仓库从它的最后一个提交出发，在此之上继续演进。本工程仍以与上游相同的许可证开源——
+[Apache License 2.0](./LICENSE)；上游的版权声明保留在 [NOTICE](./NOTICE) 中，本工程所做的每一处改动都记录在
+git 历史里，并在各版本的发行说明中汇总。
 
-### What has been changed in this derivative
+## USB 独占模式（Android）
 
-**Identity**
+USB 独占模式不在本工程中；需要该功能请使用由 [huya688zdx](https://github.com/huya688zdx) 维护的
+[上游 fork](https://github.com/huya688zdx/sylvakru)。
 
-- Application name: Sylvakru / 森露 → **Lain / 临音**; Dart package `sylvakru` → `lain`.
-- Application identifier and every MethodChannel, iOS bundle id, App Group, Linux and Windows binary name follow
-  `com.meidlinger.sylvakru`.
-- Runtime files (`playback`, single-instance lock and port, iOS keeper file) and the download folder are `lain_*` /
-  `Lain`.
-- Update check points at this repository; the original README was rewritten (both languages) and `BUILDING.md` was
-  added.
+## 支持的格式
 
-**Playback and media session**
+| 文件格式 | 元数据格式                   |
+|----------|------------------------------|
+| AAC (ADTS) | `ID3v2`, `ID3v1`           |
+| Ape        | `APE`, `ID3v2`\*, `ID3v1`  |
+| AIFF       | `ID3v2`, `Text Chunks`     |
+| FLAC       | `Vorbis Comments`, `ID3v2`\* |
+| MP3        | `ID3v2`, `ID3v1`, `APE`    |
+| MP4        | `iTunes-style ilst`        |
+| MPC        | `APE`, `ID3v2`\*, `ID3v1`\* |
+| Opus       | `Vorbis Comments`          |
+| Ogg Vorbis | `Vorbis Comments`          |
+| Speex      | `Vorbis Comments`          |
+| WAV        | `ID3v2`, `RIFF INFO`       |
+| WavPack    | `APE`, `ID3v1`             |
 
-- A track no longer replays itself when a stream reports the end of a buffered segment as the end of the song:
-  completions are classified by position, a duplicate end-of-track is ignored, and a second open of the track being
-  opened is refused.
-- Head units no longer get stuck on the previous track: the media item is published in the same instant as the
-  track, and the artwork is handed over as a `content://` URI on Android so the session update is not racing the
-  next one.
-- A stream that ends no longer restarts from the beginning; the relay passes a known `Content-Length` through so a
-  stalled transfer cannot be mistaken for the end of the file.
-- `[media]` and `[playback]` diagnostics in the app log (exportable from the settings) and on `adb logcat`.
+\* 因官方不支持，该类标签**只能读取**。
 
-**Library and metadata**
+## 音频处理
 
-- One rule decides which songs belong to an artist, for the artist list, the artist page and the big-picture view
-  alike; a tag holding `D、E` or `D, E` is split on the ideographic comma and the full-width forms as well, so an
-  artist no longer collects songs whose tag merely contains its name.
-- Artist biographies and images are cached per artist name across sources and launches, and can be refreshed from
-  the artist list.
+- [audio_tags_lofty](https://github.com/AfalpHy/audio_tags_lofty.git) —— 读写音频标签（基于 lofty）
+- [media_kit](https://github.com/media-kit/media-kit.git) —— 音频播放（基于 mpv/FFmpeg）
 
-**Android experience**
+## 运行与构建
 
-- A single home page, server manager, sorting sheet, listening statistics, home-screen widgets (now playing and
-  playlists), lyric line in the system media session, playlists and downloads, playlist import/export.
-- Streamed songs show which ones are cached, and a song's cached cover, lyric and size are one tap away in its menu.
-- The playlist download button really downloads audio.
+按照 [Flutter 官方安装文档](https://docs.flutter.dev/install/manual) 安装 Flutter。
 
-**Packaging**
-
-- `compileSdk 37.0` support, a lowered Gradle heap for low-memory machines, and a documented build path in
-  [BUILDING.md](./BUILDING.md); `generate_deb.sh` / `generate_rpm.sh` for Linux packages.
-
-**Bug fixes carried in this line**
-
-- iOS portrait vibration setting was swallowed by an empty `if`.
-- The "settings count" shown in the settings page was hard-coded and out of date.
-- Long-pressing an artist to refresh its cache was possible only in the portrait artist list.
-
-## USB Exclusive Mode (Android)
-
-USB Exclusive Mode is not part of this build; for that please use the
-[upstream fork](https://github.com/huya688zdx/sylvakru) maintained by [huya688zdx](https://github.com/huya688zdx).
-
-## Supported Formats
-
-| File Format | Metadata Format(s)           |
-|-------------|------------------------------|
-| AAC (ADTS)  | `ID3v2`, `ID3v1`             |
-| Ape         | `APE`, `ID3v2`\*, `ID3v1`    |
-| AIFF        | `ID3v2`, `Text Chunks`       |
-| FLAC        | `Vorbis Comments`, `ID3v2`\* |
-| MP3         | `ID3v2`, `ID3v1`, `APE`      |
-| MP4         | `iTunes-style ilst`          |
-| MPC         | `APE`, `ID3v2`\*, `ID3v1`\*  |
-| Opus        | `Vorbis Comments`            |
-| Ogg Vorbis  | `Vorbis Comments`            |
-| Speex       | `Vorbis Comments`            |
-| WAV         | `ID3v2`, `RIFF INFO`         |
-| WavPack     | `APE`, `ID3v1`               |
-
-\* The tag will be **read only**, due to lack of official support
-
-## Audio Processing
-
-- [audio_tags_lofty](https://github.com/AfalpHy/audio_tags_lofty.git) — for reading and writing audio tags (based on lofty)
-- [media_kit](https://github.com/media-kit/media-kit.git) — for audio playback (based on mpv/FFmpeg)
-
-## Run & Build
-
-Install Flutter by following the [official Flutter installation guide](https://docs.flutter.dev/install/manual).
-
-### Ubuntu/Debian
+### Ubuntu / Debian
 
 ```shell
-# Flutter dependencies:
+# Flutter 依赖：
 sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
 
-# audio lib
+# 音频库
 sudo apt install libmpv-dev
 
 git clone git@github.com:me1dlinger/lain.git
 cd lain
-# check the development environment
+# 检查开发环境
 flutter doctor -v
-# run in debug mode
+# 调试运行
 flutter run
-# run in release mode
+# 发布模式运行
 flutter run --release
-# build
+# 构建
 flutter build linux
-# if you want to generate a .deb package
+# 需要 .deb 包
 flutter build linux && ./generate_deb.sh
 
-# if you want to generate a .rpm package
+# 需要 .rpm 包
 sudo apt install rpm
 flutter build linux && ./generate_rpm.sh
 ```
 
 ### Windows
 
-Install [Visual Studio](https://visualstudio.microsoft.com/).
+安装 [Visual Studio](https://visualstudio.microsoft.com/)。
 
 ```shell
 git clone git@github.com:me1dlinger/lain.git
 cd lain
-# check the development environment
+# 检查开发环境
 flutter doctor -v
-# run in debug mode
+# 调试运行
 flutter run
-# run in release mode
+# 发布模式运行
 flutter run --release
-# build
+# 构建
 flutter build windows
 ```
 
-### macOS & iOS
+### macOS 与 iOS
 
-Install Xcode and the Xcode Command Line Tools by following the [official Apple Developer download page](https://developer.apple.com/download/all/).
+按照 [Apple 开发者下载页](https://developer.apple.com/download/all/) 安装 Xcode 与命令行工具。
 
 ```shell
 git clone git@github.com:me1dlinger/lain.git
 cd lain
 
-# install CocoaPods
+# 安装 CocoaPods
 brew install cocoapods
 
-# check the development environment
+# 检查开发环境
 flutter doctor -v
-# run in debug mode
+# 调试运行
 flutter run
-# run in release mode
+# 发布模式运行
 flutter run --release
-# build
+# 构建
 flutter build macos
 
-# build an unsigned ipa
+# 构建未签名的 ipa
 flutter build ios --release --no-codesign && \
 mkdir -p Payload && \
 cp -r build/ios/iphoneos/Runner.app Payload/ && \
@@ -189,33 +137,33 @@ rm -rf Payload
 
 ### Android
 
-Install [Android Studio](https://developer.android.com/studio) and Android SDK Command-line Tools
+安装 [Android Studio](https://developer.android.com/studio) 与 Android SDK 命令行工具。
 
 ```shell
 git clone git@github.com:me1dlinger/lain.git
 cd lain
-# accept the SDK licenses
+# 接受 SDK 许可
 flutter doctor --android-licenses
-# check the development environment
+# 检查开发环境
 flutter doctor -v
-# run in debug mode
+# 调试运行
 flutter run
-# run in release mode
+# 发布模式运行
 flutter run --release
-# build
+# 构建
 flutter build apk
-# split abi
+# 按 ABI 拆分
 flutter build apk --split-per-abi
-# build TV
+# 构建 TV 版
 flutter build apk --dart-define=TV=true
 ```
 
-See [BUILDING.md](./BUILDING.md) for the Android toolchain notes this project needs
-(`compileSdk 37.0`, JDK 17, a low Gradle heap on small machines).
+本工程 Android 侧需要的工具链说明（`compileSdk 37.0`、JDK 17、小内存机器下调低 Gradle 堆）见
+[BUILDING.md](./BUILDING.md)。
 
-## Screenshots
+## 截图
 
-### On Mobile
+### 移动端
 
 - iPhone
 <div>
@@ -241,7 +189,7 @@ See [BUILDING.md](./BUILDING.md) for the Android toolchain notes this project ne
 ![](./screenshots/mobile11.png)
 ![](./screenshots/mobile12.png)
 
-### On Desktop
+### 桌面端
 
 ![](./screenshots/desktop0.png)
 ![](./screenshots/desktop1.png)
@@ -251,8 +199,7 @@ See [BUILDING.md](./BUILDING.md) for the Android toolchain notes this project ne
 ![](./screenshots/desktop5.png)
 ![](./screenshots/desktop6.png)
 
-## License
+## 许可证
 
-[Apache License 2.0](./LICENSE). Lain is a derivative work of
-[Sylvakru](https://github.com/AfalpHy/sylvakru) by [AfalpHy](https://github.com/AfalpHy); see
-[NOTICE](./NOTICE) for the upstream copyright.
+[Apache License 2.0](./LICENSE)。临音是基于 [AfalpHy](https://github.com/AfalpHy) 的
+[Sylvakru](https://github.com/AfalpHy/sylvakru) 的二次开发工程，上游版权声明见 [NOTICE](./NOTICE)。
