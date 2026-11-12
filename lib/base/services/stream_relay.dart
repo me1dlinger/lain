@@ -167,8 +167,11 @@ class StreamRelay {
 
   /// A cover URL a head unit can fetch, resolved *synchronously*.
   ///
-  /// Null when the relay has not warmed up yet or this device has no LAN
-  /// address; the caller then resolves it asynchronously and re-publishes.
+  /// Null only when this device has no LAN address (the relay is warmed up as
+  /// part of app startup, and the token is registered here rather than on the
+  /// first request, so a head unit that asks for the artwork of the track that
+  /// was just announced finds it already there); the caller then resolves it
+  /// asynchronously and re-publishes.
   String? coverUrlSync({
     String? url,
     String? filePath,
@@ -178,7 +181,23 @@ class StreamRelay {
     if (base == null) {
       return null;
     }
-    final key = filePath ?? url ?? '';
+    return coverUrlFor(filePath ?? url ?? '', base, url, headers, filePath);
+  }
+
+  /// The URL for an artwork [key] on host [base], or null when [key] is empty.
+  ///
+  /// Public so the machinery that decides *which* cover the media session
+  /// publishes can pick between artwork sizes, and still end up with a stable
+  /// URL per artwork (the token is keyed by [key], so asking for the same
+  /// artwork twice returns the same URL and the head unit does not have to
+  /// re-fetch it).
+  String? coverUrlFor(
+    String key,
+    String base,
+    String? url,
+    Map<String, String>? headers,
+    String? filePath,
+  ) {
     if (key.isEmpty) {
       return null;
     }

@@ -27,6 +27,9 @@ import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/lyric.dart';
 import 'package:lain/base/services/media_session_item.dart';
 import 'package:lain/base/services/media_art.dart';
+import 'package:lain/base/services/media_broadcast.dart';
+import 'package:lain/base/services/audio_focus.dart';
+import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/path.dart';
@@ -111,7 +114,9 @@ Future<void> initAudioService() async {
     ),
   );
   _session = await AudioSession.instance;
-  await _session.configure(AudioSessionConfiguration.music());
+  // Configure for the playback mode in effect (the handler re-reads the
+  // setting from disk when it starts, so this is the persisted choice).
+  adopt(_session, playbackModeNotifier.value);
 
   await _session.setActive(true);
 
@@ -123,13 +128,13 @@ Future<void> initAudioService() async {
     audioHandler.pause();
   });
 
-  _session.interruptionEventStream.listen((event) {
-    if (event.begin) {
-      audioHandler.pause();
-    } else {
-      audioHandler.play();
-    }
-  });
+  // Interruptions are handled per playback mode: exclusive pauses and resumes,
+  // duck lowers the volume instead of pausing, mix ignores them. The events are
+  // only listened to once the handler exists, since keeping them queued would
+  // act on an interruption that is already over.
+  unawaited(
+    audioHandler.whenReady.then((_) => audioHandler.startPlaybackModeHandling()),
+  );
 
   if (isMobile) {
     const channel = MethodChannel('com.meidlinger.lain.audio_control');
@@ -194,6 +199,47 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _pubCoverPath;
   String? _pubSmallArtPath;
   String? _pubFetchArtUri;
+
+  // The broadcast gate for the system media session: one generation per
+  // announced track (an async cover result from an older one is dropped
+  // instead of overwriting the current track) and one coalesced publish, so a
+  // burst of switches reaches the head unit as a single item instead of a
+  // queue of every track it skipped through.
+  final _broadcast = MediaBroadcaster();
+
+  /// Whether a track switch is in flight: from the moment [load] starts until
+  /// the player has it open. Only read by the completion handler, to tell an
+  /// end-of-track report from the tail of the file that was just replaced.
+  bool _hasSwitchInFlight() {
+    final started = _lastSwitchAt;
+    return started != null &&
+        DateTime.now().difference(started) < const Duration(seconds: 3);
+  }
+
+  /// Whether the load [generation] is the one that should still reach the
+  /// session.
+  bool _isCurrentLoad(int generation) => generation == _loadGeneration;
+
+  /// The artwork announced for the current song, and the version the snapshot's
+  /// item id carries. [MediaBroadcaster.publish] only re-sends an item whose
+  /// key changed, and a consumer (audio_service's bitmap cache, a head unit)
+  /// keys artwork by item id - so a cover that arrived after the first publish
+  /// must change the id, or it is never read.
+  String? _pubArtVersion;
+  int _artVersionCounter = 0;
+
+  /// What the last publish handed to the broadcast gate, so the next one can
+  /// tell a track change or a new cover (publish at once) from a lyric line
+  /// (publish coalesced).
+  String? _deliveredSnapshotId;
+  String? _deliveredSmallArtPath;
+  String? _deliveredFetchArtUri;
+
+  /// The load generation the track switch that is opening was started for.
+  /// Everything a load does after its first await checks it, so a switch that
+  /// was superseded by a later one cannot publish its track or reset the
+  /// session's playback position over the newer one.
+  int _loadGeneration = 0;
 
   // Set when a load aborted before it opened anything (nothing to show yet).
   // The next play() retries the load instead of resuming a player that was
@@ -283,6 +329,21 @@ class MyAudioHandler extends BaseAudioHandler {
         'resumes=$_fakeCompleteResumes${_sinceSwitch()}',
       );
 
+      // A completion that arrives while this track is still opening belongs to
+      // whatever mpv was playing before - the track the user just skipped past,
+      // or the one before it. Advancing on it skipped a track unasked, and on a
+      // car it looked like the session jumping through the queue on its own.
+      // Opening a track resets the completed flag, so the new track still
+      // reports its own end.
+      final loadGenerationAtEntry = _loadGeneration;
+      if (_hasSwitchInFlight()) {
+        _completionLog(
+          'completion while a track is still opening, ignored '
+          '(belongs to the previous file)',
+        );
+        return;
+      }
+
       if (Loader.busy) {
         _completionLog('load in progress, pausing instead of advancing');
         await pause();
@@ -304,20 +365,30 @@ class MyAudioHandler extends BaseAudioHandler {
       // A streamed song can report completion at the end of a buffered
       // segment while it is not over. Only stream sources can: a local file
       // has nowhere to stall, and a player reset can report a position near
-      // zero right after opening - which is why "_resumed already" was not
+      // zero right after opening - which is why "resumed already" was not
       // enough (the first bogus report consumed the allowance, the second one
-      // moved on). A position near the end is the song ending; a completion
-      // that arrives right after a switch is the previous track's tail.
+      // moved on). A completion that arrives right after a switch is the
+      // previous track's tail.
+      //
+      // The old test let one dangerous case through: a report arriving far
+      // from both ends (a seek flush, a demuxer hiccup, a key frame
+      // adjustment) was read as "the song ended" and the player moved on.
+      // With a head unit attached that is exactly the runaway skipping the
+      // user reports, since every such report advanced the queue. A report
+      // that is neither near the start nor near the end is therefore treated
+      // as bogus as well.
       final nearStart = position <= edgeWindow;
       final nearEnd = duration > Duration.zero
           ? (duration - position) <= edgeWindow
           : true;
+      final atEnd = duration > Duration.zero && position >= duration;
       final justSwitched =
           _lastSwitchAt != null &&
           DateTime.now().difference(_lastSwitchAt!) <
               const Duration(milliseconds: 1500);
+      final midTrack = !nearStart && !nearEnd && !atEnd;
       final couldBeSegmentEnd =
-          isStreamSource && (nearStart || !nearEnd) && !justSwitched;
+          isStreamSource && !atEnd && (nearStart || midTrack) && !justSwitched;
 
       if (couldBeSegmentEnd) {
         _fakeCompleteResumes++;
@@ -336,6 +407,13 @@ class MyAudioHandler extends BaseAudioHandler {
       }
 
       _lastCompletionKey = key;
+
+      // The awaits above can have let a later switch start; the end of the
+      // track that was playing then is not the current track's to act on.
+      if (loadGenerationAtEntry != _loadGeneration) {
+        _completionLog('completion superseded by a newer track switch, ignored');
+        return;
+      }
 
       if (playModeNotifier.value == 2) {
         // repeat
@@ -512,6 +590,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
   Future<void> loadStates() async {
     _prepare();
+    _resolvedReady.complete();
     await _loadPlayState();
     await _loadPlayQueueState();
     await _loadEqualizerState();
@@ -881,6 +960,93 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// Resolves right after [_prepare] has run, so code that needs the handler's
+  /// files (or that must act on a loaded state) can wait for it.
+  final Completer<void> _resolvedReady = Completer<void>();
+  late final Future<void> whenReady = _resolvedReady.future;
+
+  /// Applies the selected playback mode to the audio session and keeps it in
+  /// step with [playbackModeNotifier] while the handler lives.
+  InterruptionController? _interruptions;
+  AudioPlaybackMode _appliedPlaybackMode = playbackModeNotifier.value;
+  bool _playbackVolumeDucked = false;
+
+  /// Whether the player was already playing last time it was reported, so
+  /// ducking never starts a paused player and unducking never resumes one the
+  /// user paused meanwhile.
+  bool _wasPlayingOnLastDuck = false;
+
+  /// Starts the interruption handling and applies the current playback mode.
+  /// Called by `initAudioService` once the handler exists.
+  void startPlaybackModeHandling() {
+    final session = _session;
+    unawaited(_applyCurrentPlaybackMode());
+    playbackModeNotifier.addListener(_applyCurrentPlaybackMode);
+
+    _interruptions = InterruptionController(
+      modeOf: () => playbackModeNotifier.value,
+      pause: () => unawaited(pause()),
+      resume: () => unawaited(play()),
+      duck: _duckVolume,
+      unduck: _unduckVolume,
+      isPlaying: () => isPlayingNotifier.value,
+    );
+    session.interruptionEventStream.listen((event) {
+      _interruptions?.handle(event.begin);
+    });
+
+    // Let a live change of mode reach the audio output even when the page that
+    // changed it did not write the settings file itself.
+    playbackModeNotifier.addListener(() {
+      if (playbackModeNotifier.value != _appliedPlaybackMode) {
+        unawaited(_applyCurrentPlaybackMode());
+        debugPrint('playbackMode -> ${playbackModeNotifier.value.name}');
+      }
+    });
+  }
+
+  /// Reconfigures the audio session for [playbackModeNotifier]'s value, and
+  /// takes back the volume if the mode no longer ducks.
+  Future<void> _applyCurrentPlaybackMode() async {
+    if (!isMobile) {
+      return;
+    }
+    final mode = playbackModeNotifier.value;
+    if (mode == _appliedPlaybackMode && !_playbackVolumeDucked) {
+      return;
+    }
+    _appliedPlaybackMode = mode;
+    if (mode != AudioPlaybackMode.duck && _playbackVolumeDucked) {
+      _unduckVolume();
+    }
+    unawaited(applyPlaybackMode(mode));
+  }
+
+  /// Lowers the volume for a duck without pausing. A paused player stays
+  /// paused: its next play() sets the volume from the saved level again.
+  void _duckVolume() {
+    if (!isPlayingNotifier.value) {
+      _wasPlayingOnLastDuck = false;
+      return;
+    }
+    _wasPlayingOnLastDuck = true;
+    _playbackVolumeDucked = true;
+    _player.setVolume(duckedVolumeScaled * 100);
+  }
+
+  /// Gives the volume back to the level the player was using before the duck.
+  void _unduckVolume() {
+    if (!_playbackVolumeDucked) {
+      return;
+    }
+    _playbackVolumeDucked = false;
+    if (!_wasPlayingOnLastDuck) {
+      return;
+    }
+    _wasPlayingOnLastDuck = false;
+    setVolume(volumeNotifier.value);
+  }
+
   /// Starts downloading the queue's next track.
   ///
   /// The transition is the same one [skipToNext] and the automatic advance use,
@@ -965,6 +1131,10 @@ class MyAudioHandler extends BaseAudioHandler {
   /// attempt finished); only a fetch that hangs past [_prepareTimeout] fails.
   Future<bool> _prepareForPlayback(MyAudioMetadata song) async {
     final started = DateTime.now();
+    // The broadcast-sized copy is made in the background (the cover event
+    // republishes when it lands), so it is no longer part of "ready": making
+    // it here put a decode plus a file write in front of every track, which is
+    // exactly what let a burst of next-presses queue up.
     try {
       await Future.wait([
         if (!song.picture.isLoaded)
@@ -981,16 +1151,6 @@ class MyAudioHandler extends BaseAudioHandler {
       // A failure is not a reason to refuse to play.
       _mediaLog('artwork/lyrics failed for ${song.id}: $e');
       return true;
-    }
-
-    // The car is handed a downscaled copy, so making it is part of being ready.
-    final coverPath = song.picture.path;
-    if (coverPath.isNotEmpty && File(coverPath).existsSync()) {
-      try {
-        await mediaArt.smallFor(coverPath).timeout(_prepareTimeout);
-      } catch (e) {
-        _mediaLog('art downscale timed out for ${song.id}: $e');
-      }
     }
 
     _mediaLog(
@@ -1128,6 +1288,12 @@ class MyAudioHandler extends BaseAudioHandler {
         'load requested while index=$_loadingIndex is still opening',
       );
     }
+    // Every track switch takes a generation of its own. A load that is still
+    // waiting for artwork, lyrics or the player to open when the user presses
+    // next again must not touch the session afterwards: that late work is what
+    // published the previous track over the current one and reset the
+    // position, which a head unit then walks through track by track.
+    final loadGeneration = ++_loadGeneration;
     _loading = true;
     _loadingIndex = currentIndex;
     _fakeCompleteResumes = 0;
@@ -1202,7 +1368,11 @@ class MyAudioHandler extends BaseAudioHandler {
 
     currentLyricsIndexNotifier.value = -1;
     _publishedLyric = null;
-    updateServiceMediaItem(currentSong);
+    // Only the load that is still opening the queue's track may announce it:
+    // a load superseded a moment ago has nothing to say to the session.
+    if (_isCurrentLoad(loadGeneration)) {
+      updateServiceMediaItem(currentSong);
+    }
 
     // Lyrics and the artwork are what a head unit shows, so on a phone both are
     // fetched before the stream starts: a track that plays for fifteen seconds
@@ -1213,10 +1383,18 @@ class MyAudioHandler extends BaseAudioHandler {
     // Streamed sources are the exception on a phone too: their artwork and
     // lyrics arrive with the stream, and holding the stream back for them would
     // stall the first play of every track. They are parsed in parallel instead.
+    //
+    // A superseded load gives up here: preparing (or opening) a track the user
+    // has already skipped past would only queue more work behind the one that
+    // matters.
     final gatesPlayback = isMobile && isNotStreamSource;
     final prepared = gatesPlayback
         ? await _prepareForPlayback(currentSong)
         : true;
+    if (!_isCurrentLoad(loadGeneration)) {
+      _completionLog('load of index=$currentIndex superseded, abandoned');
+      return;
+    }
     if (!gatesPlayback) {
       unawaited(setParsedLyrics(currentSong));
     }
@@ -1303,6 +1481,13 @@ class MyAudioHandler extends BaseAudioHandler {
       }
       stop();
       _loading = false;
+    }
+
+    // A superseded load must not reset the session's position: a zero there
+    // is what a head unit reads as the new track starting over.
+    if (!_isCurrentLoad(loadGeneration)) {
+      _completionLog('load of index=$currentIndex superseded, abandoned');
+      return;
     }
 
     updatePlaybackState(postion: Duration.zero);
@@ -1523,6 +1708,9 @@ class MyAudioHandler extends BaseAudioHandler {
       'cover ready for ${song.id} in ${ms}ms'
       '${_sinceSwitch()} (on disk: ${song.picture.isExist})',
     );
+    // The published artwork was "none" until now; this is new artwork, so the
+    // snapshot carrying it gets a new item id (see [_artVersion]).
+    _pubArtVersion = null;
     refreshServiceMediaItem();
     if (isMobile) {
       unawaited(HomeWidgetService.updateNowPlayingWidget());
@@ -1552,11 +1740,17 @@ class MyAudioHandler extends BaseAudioHandler {
   /// Preference: a server URL the car can reach on its own, then this phone on
   /// the LAN through the relay, and only then a `content://` URI - which another
   /// process can read only if it was granted access, but beats nothing.
-  Future<void> _resolveFetchArtUri(MyAudioMetadata song) async {
+  Future<void> _resolveFetchArtUri(MyAudioMetadata song, int generation) async {
     final path = song.picture.path;
     if (path.isEmpty) {
       return;
     }
+
+    // The relay serves the broadcast-sized copy when it exists, so the URL the
+    // head unit gets is the small one. Keyed by the size the relay was told
+    // about, not by the original path, so the same cover at two sizes never
+    // shares a URL.
+    final key = mediaArt.broadcastPathFor(path) ?? path;
 
     final failedAt = _coverUriFailed[path];
     if (failedAt != null) {
@@ -1582,16 +1776,25 @@ class MyAudioHandler extends BaseAudioHandler {
 
     String? uri;
     try {
-      uri = streamRelay.coverUrlSync(filePath: path);
+      uri = streamRelay.coverUrlSync(filePath: key);
       if (uri == null) {
         await streamRelay.warmUp();
-        uri = streamRelay.coverUrlSync(filePath: path);
+        uri = streamRelay.coverUrlSync(filePath: key);
       }
-      uri ??= await _contentUriFor(path);
+      uri ??= await _contentUriFor(key);
     } catch (e) {
       _mediaLog('cover URI failed for $path: $e');
     } finally {
       _fetchUriInFlight.remove(path);
+    }
+
+    // Nothing is applied (and a failure is not remembered for good) unless the
+    // broadcast that asked for this cover is still the current one: a late
+    // answer for the previous track would otherwise overwrite the new track's
+    // artwork, which a head unit renders as a cover that never comes back.
+    if (!_broadcast.isCurrent(generation)) {
+      _mediaLog('cover URI for ${song.id} arrived for an older broadcast');
+      return;
     }
 
     if (uri == null) {
@@ -1611,6 +1814,10 @@ class MyAudioHandler extends BaseAudioHandler {
     _mediaLog('cover URI${_sinceSwitch()}: $uri');
     if (currentSongNotifier.value?.id == song.id) {
       _pubFetchArtUri = uri;
+      // The artwork this snapshot carries changed (none -> a URI): publish it
+      // under a new id, or a consumer that cached the previous item never
+      // reads it.
+      _pubArtVersion = _nextArtVersion();
       refreshServiceMediaItem();
     }
   }
@@ -1635,7 +1842,11 @@ class MyAudioHandler extends BaseAudioHandler {
 
   /// Resolves a cover's content:// URI once and re-publishes when it arrives,
   /// so the track that is playing now switches from file:// to content://.
-  Future<void> _cacheContentUri(MyAudioMetadata song, String path) async {
+  Future<void> _cacheContentUri(
+    MyAudioMetadata song,
+    String path,
+    int generation,
+  ) async {
     if (!_contentUriInFlight.add(path)) {
       return;
     }
@@ -1645,7 +1856,10 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     _contentUriCache[path] = uri;
-    if (currentSongNotifier.value?.id == song.id) {
+    // A content URI resolved for a track that has since been left behind is
+    // only worth the cache entry, not a publish.
+    if (_broadcast.isCurrent(generation) &&
+        currentSongNotifier.value?.id == song.id) {
       refreshServiceMediaItem();
     }
   }
@@ -1664,8 +1878,14 @@ class MyAudioHandler extends BaseAudioHandler {
       _pubCoverPath = null;
       _pubSmallArtPath = null;
       _pubFetchArtUri = null;
+      _pubArtVersion = null;
       _songSwitchedAt = DateTime.now();
     }
+
+    // The generation this snapshot's artwork work belongs to. Anything it
+    // starts in the background carries it, and its result is dropped when the
+    // session has moved on to a later one.
+    final generation = _broadcast.generation;
 
     final path = song.picture.path;
     // Ask the file, not `picture.isExist`: that flag is only set once the
@@ -1687,15 +1907,24 @@ class MyAudioHandler extends BaseAudioHandler {
       } else {
         _pubFileArtUri = File(path).uri.toString();
         if (Platform.isAndroid) {
-          unawaited(_cacheContentUri(song, path));
+          unawaited(_cacheContentUri(song, path, generation));
         }
       }
 
-      // A downscaled copy is what goes to the car; the original can be several
-      // megabytes and a head unit's screen is small.
+      // The broadcast-sized copy is what goes to the car; the original can be
+      // several megabytes and a head unit shows a thumbnail. Nothing else is
+      // ever published as the bitmap.
       _pubSmallArtPath ??= mediaArt.readyPath(path);
-      if (_pubSmallArtPath == null && _smallArtInFlight.add(path)) {
-        unawaited(_resolveSmallArt(song));
+      if (_pubSmallArtPath == null &&
+          _smallArtInFlight.add(path) &&
+          _broadcast.shouldAttemptCover(
+            path,
+            relayGeneration: streamRelay.lanBaseUrlGeneration,
+            generation: generation,
+          )) {
+        unawaited(_resolveSmallArt(song, generation));
+      } else if (_pubSmallArtPath == null) {
+        _smallArtInFlight.remove(path);
       }
     }
 
@@ -1707,13 +1936,18 @@ class MyAudioHandler extends BaseAudioHandler {
       _pubFetchArtUri ??= remote;
     } else if (onDisk) {
       // Everything else is served by the local relay, warm since startup, so
-      // this normally answers synchronously.
-      _pubFetchArtUri ??=
-          _coverUriCache[path] ?? streamRelay.coverUrlSync(filePath: path);
+      // this normally answers synchronously. A unit that reads a URI re-fetches
+      // it on every metadata update, so the broadcast-sized copy is what the
+      // relay serves whenever it exists; the original is only the fallback for
+      // a cover whose small copy could not be made.
+      final key = _pubSmallArtPath ?? path;
+      _pubFetchArtUri ??= _coverUriCache[path] ?? streamRelay.coverUrlSync(
+        filePath: key,
+      );
       if (_pubFetchArtUri != null) {
         _coverUriCache[path] = _pubFetchArtUri!;
       } else {
-        unawaited(_resolveFetchArtUri(song));
+        unawaited(_resolveFetchArtUri(song, generation));
       }
     }
 
@@ -1734,7 +1968,12 @@ class MyAudioHandler extends BaseAudioHandler {
 
   /// Makes (or reuses) the downscaled copy of the current cover, then
   /// re-publishes so the car gets the small one instead of the original.
-  Future<void> _resolveSmallArt(MyAudioMetadata song) async {
+  ///
+  /// The result is only applied while the broadcast it was started for is
+  /// still the current one: a copy finishing after the user skipped on must
+  /// not be written into the next track's snapshot (that is how a cover ended
+  /// up belonging to the wrong song).
+  Future<void> _resolveSmallArt(MyAudioMetadata song, int generation) async {
     final path = song.picture.path;
     String? small;
     try {
@@ -1744,13 +1983,31 @@ class MyAudioHandler extends BaseAudioHandler {
     } finally {
       _smallArtInFlight.remove(path);
     }
-    // Cannot be downscaled (an unusual format): hand the original over rather
-    // than nothing at all.
-    small ??= path;
-    if (_pubSongId != song.id) {
+
+    if (!_broadcast.isCurrent(generation)) {
+      _mediaLog('art downscale for ${song.id} arrived for an older broadcast');
       return;
     }
+    // A copy that could not be made stays unpublished (and is retried by the
+    // next publish) instead of being replaced by the original: the original is
+    // several megabytes, exactly what the broadcast is trying to avoid.
+    if (small == null) {
+      final verdict = _broadcast.handleCoverOutcome(
+        path,
+        CoverOutcome(generation: generation, artPath: null),
+      );
+      _mediaLog(
+        'art downscale produced nothing for $path (retry=${verdict.retryable})',
+      );
+      return;
+    }
+    _broadcast.handleCoverOutcome(
+      path,
+      CoverOutcome(generation: generation, artPath: small),
+    );
     _pubSmallArtPath = small;
+    // New artwork for this snapshot: it must be published under a new id.
+    _pubArtVersion = _nextArtVersion();
     _mediaLog('small art${_sinceSwitch()}: $small');
     refreshServiceMediaItem();
   }
@@ -1769,29 +2026,90 @@ class MyAudioHandler extends BaseAudioHandler {
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
 
-    mediaItem.add(
-      buildServiceMediaItem(
-        id: currentSong.id,
-        songTitle: getTitle(currentSong),
-        artist: getArtist(currentSong),
-        album: getAlbum(currentSong),
-        duration: currentSong.duration,
-        lyric: line,
-        lyricInTitle: controlCenterLyricsNotifier.value,
-        fileArtUri: art.fileUri,
-        artCacheFile: art.smallArtPath,
-        fetchableArtUri: art.fetchUri,
-      ),
-    );
+    final title = getTitle(currentSong);
+    final artist = getArtist(currentSong);
+    final album = getAlbum(currentSong);
+    final lyricInTitle = controlCenterLyricsNotifier.value;
+    // Versioned once there is artwork, so a cover that arrived late (or was
+    // rebuilt after a failure) is published under an id a consumer has not
+    // cached a bitmap for yet.
+    final id = serviceMediaItemId(currentSong.id, _currentArtVersion());
+    final key = Object.hashAll([
+      title,
+      artist,
+      album,
+      line,
+      lyricInTitle,
+      art.fileUri,
+      art.smallArtPath,
+      art.fetchUri,
+    ]);
 
-    _mediaLog(
-      'publish id=${currentSong.id}'
-      ' art=${art.fileUri == null ? 'none' : 'file'}'
-      ' bitmap=${art.smallArtPath == null ? 'none' : 'yes'}'
-      ' fetch=${art.fetchUri ?? 'none'}'
-      ' lyric=${line == null ? '-' : '"$line"'}'
-      '${_sinceSwitch()}',
+    // Publication goes through the broadcast gate: a burst of switches is
+    // coalesced into the last one (the track a head unit can actually show),
+    // and an item identical to what the session already holds is not re-sent -
+    // a repeated metadata update makes AVRCP and Android Auto re-read the
+    // artwork, which is the expensive part of every track change. A track
+    // switch and a newly arrived cover are published at once; a lyric line is
+    // coalesced.
+    _broadcast.publish(
+      MediaSnapshot(
+        id: id,
+        key: key,
+        hasArt:
+            art.fileUri != null || art.smallArtPath != null || art.fetchUri != null,
+        deliver: (_) {
+          mediaItem.add(
+            buildServiceMediaItem(
+              id: id,
+              songTitle: title,
+              artist: artist,
+              album: album,
+              duration: currentSong.duration,
+              lyric: line,
+              lyricInTitle: lyricInTitle,
+              fileArtUri: art.fileUri,
+              artCacheFile: art.smallArtPath,
+              fetchableArtUri: art.fetchUri,
+            ),
+          );
+
+          _mediaLog(
+            'publish id=$id'
+            ' art=${art.fileUri == null ? 'none' : 'file'}'
+            ' bitmap=${art.smallArtPath == null ? 'none' : 'yes'}'
+            ' fetch=${art.fetchUri ?? 'none'}'
+            ' lyric=${line == null ? '-' : '"$line"'}'
+            '${_sinceSwitch()}',
+          );
+        },
+      ),
+      immediate:
+          id != _deliveredSnapshotId ||
+          art.smallArtPath != _deliveredSmallArtPath ||
+          art.fetchUri != _deliveredFetchArtUri,
     );
+    _deliveredSnapshotId = id;
+    _deliveredSmallArtPath = art.smallArtPath;
+    _deliveredFetchArtUri = art.fetchUri;
+  }
+
+  /// A new artwork version for the current song. Every path that puts new
+  /// artwork into the snapshot (a small copy made, a fetch URI resolved, a
+  /// failed cover finally arriving) calls this, so the item id it publishes
+  /// under is one no consumer has cached a bitmap for.
+  String _nextArtVersion() => '${_pubSongId ?? _pubFileArtUri}-${++_artVersionCounter}';
+
+  /// The artwork version this snapshot carries, remembering it per song so the
+  /// item id stays stable across lyric-line updates (which must not make a
+  /// head unit re-fetch the cover).
+  String? _currentArtVersion() {
+    final hasArt =
+        _pubSmallArtPath != null || _pubFetchArtUri != null || _pubFileArtUri != null;
+    if (!hasArt) {
+      return null;
+    }
+    return _pubArtVersion ??= _nextArtVersion();
   }
 
   @override

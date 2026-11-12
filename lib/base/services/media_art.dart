@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -68,50 +67,76 @@ MediaArtResult downscaleMediaArt(MediaArtRequest request) {
 ///
 /// The session metadata is a binder payload that a head unit receives whole, and
 /// the cached artwork can be several megabytes; a car screen is small, so a
-/// downscaled JPEG is published instead of the original. One file per cover,
-/// written once and reused afterwards (the file is regenerated only when the
-/// source cover is newer), so a track that is played again costs nothing.
+/// downscaled JPEG is published instead of the original. One file per cover
+/// *and size*, written once and reused afterwards (the file is regenerated only
+/// when the source cover is newer), so a track that is played again costs
+/// nothing - and so a head unit's copy can never be handed to a caller that
+/// asked for a different size.
 final mediaArt = MediaArt();
 
 class MediaArt {
-  /// Longest side of the copy. Comfortably more than a head unit's screen needs
-  /// while keeping the payload in the tens of kilobytes.
-  static const int maxSide = 512;
+  /// Longest side of the copy the media session publishes. A head unit shows
+  /// the artwork at about the size of a thumbnail and cannot be tapped open, so
+  /// this is all the resolution it can use; keeping it small is also what keeps
+  /// the metadata payload cheap to send for every track.
+  static const int broadcastSide = 100;
+
+  /// Longest side of the copy the app's own UI surfaces use. A full-size copy
+  /// of the original can be several megabytes and is what the phone renders
+  /// from; only the head unit gets [broadcastSide].
+  static const int maxSize = 512;
+
   static const int quality = 80;
 
+  /// Copies that are ready, keyed by `<source path>|<max side>`: the same cover
+  /// downscaled to two sizes must never be confused for one another.
   final Map<String, String> _ready = {};
   final Map<String, Future<String?>> _pending = {};
 
-  /// Where the small copy of [coverPath] lives, if it has already been made.
-  String? readyPath(String coverPath) => _ready[coverPath];
+  static String _key(String coverPath, int maxSide) => '$coverPath|$maxSide';
 
-  /// Where the small copy of [coverPath] belongs, whether or not it exists yet:
-  /// the cache view uses it to drop the copy along with the cover.
-  String targetPathFor(String coverPath) => _targetPath(coverPath);
+  /// Where the downscaled copy of [coverPath] lives, if it has already been
+  /// made.
+  String? readyPath(String coverPath, {int maxSide = broadcastSide}) =>
+      _ready[_key(coverPath, maxSide)];
 
-  /// The small copy of [coverPath], making it if needed. Null when the cover
-  /// cannot be read or decoded (the caller then publishes the original).
-  Future<String?> smallFor(String coverPath) {
-    final ready = _ready[coverPath];
+  /// The broadcast-sized copy of [coverPath], if it has already been made.
+  /// The relay key and the session's bitmap both use it: the original is never
+  /// the copy a head unit gets.
+  String? broadcastPathFor(String coverPath) => readyPath(coverPath);
+
+  /// Where the copy of [coverPath] at [maxSide] belongs, whether or not it
+  /// exists yet: the cache view uses it to drop the copy with the cover.
+  String targetPathFor(String coverPath, {int maxSide = broadcastSide}) =>
+      _targetPath(coverPath, maxSide);
+
+  /// The copy of [coverPath] at [maxSide], making it if needed. Null when the
+  /// cover cannot be read or decoded; the caller then publishes nothing for the
+  /// artwork, so a later attempt can still succeed instead of pinning the
+  /// failure.
+  Future<String?> smallFor(String coverPath, {int maxSide = broadcastSide}) {
+    final key = _key(coverPath, maxSide);
+    final ready = _ready[key];
     if (ready != null) {
       return Future.value(ready);
     }
-    return _pending.putIfAbsent(coverPath, () => _make(coverPath));
+    return _pending.putIfAbsent(key, () => _make(coverPath, maxSide));
   }
 
-  Future<String?> _make(String coverPath) async {
+  Future<String?> _make(String coverPath, int maxSide) async {
+    final key = _key(coverPath, maxSide);
     try {
       final source = File(coverPath);
       if (!await source.exists()) {
         return null;
       }
 
-      final target = File(_targetPath(coverPath));
+      final target = File(_targetPath(coverPath, maxSide));
       if (await target.exists()) {
         final sourceTime = (await source.stat()).modified;
         final targetTime = (await target.stat()).modified;
         if (!targetTime.isBefore(sourceTime)) {
-          _ready[coverPath] = target.path;
+          _ready[key] = target.path;
           return target.path;
         }
       }
@@ -130,25 +155,26 @@ class MediaArt {
 
       await target.create(recursive: true);
       await target.writeAsBytes(result.bytes!);
-      _ready[coverPath] = target.path;
+      _ready[key] = target.path;
       logger.output(
         '[media] art ${result.width}x${result.height} '
-        '${await target.length()}B for $coverPath',
+        '${await target.length()}B (side=$maxSide) for $coverPath',
       );
       return target.path;
     } catch (e) {
       logger.output('[media] art downscale failed for $coverPath: $e');
       return null;
     } finally {
-      _pending.remove(coverPath);
+      _pending.remove(key);
     }
   }
 
   /// Kept beside the covers, under the cover's own file name, so clearing the
-/// picture cache removes these too and the two can be matched up again.
-  String _targetPath(String coverPath) {
+  /// picture cache removes these too and the two can be matched up again. The
+  /// size is part of the name, so one cover holds one copy per size.
+  String _targetPath(String coverPath, int maxSide) {
     final name = coverPath.substring(coverPath.lastIndexOf('/') + 1);
-    return '${getPicturesPath(sourceType)}/media/$name';
+    return '${getPicturesPath(sourceType)}/media/$name.$maxSide';
   }
 
   void clear() {

@@ -1144,4 +1144,178 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removeFromFavorites => 'Remove from Favorites';
+
+  @override
+  String get playbackMode => 'Playback Mode';
+
+  @override
+  String get playbackModeExclusive => 'Exclusive';
+
+  @override
+  String get playbackModeDuck => 'Smart Ducking';
+
+  @override
+  String get playbackModeMix => 'Mixed';
+
+  @override
+  String get playbackModeExclusiveDesc =>
+      'Lain takes the audio output; other apps go silent.';
+
+  @override
+  String get playbackModeDuckDesc =>
+      'Lain lowers its volume automatically while other apps play audio.';
+
+  @override
+  String get playbackModeMixDesc =>
+      'Lain\'s audio is mixed with other apps\' audio.';
+
+  @override
+  String get playbackModeNotice => 'Notes';
+
+  @override
+  String get playbackModeScenarios => 'Use Cases';
+
+  @override
+  String get playbackModeNoticeInCar =>
+      'Smart Ducking is recommended in car mode.';
+
+  @override
+  String get playbackModeNoticeNavigation =>
+      'Music volume is lowered automatically during navigation voice prompts.';
+
+  @override
+  String get playbackModeNoticeDesktop =>
+      'The desktop version uses Mixed by default.';
+
+  @override
+  String get scenarioDailyListening => 'Everyday listening';
+
+  @override
+  String get scenarioDailyListeningMode => 'Exclusive';
+
+  @override
+  String get scenarioNavigation => 'Driving with navigation';
+
+  @override
+  String get scenarioNavigationMode => 'Smart Ducking';
+
+  @override
+  String get scenarioGaming => 'Game background music';
+
+  @override
+  String get scenarioGamingMode => 'Mixed';
+
+  @override
+  String get scenarioArrow => '→';
+
+  @override
+  String get playbackModeDesktopNote =>
+      'Exclusive playback is not supported on desktop; the selection is treated as Mixed.';
+
+  @override
+  String get comment => 'Comments';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get commentSettings => 'Comment settings';
+
+  @override
+  String get commentSwitch => 'Comments';
+
+  @override
+  String get commentSwitchDesc =>
+      'Shows a comment entry on the now-playing bar once a comment server is configured.';
+
+  @override
+  String get commentServer => 'Comment server';
+
+  @override
+  String get commentServers => 'Comment servers';
+
+  @override
+  String get addCommentServer => 'Add comment server';
+
+  @override
+  String get commentServerName => 'Server name';
+
+  @override
+  String get protocol => 'Protocol';
+
+  @override
+  String get commentTokenHint =>
+      'Optional; needed only when the server has a username or password';
+
+  @override
+  String get commentNoServer => 'No comment server configured';
+
+  @override
+  String get commentNoServerHint =>
+      'Add a comment server in the settings to read comments';
+
+  @override
+  String get commentEmpty => 'No comments yet';
+
+  @override
+  String get commentLoadFailed => 'Failed to load comments';
+
+  @override
+  String get commentRetry => 'Retry';
+
+  @override
+  String get commentReplies => 'replies';
+
+  @override
+  String commentShowReplies(int count) {
+    return 'Show $count replies';
+  }
+
+  @override
+  String get commentHideReplies => 'Hide replies';
+
+  @override
+  String get commentPagePrevious => 'Previous';
+
+  @override
+  String get commentPageNext => 'Next';
+
+  @override
+  String commentPageIndicator(int page) {
+    return 'Page $page';
+  }
+
+  @override
+  String get commentUnreachable =>
+      'Cannot reach the comment server; check the address or the network';
+
+  @override
+  String get commentForbidden =>
+      'The server refused the request; check the username and password';
+
+  @override
+  String get commentServerError => 'The server returned something unexpected';
+
+  @override
+  String commentServerSwitched(String name) {
+    return 'Switched to $name';
+  }
+
+  @override
+  String get commentAtLeastOneAddress =>
+      'Fill in at least one of the LAN and public addresses';
+
+  @override
+  String get settingsComments => 'Comments';
+
+  @override
+  String get commentOn => 'On';
+
+  @override
+  String get commentOff => 'Off';
+
+  @override
+  String commentOnWithServer(String server) {
+    return 'On · $server';
+  }
 }

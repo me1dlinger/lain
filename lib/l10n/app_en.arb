@@ -436,5 +436,78 @@
   "playCountLabel": "Play Count",
   "clearSuccess": "Cleared",
   "addToFavorites": "Add to Favorites",
-  "removeFromFavorites": "Remove from Favorites"
+  "removeFromFavorites": "Remove from Favorites",
+  "playbackMode": "Playback Mode",
+  "playbackModeExclusive": "Exclusive",
+  "playbackModeDuck": "Smart Ducking",
+  "playbackModeMix": "Mixed",
+  "playbackModeExclusiveDesc": "Lain takes the audio output; other apps go silent.",
+  "playbackModeDuckDesc": "Lain lowers its volume automatically while other apps play audio.",
+  "playbackModeMixDesc": "Lain's audio is mixed with other apps' audio.",
+  "playbackModeNotice": "Notes",
+  "playbackModeScenarios": "Use Cases",
+  "playbackModeNoticeInCar": "Smart Ducking is recommended in car mode.",
+  "playbackModeNoticeNavigation": "Music volume is lowered automatically during navigation voice prompts.",
+  "playbackModeNoticeDesktop": "The desktop version uses Mixed by default.",
+  "scenarioDailyListening": "Everyday listening",
+  "scenarioDailyListeningMode": "Exclusive",
+  "scenarioNavigation": "Driving with navigation",
+  "scenarioNavigationMode": "Smart Ducking",
+  "scenarioGaming": "Game background music",
+  "scenarioGamingMode": "Mixed",
+  "scenarioArrow": "→",
+  "playbackModeDesktopNote": "Exclusive playback is not supported on desktop; the selection is treated as Mixed.",
+  "comment": "Comments",
+  "comments": "Comments",
+  "commentSettings": "Comment settings",
+  "commentSwitch": "Comments",
+  "commentSwitchDesc": "Shows a comment entry on the now-playing bar once a comment server is configured.",
+  "commentServer": "Comment server",
+  "commentServers": "Comment servers",
+  "addCommentServer": "Add comment server",
+  "commentServerName": "Server name",
+  "protocol": "Protocol",
+  "commentTokenHint": "Optional; needed only when the server has a username or password",
+  "commentNoServer": "No comment server configured",
+  "commentNoServerHint": "Add a comment server in the settings to read comments",
+  "commentEmpty": "No comments yet",
+  "commentLoadFailed": "Failed to load comments",
+  "commentRetry": "Retry",
+  "commentReplies": "replies",
+  "commentShowReplies": "Show {count} replies",
+  "@commentShowReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commentHideReplies": "Hide replies",
+  "commentPagePrevious": "Previous",
+  "commentPageNext": "Next",
+  "commentPageIndicator": "Page {page}",
+  "@commentPageIndicator": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "commentUnreachable": "Cannot reach the comment server; check the address or the network",
+  "commentForbidden": "The server refused the request; check the username and password",
+  "commentServerError": "The server returned something unexpected",
+  "commentServerSwitched": "Switched to {name}",
+  "@commentServerSwitched": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "commentAtLeastOneAddress": "Fill in at least one of the LAN and public addresses",
+  "settingsComments": "Comments",
+  "commentOn": "On",
+  "commentOff": "Off",
+  "commentOnWithServer": "On · {server}",
+  "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}}
 }

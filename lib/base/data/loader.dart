@@ -11,8 +11,10 @@ import 'package:lain/base/services/bookmark_service.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/history.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/comment_client.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/offline_setting.dart';
+import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -49,6 +51,11 @@ class Loader {
 
     await config.load();
     await setting.load();
+
+    // A comment server that answered is written through to the settings, so
+    // the next launch asks it first instead of probing both addresses. The
+    // client holds the hook; the settings layer holds the write.
+    CommentClient.rememberAddress = markCommentServerAlive;
 
     // Offline mode is persisted, so a launch that would otherwise come up on
     // the last server always starts on the local library instead.

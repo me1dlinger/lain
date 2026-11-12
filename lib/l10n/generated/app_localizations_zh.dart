@@ -1131,4 +1131,165 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get removeFromFavorites => '取消喜欢';
+
+  @override
+  String get playbackMode => '播放模式';
+
+  @override
+  String get playbackModeExclusive => '独占播放';
+
+  @override
+  String get playbackModeDuck => '智能避让';
+
+  @override
+  String get playbackModeMix => '混合播放';
+
+  @override
+  String get playbackModeExclusiveDesc => '临音独占音频输出，其他应用没有声音。';
+
+  @override
+  String get playbackModeDuckDesc => '其他应用播放音频时，自动降低临音的音量。';
+
+  @override
+  String get playbackModeMixDesc => '临音与其他应用的音频混合输出。';
+
+  @override
+  String get playbackModeNotice => '注意事项';
+
+  @override
+  String get playbackModeScenarios => '使用场景';
+
+  @override
+  String get playbackModeNoticeInCar => '车载模式下推荐使用「智能避让」模式。';
+
+  @override
+  String get playbackModeNoticeNavigation => '导航语音播报时自动降低音乐音量。';
+
+  @override
+  String get playbackModeNoticeDesktop => '桌面版默认使用混合播放。';
+
+  @override
+  String get scenarioDailyListening => '日常听歌';
+
+  @override
+  String get scenarioDailyListeningMode => '独占播放';
+
+  @override
+  String get scenarioNavigation => '开车导航';
+
+  @override
+  String get scenarioNavigationMode => '智能避让';
+
+  @override
+  String get scenarioGaming => '游戏背景音乐';
+
+  @override
+  String get scenarioGamingMode => '混合播放';
+
+  @override
+  String get scenarioArrow => '→';
+
+  @override
+  String get playbackModeDesktopNote => '桌面端不支持独占播放，选择将按混合播放处理。';
+
+  @override
+  String get comment => '评论';
+
+  @override
+  String get comments => '评论';
+
+  @override
+  String get commentSettings => '评论设置';
+
+  @override
+  String get commentSwitch => '评论';
+
+  @override
+  String get commentSwitchDesc => '配置评论服务器后，在播放栏显示评论入口。';
+
+  @override
+  String get commentServer => '评论服务器';
+
+  @override
+  String get commentServers => '评论服务器';
+
+  @override
+  String get addCommentServer => '添加评论服务器';
+
+  @override
+  String get commentServerName => '服务器名称';
+
+  @override
+  String get protocol => '协议';
+
+  @override
+  String get commentTokenHint => '服务器设置了账号或密码时填写，可留空';
+
+  @override
+  String get commentNoServer => '尚未配置评论服务器';
+
+  @override
+  String get commentNoServerHint => '在设置中添加一个评论服务器后即可查看评论';
+
+  @override
+  String get commentEmpty => '暂无评论';
+
+  @override
+  String get commentLoadFailed => '评论加载失败';
+
+  @override
+  String get commentRetry => '重试';
+
+  @override
+  String get commentReplies => '条回复';
+
+  @override
+  String commentShowReplies(int count) {
+    return '查看 $count 条回复';
+  }
+
+  @override
+  String get commentHideReplies => '收起回复';
+
+  @override
+  String get commentPagePrevious => '上一页';
+
+  @override
+  String get commentPageNext => '下一页';
+
+  @override
+  String commentPageIndicator(int page) {
+    return '第 $page 页';
+  }
+
+  @override
+  String get commentUnreachable => '无法连接到评论服务器，请检查地址或网络';
+
+  @override
+  String get commentForbidden => '服务器拒绝访问，请检查账号和密码';
+
+  @override
+  String get commentServerError => '服务器返回了异常内容';
+
+  @override
+  String commentServerSwitched(String name) {
+    return '已切换到 $name';
+  }
+
+  @override
+  String get commentAtLeastOneAddress => '局域网与公网地址至少填写一个';
+
+  @override
+  String get settingsComments => '评论';
+
+  @override
+  String get commentOn => '已开启';
+
+  @override
+  String get commentOff => '已关闭';
+
+  @override
+  String commentOnWithServer(String server) {
+    return '已开启 · $server';
+  }
 }

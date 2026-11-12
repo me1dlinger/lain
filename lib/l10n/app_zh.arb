@@ -366,5 +366,78 @@
   "playCountLabel": "播放次数",
   "clearSuccess": "清除成功",
   "addToFavorites": "添加到我喜欢的",
-  "removeFromFavorites": "取消喜欢"
+  "removeFromFavorites": "取消喜欢",
+  "playbackMode": "播放模式",
+  "playbackModeExclusive": "独占播放",
+  "playbackModeDuck": "智能避让",
+  "playbackModeMix": "混合播放",
+  "playbackModeExclusiveDesc": "临音独占音频输出，其他应用没有声音。",
+  "playbackModeDuckDesc": "其他应用播放音频时，自动降低临音的音量。",
+  "playbackModeMixDesc": "临音与其他应用的音频混合输出。",
+  "playbackModeNotice": "注意事项",
+  "playbackModeScenarios": "使用场景",
+  "playbackModeNoticeInCar": "车载模式下推荐使用「智能避让」模式。",
+  "playbackModeNoticeNavigation": "导航语音播报时自动降低音乐音量。",
+  "playbackModeNoticeDesktop": "桌面版默认使用混合播放。",
+  "scenarioDailyListening": "日常听歌",
+  "scenarioDailyListeningMode": "独占播放",
+  "scenarioNavigation": "开车导航",
+  "scenarioNavigationMode": "智能避让",
+  "scenarioGaming": "游戏背景音乐",
+  "scenarioGamingMode": "混合播放",
+  "scenarioArrow": "→",
+  "playbackModeDesktopNote": "桌面端不支持独占播放，选择将按混合播放处理。",
+  "comment": "评论",
+  "comments": "评论",
+  "commentSettings": "评论设置",
+  "commentSwitch": "评论",
+  "commentSwitchDesc": "配置评论服务器后，在播放栏显示评论入口。",
+  "commentServer": "评论服务器",
+  "commentServers": "评论服务器",
+  "addCommentServer": "添加评论服务器",
+  "commentServerName": "服务器名称",
+  "protocol": "协议",
+  "commentTokenHint": "服务器设置了账号或密码时填写，可留空",
+  "commentNoServer": "尚未配置评论服务器",
+  "commentNoServerHint": "在设置中添加一个评论服务器后即可查看评论",
+  "commentEmpty": "暂无评论",
+  "commentLoadFailed": "评论加载失败",
+  "commentRetry": "重试",
+  "commentReplies": "条回复",
+  "commentShowReplies": "查看 {count} 条回复",
+  "@commentShowReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commentHideReplies": "收起回复",
+  "commentPagePrevious": "上一页",
+  "commentPageNext": "下一页",
+  "commentPageIndicator": "第 {page} 页",
+  "@commentPageIndicator": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "commentUnreachable": "无法连接到评论服务器，请检查地址或网络",
+  "commentForbidden": "服务器拒绝访问，请检查账号和密码",
+  "commentServerError": "服务器返回了异常内容",
+  "commentServerSwitched": "已切换到 {name}",
+  "@commentServerSwitched": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "commentAtLeastOneAddress": "局域网与公网地址至少填写一个",
+  "settingsComments": "评论",
+  "commentOn": "已开启",
+  "commentOff": "已关闭",
+  "commentOnWithServer": "已开启 · {server}",
+  "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}}
 }

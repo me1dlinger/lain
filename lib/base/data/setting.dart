@@ -7,10 +7,13 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/comment_server.dart';
+import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
+import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/utils/path.dart';
@@ -252,6 +255,29 @@ class Setting {
         }
       }
     }
+
+    playbackModeNotifier.value =
+        AudioPlaybackMode.values
+            .asNameMap()[json['playbackMode']?.toString()] ??
+        defaultPlaybackMode();
+
+    commentSwitchNotifier.value =
+        json['commentSwitch'] as bool? ?? commentSwitchNotifier.value;
+
+    // A server that cannot be read is dropped rather than stored half-filled.
+    final servers = json['commentServers'];
+    commentServers
+      ..clear()
+      ..addAll([
+        if (servers is List)
+          for (final raw in servers) ?CommentServer.fromJson(raw),
+      ]);
+
+    final activeId = json['commentActiveServerId']?.toString() ?? '';
+    commentActiveServerIdNotifier.value = activeId.isEmpty ? null : activeId;
+
+    // From here on a change to the comment notifiers writes the file itself.
+    watchCommentSettings();
   }
 
   void save() {
@@ -330,6 +356,12 @@ class Setting {
           for (final entry in songSortTypes.entries)
             entry.key: entry.value.value,
         },
+
+        'playbackMode': playbackModeNotifier.value.name,
+
+        'commentSwitch': commentSwitchNotifier.value,
+        'commentServers': [for (final server in commentServers) server.toJson()],
+        'commentActiveServerId': commentActiveServerIdNotifier.value,
       }),
     );
   }

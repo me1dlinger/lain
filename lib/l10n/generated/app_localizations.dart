@@ -2305,6 +2305,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from Favorites'**
   String get removeFromFavorites;
+
+  /// No description provided for @playbackMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback Mode'**
+  String get playbackMode;
+
+  /// No description provided for @playbackModeExclusive.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclusive'**
+  String get playbackModeExclusive;
+
+  /// No description provided for @playbackModeDuck.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Ducking'**
+  String get playbackModeDuck;
+
+  /// No description provided for @playbackModeMix.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get playbackModeMix;
+
+  /// No description provided for @playbackModeExclusiveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Lain takes the audio output; other apps go silent.'**
+  String get playbackModeExclusiveDesc;
+
+  /// No description provided for @playbackModeDuckDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Lain lowers its volume automatically while other apps play audio.'**
+  String get playbackModeDuckDesc;
+
+  /// No description provided for @playbackModeMixDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Lain\'s audio is mixed with other apps\' audio.'**
+  String get playbackModeMixDesc;
+
+  /// No description provided for @playbackModeNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get playbackModeNotice;
+
+  /// No description provided for @playbackModeScenarios.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Cases'**
+  String get playbackModeScenarios;
+
+  /// No description provided for @playbackModeNoticeInCar.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Ducking is recommended in car mode.'**
+  String get playbackModeNoticeInCar;
+
+  /// No description provided for @playbackModeNoticeNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Music volume is lowered automatically during navigation voice prompts.'**
+  String get playbackModeNoticeNavigation;
+
+  /// No description provided for @playbackModeNoticeDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'The desktop version uses Mixed by default.'**
+  String get playbackModeNoticeDesktop;
+
+  /// No description provided for @scenarioDailyListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyday listening'**
+  String get scenarioDailyListening;
+
+  /// No description provided for @scenarioDailyListeningMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclusive'**
+  String get scenarioDailyListeningMode;
+
+  /// No description provided for @scenarioNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Driving with navigation'**
+  String get scenarioNavigation;
+
+  /// No description provided for @scenarioNavigationMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Ducking'**
+  String get scenarioNavigationMode;
+
+  /// No description provided for @scenarioGaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Game background music'**
+  String get scenarioGaming;
+
+  /// No description provided for @scenarioGamingMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get scenarioGamingMode;
+
+  /// No description provided for @scenarioArrow.
+  ///
+  /// In en, this message translates to:
+  /// **'→'**
+  String get scenarioArrow;
+
+  /// No description provided for @playbackModeDesktopNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclusive playback is not supported on desktop; the selection is treated as Mixed.'**
+  String get playbackModeDesktopNote;
+
+  /// No description provided for @comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comment;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @commentSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment settings'**
+  String get commentSettings;
+
+  /// No description provided for @commentSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get commentSwitch;
+
+  /// No description provided for @commentSwitchDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows a comment entry on the now-playing bar once a comment server is configured.'**
+  String get commentSwitchDesc;
+
+  /// No description provided for @commentServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment server'**
+  String get commentServer;
+
+  /// No description provided for @commentServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment servers'**
+  String get commentServers;
+
+  /// No description provided for @addCommentServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add comment server'**
+  String get addCommentServer;
+
+  /// No description provided for @commentServerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Server name'**
+  String get commentServerName;
+
+  /// No description provided for @protocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol'**
+  String get protocol;
+
+  /// No description provided for @commentTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional; needed only when the server has a username or password'**
+  String get commentTokenHint;
+
+  /// No description provided for @commentNoServer.
+  ///
+  /// In en, this message translates to:
+  /// **'No comment server configured'**
+  String get commentNoServer;
+
+  /// No description provided for @commentNoServerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment server in the settings to read comments'**
+  String get commentNoServerHint;
+
+  /// No description provided for @commentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get commentEmpty;
+
+  /// No description provided for @commentLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load comments'**
+  String get commentLoadFailed;
+
+  /// No description provided for @commentRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get commentRetry;
+
+  /// No description provided for @commentReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'replies'**
+  String get commentReplies;
+
+  /// No description provided for @commentShowReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} replies'**
+  String commentShowReplies(int count);
+
+  /// No description provided for @commentHideReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide replies'**
+  String get commentHideReplies;
+
+  /// No description provided for @commentPagePrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get commentPagePrevious;
+
+  /// No description provided for @commentPageNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get commentPageNext;
+
+  /// No description provided for @commentPageIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page}'**
+  String commentPageIndicator(int page);
+
+  /// No description provided for @commentUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reach the comment server; check the address or the network'**
+  String get commentUnreachable;
+
+  /// No description provided for @commentForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'The server refused the request; check the username and password'**
+  String get commentForbidden;
+
+  /// No description provided for @commentServerError.
+  ///
+  /// In en, this message translates to:
+  /// **'The server returned something unexpected'**
+  String get commentServerError;
+
+  /// No description provided for @commentServerSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to {name}'**
+  String commentServerSwitched(String name);
+
+  /// No description provided for @commentAtLeastOneAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in at least one of the LAN and public addresses'**
+  String get commentAtLeastOneAddress;
+
+  /// No description provided for @settingsComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get settingsComments;
+
+  /// No description provided for @commentOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get commentOn;
+
+  /// No description provided for @commentOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get commentOff;
+
+  /// Status of the song comment feature in the settings list, with the name of the comment server it asks.
+  ///
+  /// In en, this message translates to:
+  /// **'On · {server}'**
+  String commentOnWithServer(String server);
 }
 
 class _AppLocalizationsDelegate

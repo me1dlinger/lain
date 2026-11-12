@@ -28,6 +28,10 @@ import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
+import 'package:lain/base/widgets/playback_mode_page.dart';
+import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/data/comment_setting.dart';
+import 'package:lain/base/widgets/comment_settings_page.dart';
 import 'package:lain/base/services/download_manager.dart';
 import 'package:lain/base/widgets/cache_download_dialog.dart';
 import 'package:lain/base/widgets/downloads_page.dart';
@@ -334,6 +338,7 @@ class _SettingsListState extends State<SettingsList> {
       case SettingsCategory.playbackLyrics:
         return [
           equalizerListTile(context, l10n),
+          playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
         ];
@@ -343,6 +348,8 @@ class _SettingsListState extends State<SettingsList> {
           if (viewModeNotifier.value != .bigPicture)
             controlCenterLyricsListTile(l10n),
         ];
+      case SettingsCategory.comments:
+        return [commentSettingsListTile(context, l10n)];
       case SettingsCategory.startupBackground:
         return [
           autoPlayOnStartupListTile(l10n),
@@ -397,6 +404,46 @@ class _SettingsListState extends State<SettingsList> {
         borderRadius: BorderRadius.circular(10),
         child: Material(color: Colors.transparent, child: child),
       ),
+    );
+  }
+
+  /// The song comment feature: whether it is on, and which comment server
+  /// answers. One glance tells both, since the switch and the server are two
+  /// separate settings that only work together.
+  Widget commentSettingsListTile(BuildContext context, AppLocalizations l10n) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        commentSwitchNotifier,
+        commentActiveServerIdNotifier,
+      ]),
+      builder: (context, child) {
+        final server = activeCommentServer;
+        String status;
+        if (!commentSwitchNotifier.value) {
+          status = l10n.commentOff;
+        } else if (server == null) {
+          status = l10n.commentNoServer;
+        } else {
+          status = l10n.commentOnWithServer(server.name);
+        }
+
+        return ListTile(
+          leading: Icon(
+            Icons.forum_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.comment),
+          subtitle: Text(status),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            pushSettingsPage<void>(
+              context,
+              settingsPageRoute<void>(() => const CommentSettingsPage()),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1079,6 +1126,32 @@ class _SettingsListState extends State<SettingsList> {
           return Icon(Icons.lock);
         },
       ),
+    );
+  }
+
+  /// How this app shares the output device with other apps. The subtitle shows
+  /// the mode in effect, so leaving the page needs no second look.
+  Widget playbackModeListTile(BuildContext context, AppLocalizations l10n) {
+    return ValueListenableBuilder<AudioPlaybackMode>(
+      valueListenable: playbackModeNotifier,
+      builder: (context, mode, child) {
+        return ListTile(
+          leading: Icon(
+            Icons.graphic_eq_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.playbackMode),
+          subtitle: Text(PlaybackModePage.modeLabel(l10n, mode)),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {
+            pushSettingsPage<void>(
+              context,
+              settingsPageRoute<void>(() => const PlaybackModePage()),
+            );
+          },
+        );
+      },
     );
   }
 
