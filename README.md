@@ -30,11 +30,6 @@
 [Apache License 2.0](./LICENSE)；上游的版权声明保留在 [NOTICE](./NOTICE) 中，本工程所做的每一处改动都记录在
 git 历史里，并在各版本的发行说明中汇总。
 
-## USB 独占模式（Android）
-
-USB 独占模式不在本工程中；需要该功能请使用由 [huya688zdx](https://github.com/huya688zdx) 维护的
-[上游 fork](https://github.com/huya688zdx/sylvakru)。
-
 ## 支持的格式
 
 | 文件格式 | 元数据格式                   |

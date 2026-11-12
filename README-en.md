@@ -32,11 +32,6 @@ on from there. It stays open source under the same license as the upstream proje
 the [Apache License 2.0](./LICENSE). Upstream copyright notices are kept in [NOTICE](./NOTICE); every change made
 here is listed in the git history and summarised in the release notes of each version.
 
-## USB Exclusive Mode (Android)
-
-USB Exclusive Mode is not part of this build; for that please use the
-[upstream fork](https://github.com/huya688zdx/sylvakru) maintained by [huya688zdx](https://github.com/huya688zdx).
-
 ## Supported Formats
 
 | File Format | Metadata Format(s)           |
