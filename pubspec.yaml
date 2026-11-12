@@ -185,11 +185,8 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# The icon is app_icons/icon.svg rendered at the sizes below: the motif sits on
-# a light plate (#f7f4ec) so the dark artwork still reads on a white home
-# screen, and the plate keeps a 12% margin for the legacy launcher icons.
 icons_launcher:
-  image_path: "app_icons/reicon_1024.png"
+  image_path: "app_icons/icon.png"
   platforms:
     android:
       enable: true
@@ -200,8 +197,8 @@ icons_launcher:
     macos:
       enable: true
     linux:
-      image_path: "app_icons/reicon_1024.png"
+      image_path: "app_icons/win_linux.png"
       enable: true
     windows:
-      image_path: "app_icons/reicon_1024.png"
+      image_path: "app_icons/win_linux.png"
       enable: true
