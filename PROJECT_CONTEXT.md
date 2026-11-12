@@ -32,7 +32,7 @@ export no_proxy=localhost,127.0.0.1,maven.aliyun.com,mirrors.cloud.tencent.com
 - 本机是 NAS，**内存只有 8G + 4G swap**，Gradle 堆必须压到 `-Xmx2G`（项目 `android/gradle.properties` 已改好，别调回去）
 - 机器：Debian 12，无 sudo，无 docker 权限
 
-### 打包命令
+### 要在别处打包时（本机不要跑）
 
 ```bash
 flutter build apk --release \
@@ -113,7 +113,8 @@ audio_service 包内部 `_observeMediaItem()` 的 `file://` 分支是唯一没�
 
 ## 六、和用户协作的重要约定
 
-1. **不要自己打包** —— 用户明确要求：**他说"打包"才打包**。提交可以主动。
+1. **不要自己打包** —— 用户明确要求：**不要在本机打包**（NAS 内存不够，打包会把机器打崩）。
+   做完就**提交代码**，用户会去另一台电脑 `git pull` 自己打包。提交可以主动。
 2. **不要自己拉上游仓库** —— 用户说"我跟上游已经几乎没关系了"。
 3. **不要自作主张改包名/品牌** —— 命名已定，改动前必须问。
 4. 用户会中途喊"你一直停" —— 意思是 agent 卡住了，**直接继续干活**，不要解释。
