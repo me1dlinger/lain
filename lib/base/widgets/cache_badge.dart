@@ -121,7 +121,16 @@ Future<void> showSongCacheDialog(
   MyAudioMetadata song,
 ) async {
   final l10n = AppLocalizations.of(context);
-  final parts = await readSongCache(song);
+  // Shown the moment the row is tapped: reading the cover and the lyric file
+  // takes a moment, and a menu item that seems to do nothing invites a second
+  // tap.
+  showCenterLoading();
+  final SongCacheParts parts;
+  try {
+    parts = await readSongCache(song);
+  } finally {
+    removeCenterLoading();
+  }
   if (!context.mounted) {
     return;
   }
