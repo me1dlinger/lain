@@ -926,6 +926,12 @@ abstract class AppLocalizations {
   /// **'Song Info'**
   String get songInfo;
 
+  /// No description provided for @cached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached on this phone'**
+  String get cached;
+
   /// No description provided for @format.
   ///
   /// In en, this message translates to:

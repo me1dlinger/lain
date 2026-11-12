@@ -437,6 +437,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songInfo => 'Song Info';
 
   @override
+  String get cached => 'Cached on this phone';
+
+  @override
   String get format => 'Format';
 
   @override

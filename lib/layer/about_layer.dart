@@ -129,7 +129,7 @@ class _AboutLayerState extends State<AboutLayer> {
 
           Center(
             child: const Text(
-              '© 2025-2026 AfalpHy',
+              '© 2026 Meidlinger',
               style: .new(fontWeight: .bold),
             ),
           ),

@@ -437,6 +437,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get songInfo => '歌曲信息';
 
   @override
+  String get cached => '已缓存到本机';
+
+  @override
   String get format => '格式';
 
   @override

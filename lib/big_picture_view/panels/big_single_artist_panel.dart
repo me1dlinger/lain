@@ -19,6 +19,7 @@ import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/utils/zoom_page_route.dart';
 import 'package:lain/base/widgets/big_play_bar.dart';
+import 'package:lain/base/widgets/cache_badge.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/selectable_song_list_page.dart';
@@ -460,6 +461,10 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
           ),
         ),
         Expanded(child: Text(getTitle(song), overflow: TextOverflow.ellipsis)),
+        Padding(
+          padding: EdgeInsets.only(left: 6),
+          child: CachedBadge(song: song),
+        ),
         SizedBox(width: 15),
         Expanded(child: Text(getArtist(song), overflow: TextOverflow.ellipsis)),
         SizedBox(width: 15),

@@ -341,6 +341,19 @@ class StreamRelay {
 
       final response = await upstream.close();
 
+      // mpv decides how a stream ends from the response status and length
+      // alone. A chunked -1-length response (the server did not state one, or
+      // the request was a plain GET) leaves it reading until the connection
+      // closes, and a stall then looks exactly like the end of the song, which
+      // showed up as the same track playing twice. When the length is known,
+      // pass it on so the end is unambiguous.
+      final status = response.statusCode;
+      if (request.method != 'HEAD' &&
+          response.contentLength >= 0 &&
+          status >= 200 &&
+          status < 300) {
+        request.response.contentLength = response.contentLength;
+      }
       request.response.statusCode = response.statusCode;
       for (final name in [
         HttpHeaders.contentTypeHeader,

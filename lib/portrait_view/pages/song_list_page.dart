@@ -975,6 +975,12 @@ extension _SongListPage on _SongListState {
                   style: TextStyle(fontSize: 12),
                 ),
               ),
+              // Streamed sources only, and faint: it says "this one is on the
+              // phone", which the row otherwise gives no sign of.
+              Padding(
+                padding: EdgeInsets.only(left: 4),
+                child: CachedBadge(song: song),
+              ),
             ],
           ),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
@@ -1016,6 +1022,7 @@ extension _SongListPage on _SongListState {
           excludedArtist: artist?.name,
           includeGoToAlbum: album == null,
           includeEdit: sourceType == .local && artist == null && album == null,
+          includeCacheInfo: isStreamSource,
           playlist: playlist,
           useDialog: false,
         );

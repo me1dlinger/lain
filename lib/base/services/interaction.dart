@@ -20,6 +20,7 @@ import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/zoom_page_route.dart';
+import 'package:lain/base/widgets/cache_badge.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/custom_text_field.dart';
 import 'package:lain/base/widgets/edit_metadata.dart';
@@ -891,6 +892,8 @@ void showSongOptions({
   String? excludedArtist,
   bool includeGoToAlbum = false,
   bool includeEdit = false,
+  /// Offers "view the cache" for a streamed song; a local one has none.
+  bool includeCacheInfo = false,
   Playlist? playlist,
   bool useDialog = true,
 }) {
@@ -1009,6 +1012,16 @@ void showSongOptions({
                     onTap: () {
                       Navigator.pop(context);
                       goToAlbum(song, context: context);
+                    },
+                  ),
+
+                if (includeCacheInfo && isStreamSource)
+                  _optionItem(
+                    leading: Icon(Icons.offline_pin_outlined),
+                    text: l10n.viewCache,
+                    onTap: () {
+                      Navigator.pop(context);
+                      showSongCacheDialog(context, song);
                     },
                   ),
 

@@ -193,9 +193,28 @@ class MyAudioHandler extends BaseAudioHandler {
   // between the home and away addresses.
   bool _retriedAfterAddressSwitch = false;
 
-  // Whether a stream that reported completion mid-song has already been resumed
-  // once for the current track.
-  bool _resumedAfterFakeComplete = false;
+  // How many times the current track has been *restarted from the beginning*
+  // because a stream reported the end of a buffered segment as the end of the
+  // song. mpv can report more than one for the same stall.
+  int _fakeCompleteResumes = 0;
+
+  // How many tracks this session has advanced from automatically, and how many
+  // of those were "the song ended" rather than a user pressing next. Used by
+  // the end-of-track diagnostics; see [_hasAdvancedRecently].
+  int _autoAdvanceCount = 0;
+  int _completedAdvanceCount = 0;
+
+  // Identity of the last "the song ended" that was acted on, so the same
+  // end-of-track cannot advance the queue twice.
+  String? _lastCompletionKey;
+
+  // Timestamp floor for "did the queue advance just now": a completion that
+  // arrives right after a track switch is the previous track's tail.
+  DateTime? _lastSwitchAt;
+
+  // A load in progress, and the index it is opening.
+  bool _loading = false;
+  int _loadingIndex = -1;
 
   // Work already started for a song, so a burst of publishes does not queue the
   // same download or URI resolution twice.
@@ -232,42 +251,92 @@ class MyAudioHandler extends BaseAudioHandler {
       logger.output("player error:$onData");
     });
 
+    // Reported positions the ear can notice: the opening of a track and the
+    // close of one. A position this close to either means the completion is
+    // about the song, not about a buffered segment.
+    const edgeWindow = Duration(seconds: 5);
+
     _player.stream.completed.listen((completed) async {
-      if (completed) {
-        final position = _player.state.position;
-        final duration = _player.state.duration;
+      if (!completed) {
+        return;
+      }
+      final song = currentSongNotifier.value;
+      final position = _player.state.position;
+      final duration = _player.state.duration;
 
-        if (Loader.busy) {
-          await pause();
-          return;
-        }
+      _completionLog(
+        'completed id=${song?.id ?? '-'} pos=${_fmtDuration(position)} '
+        'dur=${_fmtDuration(duration)} '
+        'idle=${_player.state.buffering} loading=$loadingSong '
+        'paused=${!isPlayingNotifier.value} mode=${playModeNotifier.value} '
+        'resumes=$_fakeCompleteResumes${_sinceSwitch()}',
+      );
 
-        // A streamed song can report completion at the end of a buffered
-        // segment while it is not over. Resuming once keeps it going; pausing
-        // here is what left a song stuck (and a car showing pause) with nothing
-        // playing. A second completion means the song really is done.
-        //
-        // Only a stream can end a segment early: a local file has nowhere to
-        // stall, so applying this there means a position that lags the duration
-        // by a frame at the real end gets treated as a fake completion and the
-        // song restarts from the beginning. That was the "it plays the same
-        // song again instead of moving on" that only ever showed up randomly.
-        final couldBeSegmentEnd = isStreamSource;
-        if (couldBeSegmentEnd &&
-            !_resumedAfterFakeComplete &&
-            (duration - position).inSeconds > 2) {
-          _resumedAfterFakeComplete = true;
+      if (Loader.busy) {
+        _completionLog('load in progress, pausing instead of advancing');
+        await pause();
+        return;
+      }
+
+      // The same end-of-track can be delivered more than once (a renderer
+      // flush around a seek, or a player reset). Acting on it twice is what
+      // played a song twice and then jumped: the second delivery resumed the
+      // song that had just been opened, from its beginning.
+      final key =
+          '${song?.id ?? '-'}@${duration.inMilliseconds}/'
+          '${(position.inMilliseconds / 1000).round()}';
+      if (_lastCompletionKey == key) {
+        _completionLog('duplicate of a completion already acted on, ignored');
+        return;
+      }
+
+      // A streamed song can report completion at the end of a buffered
+      // segment while it is not over. Only stream sources can: a local file
+      // has nowhere to stall, and a player reset can report a position near
+      // zero right after opening - which is why "_resumed already" was not
+      // enough (the first bogus report consumed the allowance, the second one
+      // moved on). A position near the end is the song ending; a completion
+      // that arrives right after a switch is the previous track's tail.
+      final nearStart = position <= edgeWindow;
+      final nearEnd = duration > Duration.zero
+          ? (duration - position) <= edgeWindow
+          : true;
+      final justSwitched =
+          _lastSwitchAt != null &&
+          DateTime.now().difference(_lastSwitchAt!) <
+              const Duration(milliseconds: 1500);
+      final couldBeSegmentEnd =
+          isStreamSource && (nearStart || !nearEnd) && !justSwitched;
+
+      if (couldBeSegmentEnd) {
+        _fakeCompleteResumes++;
+        _completionLog(
+          'end of a buffered segment, reopening id=${song?.id ?? '-'} '
+          'from 0 (attempt $_fakeCompleteResumes)',
+        );
+        if (_fakeCompleteResumes <= 3) {
+          await _player.seek(Duration.zero);
           await _player.play();
           updatePlaybackState();
           return;
         }
+        // Giving up on that theory: let it move on rather than loop forever.
+        _completionLog('too many segment-end reports, advancing anyway');
+      }
 
-        if (playModeNotifier.value == 2) {
-          // repeat
-          await load();
-        } else {
-          await skipToNext(); // automatically go to next song
-        }
+      _lastCompletionKey = key;
+
+      if (playModeNotifier.value == 2) {
+        // repeat
+        await load();
+      } else {
+        _completedAdvanceCount++;
+        _completionLog(
+          'song ended, advancing to the next track '
+          '(automatic=$_autoAdvanceCount fromEnd=$_completedAdvanceCount)',
+        );
+        _autoAdvanceCount++;
+        await skipToNext(); // automatically go to next song
       }
     });
 
@@ -924,8 +993,27 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> load({Duration? start}) async {
-    // A new track gets its own allowance of a mid-song "completed" resume.
-    _resumedAfterFakeComplete = false;
+    // A queued switch can reach load() with the track it already opened: a
+    // completion handler and a command must never open the same index twice,
+    // which is what played a song a second time before moving on.
+    if (_loading) {
+      if (start == null && currentIndex == _loadingIndex) {
+        _completionLog(
+          'load already opening index=$currentIndex '
+          'id=${playQueue.isNotEmpty ? playQueue[currentIndex].id : '-'}, '
+          'ignored duplicate request',
+        );
+        return;
+      }
+      _completionLog(
+        'load requested while index=$_loadingIndex is still opening',
+      );
+    }
+    _loading = true;
+    _loadingIndex = currentIndex;
+    _fakeCompleteResumes = 0;
+    _lastCompletionKey = null;
+    _lastSwitchAt = DateTime.now();
     // iOS only: request background execution time for the lyrics fetch,
     // stream ping, player open and buffering below.
     await _beginLoadGrace();
@@ -1043,49 +1131,22 @@ class MyAudioHandler extends BaseAudioHandler {
           play: isPlayingNotifier.value,
         );
       } else {
-        String? resource;
-        Map<String, String>? headers;
+        final source = await _resolvePlaybackUri(currentSong);
 
-        switch (sourceType) {
-          case .webdav:
-            final tmpPath = await covertToRedirectPathIfNeed(currentSong.path!);
-            if (tmpPath == null) {
-              headers = webdavClient?.headers;
-            } else {
-              resource = tmpPath;
-            }
-          case .navidrome:
-          case .emby:
-          case .feiniu:
-            await streamClient?.ping();
-            resource = streamClient?.getStreamUrl(currentSong.id);
-            headers = streamClient?.headers;
-          default:
-            break;
-        }
-        resource ??= currentSong.path!;
-
-        // libmpv's bundled ffmpeg does TLS with macOS Secure Transport, which
-        // cannot negotiate TLS 1.3 - servers requiring it kill the handshake
-        // regardless of any proxy setting. Dart's HttpClient handles TLS 1.3
-        // and the system proxy, so remote streams are re-served to mpv over
-        // plain localhost HTTP (see StreamRelay).
-        final uri = Uri.tryParse(resource);
-        final isRemote =
-            uri != null &&
-            (uri.scheme == 'https' || uri.scheme == 'http') &&
-            uri.host != '127.0.0.1' &&
-            uri.host != 'localhost' &&
-            uri.host != '::1';
-
-        if (isRemote) {
-          final relayUrl = await streamRelay.register(resource, headers);
-          resource = relayUrl;
-          headers = null;
+        // Stream diagnostics (see [_probeStream]): a song that reports the end
+        // of a buffered segment as the end of the track is very hard to catch
+        // live, so the response mpv is about to read is measured once per
+        // source URI and written to the log with the values that decide it.
+        if (source.isStream) {
+          unawaited(_probeStream(currentSong, source));
         }
 
         await _player.open(
-          Media(resource, httpHeaders: headers, start: start),
+          Media(
+            source.playbackUrl,
+            httpHeaders: source.playbackHeaders,
+            start: start,
+          ),
           play: isPlayingNotifier.value,
         );
       }
@@ -1105,11 +1166,13 @@ class MyAudioHandler extends BaseAudioHandler {
         _retriedAfterAddressSwitch = true;
         _mediaLog('address switched, reloading ${currentSong.id}');
         _onServerAddressChanged();
+        _loading = false;
         await load(start: start);
         _retriedAfterAddressSwitch = false;
         return;
       }
       stop();
+      _loading = false;
     }
 
     updatePlaybackState(postion: Duration.zero);
@@ -1119,11 +1182,126 @@ class MyAudioHandler extends BaseAudioHandler {
     }
 
     loadingSong = false;
+    _loading = false;
 
     // Publish the line the song opens on, instead of waiting for the first
     // position tick to notice it.
     _updateCurrentLyricIndex(getPosition());
     updateServiceMediaItem(currentSong, lyric: _currentLyricText());
+  }
+
+  /// Turns the track into something the player can open: a cache file, a local
+  /// path, or a server stream. A remote stream is re-served to mpv over plain
+  /// localhost HTTP (libmpv's bundled ffmpeg does TLS with macOS Secure
+  /// Transport, which cannot negotiate TLS 1.3, while Dart's HttpClient can
+  /// and honours the system proxy), so the URL the player gets is the relay's.
+  Future<_PlaybackSource> _resolvePlaybackUri(MyAudioMetadata song) async {
+    String? resource;
+    Map<String, String>? headers;
+
+    switch (sourceType) {
+      case .webdav:
+        final tmpPath = await covertToRedirectPathIfNeed(song.path!);
+        if (tmpPath == null) {
+          headers = webdavClient?.headers;
+        } else {
+          resource = tmpPath;
+        }
+      case .navidrome:
+      case .emby:
+      case .feiniu:
+        await streamClient?.ping();
+        // A cached song has a local path too; without a server URL it is played
+        // from the path below instead of being awaited into a stopped player.
+        resource = streamClient?.getStreamUrl(song.id);
+        headers = streamClient?.headers;
+      default:
+        break;
+    }
+    resource ??= song.path!;
+
+    final uri = Uri.tryParse(resource);
+    final isRemote =
+        uri != null &&
+        (uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.host != '127.0.0.1' &&
+        uri.host != 'localhost' &&
+        uri.host != '::1';
+
+    final isStream = isStreamSource && streamClient != null;
+    if (!isRemote) {
+      return _PlaybackSource(
+        sourceUrl: resource,
+        playbackUrl: resource,
+        playbackHeaders: headers,
+        isStream: isStream,
+      );
+    }
+
+    final relayUrl = await streamRelay.register(resource, headers);
+    return _PlaybackSource(
+      sourceUrl: resource,
+      playbackUrl: relayUrl,
+      playbackHeaders: null,
+      relayed: true,
+      isStream: isStream,
+    );
+  }
+
+  /// One measurement per source URI, so a queue played end to end adds a line
+  /// per new track rather than per replay.
+  final Set<String> _probedStreams = {};
+
+  /// Asks the stream source for the very same response mpv is opening, records
+  /// how long the server takes to react and what the response says, and logs
+  /// it. Nothing here plays anything.
+  ///
+  /// It is what tells the difference between the three ways a stream can look
+  /// "finished" before it is: a refused or error response, a response without
+  /// a length (mpv then reads until the connection closes, and a stalled
+  /// transfer is indistinguishable from the end of the file), and a server
+  /// that only starts streaming after a long wait.
+  Future<void> _probeStream(
+    MyAudioMetadata song,
+    _PlaybackSource source,
+  ) async {
+    if (!_probedStreams.add(source.sourceUrl)) {
+      return;
+    }
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+    final started = DateTime.now();
+    try {
+      final request = await client.getUrl(Uri.parse(source.sourceUrl));
+      source.playbackHeaders?.forEach(request.headers.set);
+      final response = await request.close();
+      final length = response.contentLength;
+      final type = response.headers.contentType?.mimeType ?? '-';
+      final range = response.headers.value(HttpHeaders.contentRangeHeader);
+      final ms = DateTime.now().difference(started).inMilliseconds;
+      final status = response.statusCode;
+      final verdict = status >= 400
+          ? 'refused-by-server'
+          : length < 0
+          ? 'UNKNOWN-LENGTH (mpv reads until the connection closes; a stall '
+                'then looks exactly like the end of the song)'
+          : status >= 300
+          ? 'status-only (mpv treats a 3xx/2xx without a body as the end)'
+          : 'normal';
+      _completionLog(
+        'probe id=${song.id} status=$status '
+        'type=$type length=${length < 0 ? 'unknown' : length} '
+        'range=${range ?? '-'} ttfb=${ms}ms $verdict',
+      );
+      await response.drain<void>().catchError((_) {});
+    } catch (e) {
+      final ms = DateTime.now().difference(started).inMilliseconds;
+      _completionLog(
+        'probe id=${song.id} FAILED after ${ms}ms: $e '
+        '(the player would report an immediate end of track)',
+      );
+    } finally {
+      client.close(force: true);
+    }
   }
 
   /// Current lyric line, or null when the song has no lyrics, the position is
@@ -1152,6 +1330,34 @@ class MyAudioHandler extends BaseAudioHandler {
   void _mediaLog(String message) {
     logger.output('[media] $message');
     debugPrint('[media] $message');
+  }
+
+  /// End-of-track diagnostics. Kept apart from [_mediaLog] on purpose: the
+  /// media-session log is read by hand after a head-unit complaint, while this
+  /// one answers "did a song advance itself twice", which needs a few lines
+  /// around every completion.
+  void _completionLog(String message) {
+    logger.output('[playback] $message');
+    debugPrint('[playback] $message');
+  }
+
+  static String _fmtDuration(Duration value) {
+    final negative = value.isNegative;
+    final v = negative ? -value : value;
+    final ms = v.inMilliseconds.remainder(1000).toString().padLeft(3, '0');
+    final s = v.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final m = (v.inMinutes % 60).toString().padLeft(2, '0');
+    final h = v.inHours > 0 ? '${v.inHours}:' : '';
+    return '${negative ? '-' : ''}$h$m:$s.$ms';
+  }
+
+  /// Whether a user command has moved the queue in the last few seconds. When
+  /// one has, a completion arriving just after it belongs to the previous
+  /// track's tail and must not advance again.
+  bool _hasAdvancedRecently() {
+    final at = _lastSwitchAt;
+    return at != null &&
+        DateTime.now().difference(at) < const Duration(milliseconds: 1500);
   }
 
   /// Milliseconds since the song currently in the session was switched to.
@@ -1519,6 +1725,11 @@ class MyAudioHandler extends BaseAudioHandler {
     if (playQueue.isEmpty) return;
 
     currentIndex = (currentIndex + 1) % playQueue.length;
+    if (_hasAdvancedRecently()) {
+      _completionLog(
+        'next requested within a switch (another advance just happened)',
+      );
+    }
     await load();
   }
 
@@ -1629,4 +1840,23 @@ class MyAudioHandler extends BaseAudioHandler {
     await (_player.platform as NativePlayer).setProperty('af', af);
     saveEqualizerState();
   }
+}
+
+/// What [MyAudioHandler._resolvePlaybackUri] produced: the URL the player opens
+/// (the relay's, for a remote stream) and the original one, which the stream
+/// diagnostics read from.
+class _PlaybackSource {
+  final String sourceUrl;
+  final String playbackUrl;
+  final Map<String, String>? playbackHeaders;
+  final bool relayed;
+  final bool isStream;
+
+  const _PlaybackSource({
+    required this.sourceUrl,
+    required this.playbackUrl,
+    this.playbackHeaders,
+    this.relayed = false,
+    this.isStream = false,
+  });
 }
