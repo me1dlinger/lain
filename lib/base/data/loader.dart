@@ -276,50 +276,74 @@ class Loader {
       coversFlag.createSync(recursive: true);
     }
 
-    File tmp = File('${appSupportDir.path}/version.json');
-    if (tmp.existsSync()) {
+    final versionFile = File('${appSupportDir.path}/version.json');
+    String? storedVersion;
+    if (versionFile.existsSync()) {
       firstLaunch = false;
-      if (compareVersion('4.0.1', jsonDecode(tmp.readAsStringSync())) > 0) {
-        File playlistsFile = File(
-          "${getPlaylistConfigPath(.local)}/lain_playlists.json",
-        );
-        if (playlistsFile.existsSync()) {
-          final content = playlistsFile.readAsStringSync();
-          final list = jsonDecode(content) as List;
-          if (list.isNotEmpty && list[0] == 'Favorite') {
-            playlistsFile.writeAsStringSync(jsonEncode(list.skip(1).toList()));
-          }
+      try {
+        final raw = jsonDecode(versionFile.readAsStringSync());
+        if (raw is String && raw.isNotEmpty) {
+          storedVersion = raw;
         }
-
-        playlistsFile = File(
-          "${getPlaylistConfigPath(.webdav)}/lain_playlists.json",
-        );
-        if (playlistsFile.existsSync()) {
-          final content = playlistsFile.readAsStringSync();
-          final list = jsonDecode(content) as List;
-          if (list.isNotEmpty && list[0] == 'Favorite') {
-            playlistsFile.writeAsStringSync(jsonEncode(list.skip(1).toList()));
-          }
-        }
-      }
-
-      if (compareVersion('4.2.0', jsonDecode(tmp.readAsStringSync())) > 0) {
-        Directory tmpDir = Directory('${appSupportDir.path}/subsonic');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-
-        tmpDir = Directory('${appSupportDir.path}/navidrome');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-
-        tmpDir = Directory('${appSupportDir.path}/emby');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-      }
+      } catch (_) {}
     }
-    tmp.writeAsStringSync(jsonEncode(versionNumber));
+
+    // The app version was deliberately reset to 1.0.0-beta1. The pre-4.x
+    // migrations must not run again on that "downgrade"; one of them removes
+    // the server data directories. They already ran on 4.x installations.
+    final legacyFlag = File('${appSupportDir.path}/legacy_pre_4.3.keep');
+    if (!legacyFlag.existsSync()) {
+      final isReset =
+          storedVersion != null &&
+          (storedVersion == versionNumber || storedVersion.contains('-'));
+      if (!isReset && storedVersion != null) {
+        if (compareVersion('4.0.1', storedVersion) > 0) {
+          File playlistsFile = File(
+            "${getPlaylistConfigPath(.local)}/lain_playlists.json",
+          );
+          if (playlistsFile.existsSync()) {
+            final content = playlistsFile.readAsStringSync();
+            final list = jsonDecode(content) as List;
+            if (list.isNotEmpty && list[0] == 'Favorite') {
+              playlistsFile.writeAsStringSync(
+                jsonEncode(list.skip(1).toList()),
+              );
+            }
+          }
+
+          playlistsFile = File(
+            "${getPlaylistConfigPath(.webdav)}/lain_playlists.json",
+          );
+          if (playlistsFile.existsSync()) {
+            final content = playlistsFile.readAsStringSync();
+            final list = jsonDecode(content) as List;
+            if (list.isNotEmpty && list[0] == 'Favorite') {
+              playlistsFile.writeAsStringSync(
+                jsonEncode(list.skip(1).toList()),
+              );
+            }
+          }
+        }
+
+        if (compareVersion('4.2.0', storedVersion) > 0) {
+          Directory tmpDir = Directory('${appSupportDir.path}/subsonic');
+          if (tmpDir.existsSync()) {
+            tmpDir.deleteSync(recursive: true);
+          }
+
+          tmpDir = Directory('${appSupportDir.path}/navidrome');
+          if (tmpDir.existsSync()) {
+            tmpDir.deleteSync(recursive: true);
+          }
+
+          tmpDir = Directory('${appSupportDir.path}/emby');
+          if (tmpDir.existsSync()) {
+            tmpDir.deleteSync(recursive: true);
+          }
+        }
+      }
+      legacyFlag.createSync(recursive: true);
+    }
+    versionFile.writeAsStringSync(jsonEncode(versionNumber));
   }
 }

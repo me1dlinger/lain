@@ -50,8 +50,19 @@ String cleanRichText(String text) {
 }
 
 int compareVersion(String a, String b) {
-  final aParts = a.split('.').map(int.parse).toList();
-  final bParts = b.split('.').map(int.parse).toList();
+  // Versions can carry a prerelease/build suffix (`1.0.0-beta1+1`). Only the
+  // numeric core takes part in the comparison; `int.parse` on `0-beta1`
+  // threw and stopped startup when the stored version had one.
+  List<int> parse(String version) {
+    final core = version.split('+').first.split('-').first;
+    return [
+      for (final part in core.split('.'))
+        int.tryParse(RegExp(r'\d+').firstMatch(part)?.group(0) ?? '') ?? 0,
+    ];
+  }
+
+  final aParts = parse(a);
+  final bParts = parse(b);
 
   final length = aParts.length > bParts.length ? aParts.length : bParts.length;
 
