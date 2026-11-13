@@ -64,8 +64,13 @@ class CoverArtWidget extends StatelessWidget {
       return fallbackContent();
     }
 
-    if (picture!.isLoaded) {
-      return picture!.isExist ? imageWidget(picture!.path) : fallbackContent();
+    // The file decides, not the flags. A picture object can say "loaded" while
+    // its file is gone (the OS cleared the cache), and a refreshed list builds
+    // objects whose flags were decided before the file existed. Trusting the
+    // flags is what turned a cover that is right there into a blank square.
+    final path = picture!.path;
+    if (path.isNotEmpty && File(path).existsSync()) {
+      return imageWidget(path);
     }
     return _FuturePicture(
       picture: picture!,
@@ -73,9 +78,10 @@ class CoverArtWidget extends StatelessWidget {
       imageWidget: imageWidget,
       fallback: fallbackContent,
       priorityLoad: priorityLoad,
-      // An artist image can take a while (an external URL); show the album
-      // cover in the meantime instead of an empty hole.
-      loading: fallbackPicture == null ? null : fallbackContent(),
+      // A cover that is not on disk yet shows the note while it loads - never
+      // an empty box, which read as "this page has no cover" and then stayed
+      // that way. An artist image additionally shows its album cover.
+      loading: fallbackContent(),
     );
   }
 
@@ -106,6 +112,16 @@ class CoverArtWidget extends StatelessWidget {
       fit: size != null ? .contain : .cover,
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
+        // A file that will not decode is not a cover (an empty response, a
+        // half-written download, an HTML error page cached as an image). Drop
+        // it so the next build asks for it again instead of showing a note -
+        // or nothing - for the rest of the session.
+        final owner = picture;
+        if (owner != null && owner.path == path) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            invalidateCoverFile(owner);
+          });
+        }
         return fallbackContent();
       },
     );
@@ -178,6 +194,11 @@ class _FuturePictureState extends State<_FuturePicture> {
       widget.picture,
       widgetId: widgetId,
       priority: widget.priorityLoad,
+    ).timeout(
+      const Duration(seconds: 25),
+      // A load that never answers must not leave the builder waiting: the
+      // fallback is shown and the bounded retry below asks again.
+      onTimeout: () {},
     );
   }
 

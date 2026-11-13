@@ -511,6 +511,10 @@ class _SongListState extends State<SongList> {
       songList = playlist!.songList;
       sortTypeNotifier = songSortTypeNotifier(playlist!.sortKey);
       changeNotifier = playlist!.changeNotifier;
+      // The first build already shows the cover the home card showed, instead
+      // of the list's insertion-order first song and a note that is replaced a
+      // frame later.
+      coverSongNotifier.value = getFirstSong(playlist!.sortedSongList);
       if (!widget.isRoot) {
         rootVisibleNotifier = playlistsVisibleNotifier;
         backToRoot = () {
@@ -706,13 +710,20 @@ class _SongListState extends State<SongList> {
                     child: coverArt,
                   );
 
-            return widget.isRoot
-                ? content
-                : Hero(
-                    tag:
-                        (picture?.id ?? '') +
-                        rootLabel +
-                        getTitleText(AppLocalizations.of(context)),
+            if (widget.isRoot) {
+              return content;
+            }
+            return Hero(
+                    // A playlist's tag follows the playlist, not its cover: the
+                    // cover can change while the push transition is running
+                    // (the first song of the chosen order, a sync), and a tag
+                    // that changes mid-flight leaves the destination Hero
+                    // hidden - the blank header.
+                    tag: playlist != null
+                        ? '${playlist!.heroTag}$rootLabel'
+                        : (picture?.id ?? '') +
+                              rootLabel +
+                              getTitleText(AppLocalizations.of(context)),
                     transitionOnUserGestures: true,
                     flightShuttleBuilder:
                         (

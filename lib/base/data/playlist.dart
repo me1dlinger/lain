@@ -256,6 +256,14 @@ class Playlist {
   /// Key of this playlist's remembered sort order, shared with the song list
   /// page (see [songSortTypeNotifier]).
   String get sortKey => 'playlist:${id ?? name}';
+  /// The Hero tag the home card and the detail page share.
+  ///
+  /// It is built from the playlist's identity, not from its current cover: the
+  /// cover can change (the first song in the chosen order changes, a sync
+  /// replaces the list) while the page transition is still running, and a Hero
+  /// whose tag changes mid-flight leaves its destination hidden - a blank
+  /// cover that only a restart repairs.
+  String get heroTag => 'playlist:${id ?? name}';
 
   MyPicture? _serverCover;
 

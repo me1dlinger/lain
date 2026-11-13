@@ -536,8 +536,7 @@ class HomeLayerState extends State<HomeLayer> {
                                 child: MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: Hero(
-                                    tag:
-                                        '${playlist.picture?.id ?? ''}home${playlist.isFavorite ? l10n.favorites : playlist.name}',
+                                    tag: '${playlist.heroTag}home',
                                     transitionOnUserGestures: true,
                                     child: CoverArtWidget(
                                       size: 150 + extraSize,

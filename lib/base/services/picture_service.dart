@@ -59,7 +59,7 @@ class MyPicture {
     }
     md5Hash ??= md5.convert(utf8.encode(id)).toString();
     path = explicitPath ?? '${getPicturesPath(sourceType)}/$md5Hash';
-    if (File(path).existsSync()) {
+    if (_hasImageFile(path)) {
       isLoaded = true;
       isExist = true;
     } else {
@@ -193,9 +193,11 @@ Future<void> loadPictureSafe(
   if (picture.id.isEmpty) {
     return;
   }
-  // Only a load that ended with an image sets isLoaded (see [_loadPicture]), so
-  // this short-circuit never hides a cover whose fetch failed.
-  if (picture.isLoaded && picture.isExist) {
+  // Only a load that ended with an image sets isLoaded (see [_loadPicture]),
+  // and the file is checked rather than trusted: a cache directory the OS
+  // cleared leaves the flags saying "loaded" for a file that is gone, which
+  // used to mean a blank cover for the rest of the session.
+  if (picture.isLoaded && picture.isExist && _hasImageFile(picture.path)) {
     return;
   }
   return pictureLoadScheduler.load(
@@ -214,7 +216,8 @@ Future<void> _loadPicture(MyPicture picture) async {
   // same id, or from a previous run - and re-downloading what is cached is what
   // makes re-entering a page slow.
   try {
-    if (await File(picture.path).exists()) {
+    final file = File(picture.path);
+    if (await file.exists() && await file.length() > 0) {
       picture.isExist = true;
       picture.isLoaded = true;
       return;
@@ -261,7 +264,7 @@ Future<void> _loadPicture(MyPicture picture) async {
     }
   }
 
-  if (bytes != null) {
+  if (bytes != null && bytes.isNotEmpty) {
     try {
       File pictureFile = File(picture.path);
       if (!await pictureFile.exists()) {
@@ -278,6 +281,43 @@ Future<void> _loadPicture(MyPicture picture) async {
   // forever - the media session's artwork path already had to work around it by
   // asking the file directly.
   picture.isLoaded = picture.isExist;
+  if (picture.isLoaded) {
+    // Every view showing this cover rebuilds from the file now; it does not
+    // have to wait for its own (shared) future to be observed.
+    picture.changeNotifier.value++;
+  }
+}
+
+/// Whether [path] is an image file that is actually there (a zero-byte file is
+/// what a failed response leaves behind, and it decodes to nothing).
+bool _hasImageFile(String path) {
+  if (path.isEmpty) {
+    return false;
+  }
+  try {
+    final file = File(path);
+    return file.existsSync() && file.lengthSync() > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Drops a cover file that could not be decoded and makes every view ask for it
+/// again. Called from the image widget's error builder: without this, a bad
+/// cached file stays a blank (or note-only) cover until the app is restarted.
+void invalidateCoverFile(MyPicture picture) {
+  try {
+    final file = File(picture.path);
+    if (file.existsSync()) {
+      file.deleteSync();
+    }
+  } catch (e) {
+    logger.output('cover file could not be dropped: $e');
+  }
+  picture.isExist = false;
+  picture.isLoaded = false;
+  pictureLoadScheduler.resetPicture(picture);
+  picture.changeNotifier.value++;
 }
 
 Future<Color> computeColor(MyPicture? picture) async {
