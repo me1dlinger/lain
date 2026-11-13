@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -12,14 +14,13 @@ import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
 
-/// How many comments one page holds. Paging is local: the whole answer is
-/// fetched once and sliced, so turning a page is instant and costs nothing.
-const _commentPageSize = 15;
+/// How many comments one page holds. The server pages on its side, so this is
+/// one request's worth, not a slice of one big answer.
+const _commentPageSize = 20;
 
-/// A page size big enough to be "everything the server has": the server sends
-/// the full list in one answer and never sees a page size, so this only
-/// disables the client-side slicing for the single fetch.
-const _fetchEverythingSize = 1 << 30;
+/// How many floor replies come attached to each comment of a page; the rest
+/// are fetched on demand through the replies endpoint.
+const _replyLimit = 3;
 
 /// The comments of one song, and the server that answers them.
 ///
@@ -54,22 +55,34 @@ class _CommentPageViewState extends State<CommentPageView>
     duration: const Duration(milliseconds: 260),
   );
 
-  /// Every comment of the song, fetched once and sorted by likes; pages are
-  /// slices of this list, so paging never touches the network.
-  List<SongComment>? _all;
+  /// Pages already fetched for the current sort and song, by their 1-based
+  /// index, so going back and forth never asks twice.
+  final Map<int, CommentPageResult> _pages = {};
 
-  int _page = 0;
+  /// How the list is ordered.
+  CommentSort _sort = CommentSort.recommended;
+
+  /// The current page, 1 based, as the server numbers them.
+  int _page = 1;
   bool _loading = false;
 
   /// Why the page failed, for the error state; null when nothing failed.
   String? _errorReason;
+
+  /// The song the comments are about: what the server matched the query to,
+  /// or what the user picked by hand.
+  CommentSong? _song;
+
+  /// Whether the user chose [_song] themselves, in which case it is trusted
+  /// even when its name differs from the local track.
+  bool _pickedManually = false;
 
   @override
   void initState() {
     super.initState();
     // The list only fades in once its first page is in, so the transition does
     // not show an empty page.
-    Future.microtask(() => _load(0));
+    Future.microtask(() => _load(1));
   }
 
   @override
@@ -78,42 +91,57 @@ class _CommentPageViewState extends State<CommentPageView>
     super.dispose();
   }
 
-  CommentQuery get _query => CommentQuery(
+  CommentQuery _queryFor(int page) => CommentQuery(
+    songId: _song?.id,
     songName: getTitle(widget.currentSong),
     artistName: getArtist(widget.currentSong),
-    songId: widget.currentSong.id.isEmpty ? null : widget.currentSong.id,
-    pageSize: _fetchEverythingSize,
+    albumName: getAlbum(widget.currentSong),
+    sort: _sort,
+    page: page,
+    pageSize: _commentPageSize,
+    replyLimit: _replyLimit,
   );
 
-  /// The comments of the current page: a local slice of the one full answer.
-  List<SongComment> get _pageItems {
-    final all = _all;
-    if (all == null) {
-      return const [];
+  /// The page the user is looking at.
+  CommentPageResult? get _current => _pages[_page];
+
+  bool get _hasPrevious => _page > 1;
+
+  /// Whether a next page exists: the server says so, or it is already loaded.
+  bool get _hasNext => _current?.page.hasMore == true || _pages.containsKey(_page + 1);
+
+  /// Whether the song the server matched is clearly not this track. Comments
+  /// of another song are worse than none, so they are held back and the user
+  /// is asked to pick the right one instead.
+  bool get _songMismatch {
+    if (_pickedManually || _song == null) {
+      return false;
     }
-    final start = _page * _commentPageSize;
-    if (start >= all.length) {
-      return const [];
-    }
-    final end = start + _commentPageSize;
-    return all.sublist(start, end > all.length ? all.length : end);
+    return !_titlesMatch(getTitle(widget.currentSong), _song!.name);
   }
 
-  /// Whether a previous page exists. Every page is in memory, so this is
-  /// simply "not the first page".
-  bool get _hasPrevious => _page > 0;
-
-  /// Whether a next page exists, counting the pages the one full answer can
-  /// fill after the current one.
-  bool get _hasNext => (_page + 1) * _commentPageSize < (_all?.length ?? 0);
+  /// Loose on purpose: punctuation, spacing and case differences between the
+  /// local tags and the server's names must not count as a mismatch.
+  static bool _titlesMatch(String a, String b) {
+    String norm(String value) => value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\p{P}\p{S}]+', unicode: true), '');
+    final x = norm(a);
+    final y = norm(b);
+    if (x.isEmpty || y.isEmpty) {
+      return true;
+    }
+    return x.contains(y) || y.contains(x);
+  }
 
   Future<void> _load(int page, {bool force = false}) async {
     final server = _server;
-    if (server == null || page < 0) {
+    if (server == null || page < 1) {
       return;
     }
-    // The answer is already in memory; only a retry goes back to the server.
-    if (!force && _all != null) {
+    // A page already fetched is shown from memory; only a retry or a page that
+    // is not here yet reaches the network.
+    if (!force && _pages.containsKey(page)) {
       setState(() {
         _page = page;
         _errorReason = null;
@@ -128,15 +156,20 @@ class _CommentPageViewState extends State<CommentPageView>
     });
 
     try {
-      final result = await CommentClient(server).fetch(_query);
+      final result = await CommentClient(server).fetch(_queryFor(page));
       if (!mounted) {
         return;
       }
       setState(() {
         _loading = false;
-        // Sorted once over the whole answer, so the hottest comments are
-        // always on the earliest pages no matter where the server put them.
-        _all = _sorted(result.page.comments);
+        _pages[page] = result;
+        // A name query says which song it matched; an id query leaves the
+        // song as picked. The first answer decides, so a stale match from an
+        // earlier page never lingers.
+        if (result.song != null) {
+          _song = result.song;
+          _pickedManually = false;
+        }
       });
       _fadeController.forward(from: 0);
     } on CommentFetchException catch (error) {
@@ -158,8 +191,61 @@ class _CommentPageViewState extends State<CommentPageView>
     }
   }
 
+  /// Orders the list differently: the pages of the previous order do not apply.
+  void _changeSort(CommentSort sort) {
+    if (sort == _sort) {
+      return;
+    }
+    setState(() {
+      _sort = sort;
+      _pages.clear();
+      _page = 1;
+    });
+    _load(1);
+  }
+
+  /// Reads the comments of a song picked by hand, which is trusted as-is.
+  void _pickSong(CommentSong song) {
+    setState(() {
+      _song = song;
+      _pickedManually = true;
+      _pages.clear();
+      _page = 1;
+      _errorReason = null;
+    });
+    _load(1);
+  }
+
+  /// The replies of one comment, fetched a floor page at a time. A null return
+  /// means the floor could not be read; the tile then keeps what it has.
+  Future<CommentReplyResult?> _loadReplies(String songId, String commentId, String? time) async {
+    final server = _server;
+    if (server == null) {
+      return null;
+    }
+    try {
+      return await CommentClient(server).fetchReplies(songId, commentId, time: time);
+    } on CommentFetchException {
+      return null;
+    }
+  }
+
+  Future<void> _openSongPicker() async {
+    final picked = await showModalBottomSheet<CommentSong>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _SongPickerSheet(
+        server: _server!,
+        initialKeywords: '${getTitle(widget.currentSong)} ${getArtist(widget.currentSong)}',
+      ),
+    );
+    if (picked != null) {
+      _pickSong(picked);
+    }
+  }
+
   void _goTo(int page) {
-    if (page < 0 || _loading) {
+    if (page < 1 || _loading) {
       return;
     }
     _load(page);
@@ -218,6 +304,15 @@ class _CommentPageViewState extends State<CommentPageView>
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: _songHeader(l10n, textColor),
                       ),
+                      if (_server != null) ...[
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _matchedRow(l10n, textColor),
+                        ),
+                        const SizedBox(height: 8),
+                        _sortChips(l10n, textColor),
+                      ],
                       const SizedBox(height: 12),
                       ..._body(l10n, textColor),
                     ],
@@ -279,6 +374,76 @@ class _CommentPageViewState extends State<CommentPageView>
     );
   }
 
+  /// Which song the comments are really about, with a way to change it.
+  Widget _matchedRow(AppLocalizations l10n, Color textColor) {
+    final song = _song;
+    if (song == null) {
+      return const SizedBox.shrink();
+    }
+    final mismatch = _songMismatch;
+    final label = mismatch
+        ? l10n.commentMismatchTitle
+        : l10n.commentMatchedSong(song.name);
+    return Row(
+      children: [
+        Icon(
+          mismatch ? Icons.link_off_rounded : Icons.link_rounded,
+          size: 14,
+          color: textColor.withAlpha(mismatch ? 200 : 140),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: textColor.withAlpha(mismatch ? 200 : 150),
+            ),
+          ),
+        ),
+        GestureDetector(
+          onTap: _openSongPicker,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            child: Text(
+              l10n.commentChangeSong,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorManager.getSpecificButtonColor(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The three orders the server offers, as pills with the selected one
+  /// filled.
+  Widget _sortChips(AppLocalizations l10n, Color textColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (final (sort, label) in [
+          (CommentSort.recommended, l10n.commentSortRecommended),
+          (CommentSort.hot, l10n.commentSortHot),
+          (CommentSort.time, l10n.commentSortTime),
+        ])
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: _pagerButton(
+              label,
+              sort == _sort ? () {} : () => _changeSort(sort),
+              textColor: textColor,
+              filled: sort == _sort,
+            ),
+          ),
+      ],
+    );
+  }
+
   List<Widget> _body(AppLocalizations l10n, Color textColor) {
     if (_server == null) {
       return [
@@ -310,27 +475,60 @@ class _CommentPageViewState extends State<CommentPageView>
         ),
       ];
     }
+    // The server matched a song that is clearly not this one: its comments
+    // stay hidden until the user confirms which song they want.
+    if (_songMismatch) {
+      return [
+        _message(
+          l10n.commentMismatchTitle,
+          detail: l10n.commentMismatchDetail(_song!.name),
+          textColor: textColor,
+          actionLabel: l10n.commentPickSong,
+          onAction: _openSongPicker,
+        ),
+      ];
+    }
     // Nothing has loaded yet and nothing failed: this is the first request.
-    if (_loading && _all == null) {
+    if (_loading && !_pages.containsKey(_page)) {
       return [_loadingState(textColor)];
     }
 
-    final items = _pageItems;
-    if (items.isEmpty) {
-      return [_message(l10n.commentEmpty, textColor: textColor)];
+    final result = _current;
+    final comments = result?.page.comments ?? const <SongComment>[];
+    if (comments.isEmpty) {
+      return [
+        _message(
+          l10n.commentEmpty,
+          textColor: textColor,
+          detail: (result?.total ?? 0) > 0
+              ? l10n.commentTotalCount(result!.total)
+              : null,
+        ),
+      ];
     }
 
     return [
-      // Already sorted over the whole answer when it arrived, so the comments
-      // worth reading are always on the earliest pages.
-      for (final comment in items)
+      // The server already ordered the page (recommended, hot or by time), so
+      // the order it sent is kept.
+      for (final comment in comments)
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: _CommentTile(
-            key: ValueKey('${_page}_${comment.commentId}'),
+            key: ValueKey('${_sort.index}_${_song?.id}_${_page}_${comment.commentId}'),
             comment: comment,
             fade: _fadeController,
             textColor: textColor,
+            onLoadReplies: (commentId, time) =>
+                _loadReplies(_song?.id ?? comment.songId, commentId, time),
+          ),
+        ),
+      if ((result?.total ?? 0) > 0)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            l10n.commentTotalCount(result!.total),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: textColor.withAlpha(130)),
           ),
         ),
       if (_hasPrevious || _hasNext) _pager(l10n, textColor),
@@ -341,18 +539,14 @@ class _CommentPageViewState extends State<CommentPageView>
     ];
   }
 
-  List<SongComment> _sorted(List<SongComment> comments) {
-    final result = List<SongComment>.of(comments);
-    result.sort((a, b) => b.praiseNum.compareTo(a.praiseNum));
-    return result;
-  }
-
   String _errorDetail(AppLocalizations l10n, String reason) {
     switch (reason) {
       case 'forbidden':
         return l10n.commentForbidden;
       case 'unreachable':
         return l10n.commentUnreachable;
+      case 'notFound':
+        return l10n.commentSongNotFound;
       default:
         return l10n.commentServerError;
     }
@@ -478,7 +672,9 @@ class _CommentPageViewState extends State<CommentPageView>
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              l10n.commentPageIndicator(_page + 1),
+              (_current?.pageCount ?? 0) > 0
+                  ? l10n.commentPageOf(_page, _current!.pageCount)
+                  : l10n.commentPageIndicator(_page),
               style: TextStyle(fontSize: 12, color: textColor.withAlpha(190)),
             ),
           ),
@@ -526,11 +722,18 @@ class _CommentTile extends StatefulWidget {
   final Animation<double> fade;
   final Color textColor;
 
+  /// Reads one more page of the floor's replies, passed the comment id and the
+  /// last page's `time` cursor. A null return means the floor could not be
+  /// read, so the tile keeps what it has.
+  final Future<CommentReplyResult?> Function(String commentId, String? time)
+  onLoadReplies;
+
   const _CommentTile({
     super.key,
     required this.comment,
     required this.fade,
     required this.textColor,
+    required this.onLoadReplies,
   });
 
   @override
@@ -539,6 +742,43 @@ class _CommentTile extends StatefulWidget {
 
 class _CommentTileState extends State<_CommentTile> {
   bool expanded = false;
+
+  /// The floor's replies, starting from what the page brought along; more are
+  /// appended by [loadMoreReplies].
+  late final List<SongComment> replies = List.of(widget.comment.replies);
+
+  /// The floor cursor of the next request, when a page before it set one.
+  String? _nextTime;
+
+  /// Whether the floor still has replies the tile has not shown.
+  bool get _floorHasMore =>
+      widget.comment.repliesHasMore ||
+      widget.comment.replyCount > replies.length;
+
+  bool _loadingReplies = false;
+
+  /// Appends one more page of the floor, keeping what is already there.
+  Future<void> loadMoreReplies() async {
+    if (_loadingReplies) {
+      return;
+    }
+    setState(() => _loadingReplies = true);
+    final result = await widget.onLoadReplies(
+      widget.comment.commentId,
+      _nextTime,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _loadingReplies = false;
+      if (result != null) {
+        // The floor pages are already newest first, so they join in order.
+        replies.addAll(result.replies);
+        _nextTime = result.nextTime;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -608,6 +848,16 @@ class _CommentTileState extends State<_CommentTile> {
                       color: textColor.withAlpha(120),
                     ),
                   ),
+                if (comment.ipLocation.trim().isNotEmpty) ...[
+                  if (comment.createTime > 0) const SizedBox(width: 12),
+                  Text(
+                    comment.ipLocation.trim(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withAlpha(120),
+                    ),
+                  ),
+                ],
                 if (comment.createTime > 0 && comment.praiseNum > 0)
                   const SizedBox(width: 12),
                 if (comment.praiseNum > 0) ...[
@@ -646,7 +896,7 @@ class _CommentTileState extends State<_CommentTile> {
             ),
             if (expanded && comment.replyCount > 0) ...[
               const SizedBox(height: 6),
-              for (final reply in comment.replies)
+              for (final reply in replies)
                 Padding(
                   padding: const EdgeInsets.only(left: 46, top: 8),
                   child: Row(
@@ -685,6 +935,32 @@ class _CommentTileState extends State<_CommentTile> {
                       ),
                     ],
                   ),
+                ),
+              if (_floorHasMore)
+                Padding(
+                  padding: const EdgeInsets.only(left: 46, top: 8),
+                  child: _loadingReplies
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: textColor.withAlpha(140),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: loadMoreReplies,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              l10n.commentShowMoreReplies,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorManager.getSpecificButtonColor(),
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
             ],
           ],
@@ -749,6 +1025,243 @@ class _Avatar extends StatelessWidget {
         Icons.person_rounded,
         size: size * 0.6,
         color: textColor.withAlpha(140),
+      ),
+    );
+  }
+}
+
+/// A bottom sheet that searches the server's song list, so the user can pick
+/// the song whose comments should really be shown.
+///
+/// The search runs debounced while typing; picking a song pops the sheet with
+/// it. It is shown by the comments page when the server matched the wrong song
+/// or the user asked for another one.
+class _SongPickerSheet extends StatefulWidget {
+  final CommentServer server;
+
+  /// What the search field starts with: the local track's title and artist.
+  final String initialKeywords;
+
+  const _SongPickerSheet({
+    required this.server,
+    required this.initialKeywords,
+  });
+
+  @override
+  State<_SongPickerSheet> createState() => _SongPickerSheetState();
+}
+
+class _SongPickerSheetState extends State<_SongPickerSheet> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialKeywords,
+  );
+  Timer? _debounce;
+  bool _loading = false;
+  List<CommentSong> _songs = const [];
+  bool _searched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // The sheet opens with the local track as keywords, so the first answer is
+    // already a match instead of an empty list.
+    Future.microtask(_search);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), _search);
+  }
+
+  Future<void> _search() async {
+    final keywords = _controller.text.trim();
+    if (keywords.isEmpty) {
+      setState(() {
+        _songs = const [];
+        _searched = false;
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+    List<CommentSong> songs;
+    try {
+      songs = await CommentClient(widget.server).searchSongs(keywords);
+    } catch (_) {
+      songs = const [];
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _loading = false;
+      _songs = songs;
+      _searched = true;
+    });
+  }
+
+  String _formatDuration(int milliseconds) {
+    if (milliseconds <= 0) {
+      return '';
+    }
+    final total = milliseconds ~/ 1000;
+    final minutes = (total ~/ 60).toString().padLeft(2, '0');
+    final seconds = (total % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final textColor = colorManager.getSpecificTextColor();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(
+                l10n.commentSearchTitle,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _controller,
+                autofocus: true,
+                onChanged: _onChanged,
+                onSubmitted: (_) => _search(),
+                style: TextStyle(color: textColor, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: l10n.commentSearchHint,
+                  hintStyle: TextStyle(color: textColor.withAlpha(110)),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: textColor.withAlpha(140),
+                  ),
+                  filled: true,
+                  fillColor: textColor.withAlpha(16),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (_songs.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    _searched ? l10n.commentSearchEmpty : '',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: textColor.withAlpha(130),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _songs.length,
+                  itemBuilder: (context, index) {
+                    final song = _songs[index];
+                    final duration = _formatDuration(song.duration);
+                    return ListTile(
+                      dense: true,
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: song.coverUrl.trim().isEmpty
+                              ? Container(
+                                  color: textColor.withAlpha(24),
+                                  child: Icon(
+                                    Icons.music_note_rounded,
+                                    size: 20,
+                                    color: textColor.withAlpha(140),
+                                  ),
+                                )
+                              : Image.network(
+                                  song.coverUrl.trim(),
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        color: textColor.withAlpha(24),
+                                        child: Icon(
+                                          Icons.music_note_rounded,
+                                          size: 20,
+                                          color: textColor.withAlpha(140),
+                                        ),
+                                      ),
+                                ),
+                        ),
+                      ),
+                      title: Text(
+                        song.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textColor.withAlpha(220),
+                        ),
+                      ),
+                      subtitle: Text(
+                        duration.isEmpty
+                            ? '${song.artist}${song.album.isEmpty ? '' : ' · ${song.album}'}'
+                            : '${song.artist}${song.album.isEmpty ? '' : ' · ${song.album}'} · $duration',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withAlpha(130),
+                        ),
+                      ),
+                      onTap: () => Navigator.of(context).pop(song),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

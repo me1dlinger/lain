@@ -1321,4 +1321,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String commentOnWithServer(String server) {
     return 'On · $server';
   }
+
+  @override
+  String get commentSortRecommended => 'Recommended';
+
+  @override
+  String get commentSortHot => 'Hot';
+
+  @override
+  String get commentSortTime => 'Latest';
+
+  @override
+  String commentMatchedSong(String name) {
+    return 'Comments of “$name”';
+  }
+
+  @override
+  String get commentChangeSong => 'Change song';
+
+  @override
+  String get commentMismatchTitle => 'These comments belong to another song';
+
+  @override
+  String commentMismatchDetail(String name) {
+    return 'The server matched this track with “$name”, which does not look right. Pick the matching song to read its comments.';
+  }
+
+  @override
+  String get commentPickSong => 'Pick a song';
+
+  @override
+  String get commentSearchTitle => 'Search songs';
+
+  @override
+  String get commentSearchHint => 'Song name / artist';
+
+  @override
+  String get commentSearchEmpty => 'No songs found';
+
+  @override
+  String get commentSongNotFound => 'The comment server did not find this song';
+
+  @override
+  String commentTotalCount(int count) {
+    return '$count comments';
+  }
+
+  @override
+  String commentPageOf(int page, int pageCount) {
+    return 'Page $page of $pageCount';
+  }
+
+  @override
+  String get commentShowMoreReplies => 'Show more replies';
 }

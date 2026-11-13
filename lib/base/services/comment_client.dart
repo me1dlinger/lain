@@ -5,56 +5,97 @@ import 'dart:io';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/song_comment.dart';
 
+/// How a comment list is ordered, as the server's `sort` parameter takes it.
+enum CommentSort {
+  recommended('recommended'),
+  hot('hot'),
+  time('time');
+
+  final String value;
+  const CommentSort(this.value);
+}
+
 /// What a comment source can be asked for.
 ///
-/// The reference server returns every comment it has in a single answer, so a
-/// page here is a slice of that one answer rather than a page the server
-/// produced.
+/// The server pages and sorts on its side: `page` starts at 1, `pageSize`
+/// tops out at 100 and `replyLimit` decides how many floor replies come
+/// attached to each comment (0 is the fastest, the list alone).
 class CommentQuery {
+  /// The song the server already resolved, when known. Giving it skips the
+  /// search, which is both faster and immune to a wrong match.
+  final String? songId;
+
   final String songName;
   final String artistName;
 
-  /// Album name, when known. It is optional: the reference server accepts it
-  /// but does not require it, and may not have it filled in at all.
+  /// Album name, when known. It is optional: the server accepts it but does
+  /// not require it, and passing it greatly improves the name match.
   final String? albumName;
 
-  /// NetEase song id, when the source knows it; a source that only understands
-  /// names ignores it.
-  final String? songId;
+  final CommentSort sort;
 
-  /// Page index, zero based.
+  /// Page index, one based.
   final int page;
 
-  /// Comments per page.
+  /// Comments per page, at most 100.
   final int pageSize;
 
+  /// Floor replies attached to each comment; 0 turns them off.
+  final int replyLimit;
+
   const CommentQuery({
+    this.songId,
     required this.songName,
     required this.artistName,
     this.albumName,
-    this.songId,
-    this.page = 0,
-    this.pageSize = 15,
-  }) : assert(page >= 0),
-       assert(pageSize > 0);
-
-  CommentQuery atPage(int page) => CommentQuery(
-    songName: songName,
-    artistName: artistName,
-    albumName: albumName,
-    songId: songId,
-    page: page,
-    pageSize: pageSize,
-  );
+    this.sort = CommentSort.recommended,
+    this.page = 1,
+    this.pageSize = 20,
+    this.replyLimit = 3,
+  }) : assert(page >= 1),
+       assert(pageSize >= 1);
 }
 
-/// Tags a page with the source that produced it, so the UI can say where the
-/// comments came from.
+/// One page of the answer, with the song it belongs to.
 class CommentPageResult {
   final CommentPage page;
+
+  /// The song the server matched the query to, when it says so. A name query
+  /// fills it in; an id query usually does not (the caller already knows).
+  final CommentSong? song;
+
+  /// The comment total the server reports, 0 when it did not.
+  final int total;
+
+  /// How many pages the server says there are, 0 when it did not.
+  final int pageCount;
+
   final String sourceLabel;
 
-  const CommentPageResult({required this.page, required this.sourceLabel});
+  const CommentPageResult({
+    required this.page,
+    required this.sourceLabel,
+    this.song,
+    this.total = 0,
+    this.pageCount = 0,
+  });
+}
+
+/// One page of a comment's floor replies.
+class CommentReplyResult {
+  final List<SongComment> replies;
+
+  /// Whether the floor has more after this page.
+  final bool hasMore;
+
+  /// What the next request needs as its `time` parameter.
+  final String? nextTime;
+
+  const CommentReplyResult({
+    required this.replies,
+    required this.hasMore,
+    this.nextTime,
+  });
 }
 
 /// Prints a diagnostic for this file.
@@ -66,11 +107,11 @@ void _log(String message) => stderr.writeln('[comment] $message');
 
 /// Talks to one comment server.
 ///
-/// The endpoint is the review_api one: a GET to the server's root with
-/// `song_name`, `singer_name`, an optional `album_name` and a `token` when the
-/// server is password protected. It answers `{code, msg, body:[...]}` where
-/// `body` holds the comments; the server has no paging of its own, so a page is
-/// a slice of that answer and a page past its end is empty.
+/// The endpoints are the ncm-comment-api ones: `GET /api/comments` pages and
+/// sorts a song's comments server-side, `GET /api/search` resolves keywords to
+/// songs, `GET /api/replies` pages a comment's floor. The root path `/` keeps
+/// the classic list answer, but the app asks the paged API so it never pulls
+/// more than one page at a time.
 class CommentClient {
   final CommentServer server;
 
@@ -90,17 +131,23 @@ class CommentClient {
   /// in-memory [CommentServer.lastGoodUrl] is set either way.
   static void Function(CommentServer server, String baseUrl)? rememberAddress;
 
-  /// Timeout for one address. The working server answers in well under a
-  /// second, so this is really the patience for a dead address before falling
-  /// back to the next candidate; eight seconds made a fallback feel frozen.
-  static const _timeout = Duration(seconds: 4);
+  /// Timeout for connecting to one address. A dead address usually hangs
+  /// rather than refusing, and every address in front of the working one adds
+  /// this to the wait, so it stays short; the request itself gets
+  /// [_requestTimeout].
+  static const _connectTimeout = Duration(seconds: 3);
+
+  /// Timeout for the whole request against one address. The server relays to
+  /// an upstream that can be slow on a cold cache, so this is generous where
+  /// the connect timeout is not.
+  static const _requestTimeout = Duration(seconds: 15);
 
   /// A probe only has to prove the address is alive, and an unreachable one
   /// usually fails fast, so it does not wait as long as a real request.
   static const _probeTimeout = Duration(seconds: 3);
 
   HttpClient _clientFor(String url) {
-    final client = HttpClient()..connectionTimeout = _timeout;
+    final client = HttpClient()..connectionTimeout = _connectTimeout;
     // Only an https address can present a certificate; setting the callback
     // unconditionally would hide that mistake instead of surfacing it.
     if (server.isSecure) {
@@ -142,6 +189,10 @@ class CommentClient {
     }
 
     add(_goodAddress);
+    // The one that answered last time, written through to the settings: it is
+    // where the app already worked, so asking it first avoids waiting out a
+    // dead address on every fresh open of the page.
+    add(server.lastGoodUrl);
     add(server.lanUrl);
     add(server.publicUrl);
     return result;
@@ -170,25 +221,138 @@ class CommentClient {
 
   /// The page the source answers for [query].
   ///
-  /// Addresses are tried in turn; a server that answers with a refusal (403) is
-  /// still an answer, so it ends the search rather than falling through to an
-  /// address that cannot be reached anyway. When nothing answers, the failure
-  /// is a [CommentFetchException] rather than whatever the last error was.
+  /// Addresses are tried in turn; a server that answers with a refusal (403)
+  /// is still an answer, so it ends the search rather than falling through to
+  /// an address that cannot be reached anyway. A 404 means the song could not
+  /// be resolved, which is also final. When nothing answers, the failure is a
+  /// [CommentFetchException] rather than whatever the last error was.
   Future<CommentPageResult> fetch(CommentQuery query) async {
-    // Someone answered and had nothing usable for this request: that is a bad
-    // answer, not a dead address. Nothing answering at all is unreachable.
+    final params = <String, String>{
+      'page': '${query.page}',
+      'pageSize': '${query.pageSize}',
+      'sort': query.sort.value,
+      'reply_limit': '${query.replyLimit}',
+    };
+    if (query.songId != null && query.songId!.trim().isNotEmpty) {
+      params['id'] = query.songId!.trim();
+    } else {
+      params['song_name'] = query.songName;
+      params['singer_name'] = query.artistName;
+      final albumName = query.albumName?.trim() ?? '';
+      if (albumName.isNotEmpty) {
+        params['album_name'] = albumName;
+      }
+    }
+    final body = await _getJson('/api/comments', params);
+    final pageBody = body is Map ? body : null;
+    if (pageBody == null) {
+      throw const CommentFetchException('badResponse');
+    }
+    final song = _parseSong(pageBody['song']);
+    final comments = <SongComment>[];
+    final songId = song?.id ?? query.songId ?? '';
+    for (final item in (pageBody['comments'] as List? ?? const [])) {
+      final comment = _parseComment(item, songId);
+      if (comment != null) {
+        comments.add(comment);
+      }
+    }
+    return CommentPageResult(
+      page: CommentPage(
+        comments: comments,
+        hasMore: pageBody['hasMore'] as bool? ?? false,
+      ),
+      song: song,
+      total: (pageBody['total'] as num?)?.toInt() ?? 0,
+      pageCount: (pageBody['pageCount'] as num?)?.toInt() ?? 0,
+      sourceLabel: server.name,
+    );
+  }
+
+  /// Songs matching [keywords], so the user can pick the song the comments
+  /// should really be about.
+  Future<List<CommentSong>> searchSongs(String keywords, {int limit = 20}) async {
+    final words = keywords.trim();
+    if (words.isEmpty) {
+      return const [];
+    }
+    final body = await _getJson('/api/search', {
+      'keywords': words,
+      'type': '1',
+      'limit': '$limit',
+    });
+    final songs = body is Map ? body['songs'] as List? : null;
+    if (songs == null) {
+      return const [];
+    }
+    final result = <CommentSong>[];
+    for (final item in songs) {
+      final song = _parseSong(item);
+      if (song != null) {
+        result.add(song);
+      }
+    }
+    return result;
+  }
+
+  /// One page of the replies under one comment.
+  ///
+  /// [time] is the previous page's [CommentReplyResult.nextTime]; the first
+  /// page does without it.
+  Future<CommentReplyResult> fetchReplies(
+    String songId,
+    String commentId, {
+    int limit = 20,
+    String? time,
+  }) async {
+    final params = <String, String>{
+      'id': songId,
+      'comment_id': commentId,
+      'limit': '$limit',
+    };
+    final timeValue = time?.trim() ?? '';
+    if (timeValue.isNotEmpty) {
+      params['time'] = timeValue;
+    }
+    final body = await _getJson('/api/replies', params);
+    final floor = body is Map ? body : null;
+    if (floor == null) {
+      throw const CommentFetchException('badResponse');
+    }
+    final replies = <SongComment>[];
+    for (final item in (floor['replies'] as List? ?? const [])) {
+      final reply = _parseComment(item, songId);
+      if (reply != null) {
+        replies.add(reply);
+      }
+    }
+    return CommentReplyResult(
+      replies: replies,
+      hasMore: floor['hasMore'] as bool? ?? false,
+      nextTime: floor['nextTime'] == null ? null : '${floor['nextTime']}',
+    );
+  }
+
+  /// One GET against whichever address answers first, returning the parsed
+  /// `body` of the envelope.
+  ///
+  /// Throws [CommentFetchException] for the final failures: `forbidden` for a
+  /// refusal, `notFound` when the server says there is no such song. An
+  /// address that answers with anything else unusable counts as reached, and
+  /// the next address is tried; nothing answering at all is `unreachable`.
+  Future<Object?> _getJson(String path, Map<String, String> params) async {
     var answered = false;
     final failures = <String>[];
     for (final base in _candidateAddresses()) {
-      final outcome = await _fetchFrom(base, query, failures);
-      if (outcome.page != null) {
+      final outcome = await _getFrom(base, path, params, failures);
+      if (outcome.body != null) {
         server.lastGoodUrl = base;
         // Written through so the address survives a restart: without it the
         // app probes both addresses on every launch, and the one that was
         // down comes back first.
         CommentClient.rememberAddress?.call(server, base);
         _goodAddress = base;
-        return CommentPageResult(page: outcome.page!, sourceLabel: server.name);
+        return outcome.body;
       }
       answered = answered || outcome.reached;
     }
@@ -201,43 +365,44 @@ class CommentClient {
     );
   }
 
-  /// The page from one address. A null page means that address had nothing
-  /// useful (the caller then tries the next one), and the reason is appended to
-  /// [failures].
+  /// The body from one address. A null body means that address had nothing
+  /// usable (the caller then tries the next one), and the reason is appended
+  /// to [failures].
   ///
-  /// Throws [CommentFetchException] for a refusal, which is final.
-  Future<_Outcome> _fetchFrom(
+  /// Throws [CommentFetchException] for a refusal or a missing song, which
+  /// are final.
+  Future<_Outcome> _getFrom(
     String base,
-    CommentQuery query,
+    String path,
+    Map<String, String> params,
     List<String> failures,
   ) async {
-    final uri = Uri.parse(base);
-    final params = <String, String>{
-      'song_name': query.songName,
-      'singer_name': query.artistName,
-    };
-    final albumName = query.albumName?.trim() ?? '';
-    if (albumName.isNotEmpty) {
-      params['album_name'] = albumName;
-    }
+    final target = Uri.parse(base);
+    final withToken = Map<String, String>.of(params);
     // The server derives its token from its own configured URL, which is the
     // address used here; a token for another address would be rejected.
     if (server.needsToken) {
-      params['token'] = server.tokenFor(base);
+      withToken['token'] = server.tokenFor(base);
     }
-    final target = uri.replace(queryParameters: params);
+    final uri = target.replace(
+      path: target.path == '/' || target.path.isEmpty ? path : '${target.path}$path',
+      queryParameters: withToken,
+    );
 
     final client = _clientFor(base);
     try {
-      final request = await client.getUrl(target).timeout(_timeout);
+      final request = await client.getUrl(uri).timeout(_requestTimeout);
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      final response = await request.close().timeout(_timeout);
+      final response = await request.close().timeout(_requestTimeout);
       final status = response.statusCode;
       if (status != 200) {
         await response.drain<void>();
         if (status == HttpStatus.unauthorized ||
             status == HttpStatus.forbidden) {
           throw const CommentFetchException('forbidden');
+        }
+        if (status == HttpStatus.notFound) {
+          throw const CommentFetchException('notFound');
         }
         _log('unexpected status $status from $base');
         failures.add('$base HTTP $status');
@@ -246,8 +411,8 @@ class CommentClient {
       final body = await response
           .transform(utf8.decoder)
           .join()
-          .timeout(_timeout);
-      return _Outcome(_parse(body, query), reached: true);
+          .timeout(_requestTimeout);
+      return _Outcome(_envelopeBody(body), reached: true);
     } on CommentFetchException {
       rethrow;
     } catch (error) {
@@ -259,120 +424,99 @@ class CommentClient {
     }
   }
 
-  /// Parses one answer.
-  ///
-  /// The real shape, measured against the reference server:
-  /// `{"code":200,"msg":"success","body":[{"nick":"…","avatarurl":"…",
-  /// "content":"…","praiseNum":823201,"createTime":1413530574,
-  /// "commentId":"4956438","type":2}, …]}`
-  /// - `body` is the list itself, not an object wrapping one, and there is no
-  ///   `total` and no second level reply field.
-  /// - `commentId` is a string, `praiseNum` and `createTime` are numbers, and
-  ///   `avatarurl` is all lower case.
-  /// - `type` 0/1 are the featured ("hot") comments, 2 is an ordinary one.
-  /// - A failure carries `code` and a plain text `msg` instead of `body`.
-  ///
-  /// Two shapes are accepted, because only the first was measured:
-  /// - the flat one above, where `body` is the list;
-  /// - the same inside a `data` object, as `{"code":200,"data":{"list":[…]}}`,
-  ///   which is what the NetEase endpoints the server proxies tend to answer.
-  ///   The list wrapper is only used when `body` itself is not a list.
-  ///
-  /// The endpoint has no paging, so the answer is sliced here; the order the
-  /// server sent is kept, because it is already by likes and re-sorting would
-  /// only hide a change on the server side.
-  CommentPage _parse(String body, CommentQuery query) {
+  /// The `body` of one answer, or null when the answer is not a success
+  /// envelope.
+  Object? _envelopeBody(String body) {
     final Object? raw;
     try {
       raw = jsonDecode(body);
     } on FormatException catch (error) {
       _log('not json: $error');
-      return CommentPage.empty;
+      return null;
     }
     if (raw is! Map) {
-      return CommentPage.empty;
+      return null;
     }
     final code = (raw['code'] as num?)?.toInt();
     if (code != null && code != 200) {
       _log('server said $code: ${raw['msg'] ?? ''}');
-      return CommentPage.empty;
+      return null;
     }
-    final list = _commentList(raw);
-    if (list == null) {
-      return CommentPage.empty;
-    }
+    return raw['body'];
+  }
 
-    final all = <SongComment>[];
-    for (final item in list) {
-      if (item is! Map) {
-        continue;
-      }
-      final rawType = item['type'];
-      final type = rawType is num ? rawType.toInt() : null;
-      all.add(
-        SongComment(
-          songId: query.songId ?? '',
-          commentId: '${item['commentId'] ?? ''}',
-          nick: '${item['nick'] ?? ''}',
-          // The field really is all lower case in the server's answer.
-          avatarUrl: '${item['avatarurl'] ?? item['avatarUrl'] ?? ''}',
-          content: '${item['content'] ?? ''}',
-          praiseNum: (item['praiseNum'] as num?)?.toInt() ?? 0,
-          createTime: (item['createTime'] as num?)?.toInt() ?? 0,
-          // NetEase marks the featured comments 0 and 1; 2 is an ordinary one.
-          isHot: type == 0 || type == 1,
-        ),
-      );
+  /// The song of a `song` / search item.
+  CommentSong? _parseSong(Object? raw) {
+    if (raw is! Map) {
+      return null;
     }
-
-    final page = query.page;
-    final pageSize = query.pageSize;
-    final start = page * pageSize;
-    if (start >= all.length) {
-      return CommentPage.empty;
+    final id = '${raw['songId'] ?? raw['id'] ?? ''}';
+    final name = '${raw['name'] ?? ''}';
+    if (id.isEmpty || name.isEmpty) {
+      return null;
     }
-    final end = start + pageSize;
-    return CommentPage(
-      comments: all.sublist(start, end > all.length ? all.length : end),
-      hasMore: end < all.length,
+    return CommentSong(
+      id: id,
+      name: name,
+      artist: '${raw['artist'] ?? ''}',
+      album: '${raw['album'] ?? ''}',
+      coverUrl: '${raw['coverUrl'] ?? ''}',
+      duration: (raw['duration'] as num?)?.toInt() ?? 0,
     );
   }
 
-  /// The comment list of an answer: `body` when it is a list, else the list
-  /// inside `data` (either `data.list` or `data` itself).
-  static List? _commentList(Map raw) {
-    final body = raw['body'];
-    if (body is List) {
-      return body;
+  /// One comment of any level, with its attached floor replies.
+  ///
+  /// The measured shape: `{"id","commentId","nick","avatarurl","content",
+  /// "praiseNum","createTime","type"}` plus the extended
+  /// `ipLocation`,`isHot`,`replyCount`,`replies`,`repliesHasMore`.
+  SongComment? _parseComment(Object? raw, String fallbackSongId) {
+    if (raw is! Map) {
+      return null;
     }
-    final data = raw['data'];
-    if (data is List) {
-      return data;
+    final commentId = '${raw['commentId'] ?? ''}';
+    if (commentId.isEmpty) {
+      return null;
     }
-    if (data is Map) {
-      for (final key in const ['list', 'comments', 'body']) {
-        final value = data[key];
-        if (value is List) {
-          return value;
-        }
+    final replies = <SongComment>[];
+    for (final item in (raw['replies'] as List? ?? const [])) {
+      final reply = _parseComment(item, fallbackSongId);
+      if (reply != null) {
+        replies.add(reply);
       }
     }
-    return null;
+    final type = (raw['type'] as num?)?.toInt();
+    return SongComment(
+      songId: '${raw['id'] ?? fallbackSongId}',
+      commentId: commentId,
+      nick: '${raw['nick'] ?? ''}',
+      // The field really is all lower case in the server's answer.
+      avatarUrl: '${raw['avatarurl'] ?? raw['avatarUrl'] ?? ''}',
+      content: '${raw['content'] ?? ''}',
+      praiseNum: (raw['praiseNum'] as num?)?.toInt() ?? 0,
+      createTime: (raw['createTime'] as num?)?.toInt() ?? 0,
+      replies: replies,
+      replyCount: (raw['replyCount'] as num?)?.toInt() ?? replies.length,
+      repliesHasMore: raw['repliesHasMore'] as bool? ?? false,
+      ipLocation: '${raw['ipLocation'] ?? ''}',
+      // NetEase marks the featured comments 0 and 1; 2 is an ordinary one.
+      isHot: (raw['isHot'] as bool? ?? false) || type == 0 || type == 1,
+    );
   }
 }
 
-/// What one address produced: a page, when there is one, and whether the
-/// address answered at all.
+/// What one address produced: the envelope body, when there is one, and
+/// whether the address answered at all.
 class _Outcome {
-  final CommentPage? page;
+  final Object? body;
   final bool reached;
 
-  const _Outcome(this.page, {required this.reached});
+  const _Outcome(this.body, {required this.reached});
 }
 
 /// A failure with a reason the UI can turn into a sentence.
 class CommentFetchException implements Exception {
-  /// One of `unreachable`, `forbidden`, `badResponse`.
+  /// One of `unreachable`, `forbidden`, `notFound`, `badResponse`.
   final String reason;
 
   /// What went wrong underneath, for the log; not shown to the user.

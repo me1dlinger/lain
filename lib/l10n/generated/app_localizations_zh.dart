@@ -1295,4 +1295,57 @@ class AppLocalizationsZh extends AppLocalizations {
   String commentOnWithServer(String server) {
     return '已开启 · $server';
   }
+
+  @override
+  String get commentSortRecommended => '推荐';
+
+  @override
+  String get commentSortHot => '最热';
+
+  @override
+  String get commentSortTime => '最新';
+
+  @override
+  String commentMatchedSong(String name) {
+    return '来自「$name」的评论';
+  }
+
+  @override
+  String get commentChangeSong => '换一首';
+
+  @override
+  String get commentMismatchTitle => '这些评论对应的不是当前歌曲';
+
+  @override
+  String commentMismatchDetail(String name) {
+    return '服务器把这首歌匹配成了「$name」，看起来对不上号。请选择正确的歌曲后再查看评论。';
+  }
+
+  @override
+  String get commentPickSong => '选择歌曲';
+
+  @override
+  String get commentSearchTitle => '搜索歌曲';
+
+  @override
+  String get commentSearchHint => '歌名 / 歌手';
+
+  @override
+  String get commentSearchEmpty => '没有找到相关歌曲';
+
+  @override
+  String get commentSongNotFound => '服务器上没有找到这首歌';
+
+  @override
+  String commentTotalCount(int count) {
+    return '共 $count 条评论';
+  }
+
+  @override
+  String commentPageOf(int page, int pageCount) {
+    return '第 $page / $pageCount 页';
+  }
+
+  @override
+  String get commentShowMoreReplies => '查看更多回复';
 }

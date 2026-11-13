@@ -2617,6 +2617,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On · {server}'**
   String commentOnWithServer(String server);
+
+  /// No description provided for @commentSortRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get commentSortRecommended;
+
+  /// No description provided for @commentSortHot.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot'**
+  String get commentSortHot;
+
+  /// No description provided for @commentSortTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get commentSortTime;
+
+  /// The song the comment server matched, shown under the local song header.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments of “{name}”'**
+  String commentMatchedSong(String name);
+
+  /// No description provided for @commentChangeSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Change song'**
+  String get commentChangeSong;
+
+  /// No description provided for @commentMismatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'These comments belong to another song'**
+  String get commentMismatchTitle;
+
+  /// No description provided for @commentMismatchDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The server matched this track with “{name}”, which does not look right. Pick the matching song to read its comments.'**
+  String commentMismatchDetail(String name);
+
+  /// No description provided for @commentPickSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a song'**
+  String get commentPickSong;
+
+  /// No description provided for @commentSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search songs'**
+  String get commentSearchTitle;
+
+  /// No description provided for @commentSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Song name / artist'**
+  String get commentSearchHint;
+
+  /// No description provided for @commentSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No songs found'**
+  String get commentSearchEmpty;
+
+  /// No description provided for @commentSongNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The comment server did not find this song'**
+  String get commentSongNotFound;
+
+  /// No description provided for @commentTotalCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} comments'**
+  String commentTotalCount(int count);
+
+  /// No description provided for @commentPageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pageCount}'**
+  String commentPageOf(int page, int pageCount);
+
+  /// No description provided for @commentShowMoreReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more replies'**
+  String get commentShowMoreReplies;
 }
 
 class _AppLocalizationsDelegate

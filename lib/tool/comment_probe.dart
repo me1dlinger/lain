@@ -20,15 +20,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lain/base/data/comment_server.dart';
-import 'package:lain/base/data/song_comment.dart';
 import 'package:lain/base/services/comment_client.dart';
 
 // ignore_for_file: avoid_print
-const _defaultPort = '18383';
+const _defaultPort = '19327';
 const _timeout = Duration(seconds: 5);
 
 /// The host the reference server lives at, used when none is given.
-const _defaultHost = '192.168.31.173';
+const _defaultHost = 'comment.102419.xyz';
 
 /// A throwaway self-signed certificate and key for the https check.
 ///
@@ -110,7 +109,7 @@ Future<void> main(List<String> arguments) async {
   print('  token     ${server.needsToken ? 'yes, from user and pass' : 'no credentials configured'}');
   print(
     '  pageSize  ${args.pageSize}'
-    ' (asked for page ${args.page}; pages 0, 1, 2 and the end are all tried)',
+    ' (asked for page ${args.page}; pages 1, 2 and the end are all tried)',
   );
 
   await _within(const Duration(seconds: 60), _checkRawAnswer(args, checks));
@@ -145,7 +144,15 @@ Future<void> _checkRawAnswer(_Args args, _Checks checks) async {
       scheme: 'http',
       host: args.host,
       port: int.tryParse(args.port),
-      queryParameters: {'song_name': args.song, 'singer_name': args.artist},
+      path: '/api/comments',
+      queryParameters: {
+        'song_name': args.song,
+        'singer_name': args.artist,
+        'page': '1',
+        'pageSize': '${args.pageSize}',
+        'sort': 'recommended',
+        'reply_limit': '3',
+      },
     );
     final request = await http.getUrl(target).timeout(_timeout);
     final response = await request.close().timeout(_timeout);
@@ -162,12 +169,18 @@ Future<void> _checkRawAnswer(_Args args, _Checks checks) async {
       return;
     }
     print('  top keys  ${raw.keys.toList()}');
-    final list = raw['body'];
-    if (list is! List) {
-      checks.fail('the answer has no body list: ${list.runtimeType}');
+    final envelope = raw['body'];
+    if (envelope is! Map) {
+      checks.fail('the answer has no body object: ${envelope.runtimeType}');
       return;
     }
-    print('  body      a list of ${list.length} items');
+    final list = envelope['comments'];
+    if (list is! List) {
+      checks.fail('the body has no comments list: ${list.runtimeType}');
+      return;
+    }
+    print('  song      ${envelope['song']}');
+    print('  body      a page of ${list.length} comments');
     if (list.isNotEmpty && list.first is Map) {
       final first = list.first as Map;
       print('  item keys ${first.keys.toList()}');
@@ -178,8 +191,9 @@ Future<void> _checkRawAnswer(_Args args, _Checks checks) async {
         ' type=${first['type'].runtimeType}',
       );
     }
-    print('  total     ${raw['total'] ?? '(no total field)'}');
-    checks.pass('the answer has the measured shape: body is the list itself');
+    print('  total     ${envelope['total'] ?? '(no total field)'}');
+    print('  pages     ${envelope['pageCount'] ?? '(no pageCount field)'}');
+    checks.pass('the answer has the measured shape: body is a paged object');
   } catch (error) {
     checks.fail('the raw request failed: $error');
   } finally {
@@ -238,6 +252,8 @@ Future<void> _checkNormal(
     print('  elapsed   ${watch.elapsedMilliseconds} ms');
     print('  page      ${page.comments.length} comments, hasMore=${page.hasMore}');
     checks.expect(page.comments.isNotEmpty, 'the answer carries comments');
+    print('  matched   ${result.song?.name} (id ${result.song?.id})');
+    print('  total     ${result.total}, pageCount ${result.pageCount}');
     final shown = page.comments.length < 3 ? page.comments.length : 3;
     for (var i = 0; i < shown; i++) {
       final comment = page.comments[i];
@@ -265,10 +281,9 @@ Future<void> _checkNormal(
       page.comments.every((c) => c.createTime > 0),
       'every comment has a timestamp',
     );
-    checks.expect(
-      page.comments.first.praiseNum >= page.comments.last.praiseNum,
-      'the server order is the likes order the client keeps',
-    );
+    if (result.song != null) {
+      checks.pass('the server says which song it matched the query to');
+    }
   } catch (error) {
     checks.fail('the fetch failed: $error');
   }
@@ -279,91 +294,61 @@ Future<void> _checkPaging(
   _Args args,
   _Checks checks,
 ) async {
-  _section('paging: the endpoint has no paging, a page is a local slice');
-  // The amount of comments deliberately has nothing to do with the page size:
-  // 4 per page over 16 comments shows both a page that has more and the page
-  // after it, whatever --pagesize the user asks for (15 would hide them).
+  _section('paging: the server slices its own answer, page 1 is the first');
+  // A small page size shows the seam whatever the song's comment count is.
   final size = 4;
-  print('  slicing at $size comments per page');
-  final first = await _tryPage(client, args, 0, size);
+  print('  asking for $size comments per page');
+  final first = await _tryPage(client, args, 1, size);
   if (first == null) {
-    checks.fail('page 0 failed; the paging checks cannot run');
+    checks.fail('page 1 failed; the paging checks cannot run');
     return;
   }
-  // How long the whole answer is, measured by walking the pages, so the
-  // checks hold for any server that answers with a number of comments other
-  // than the 16 measured here.
-  // Page 0 holds the first slice, not the whole answer; the answer is as long
-  // as the slices found while walking the pages.
-  var all = first.comments.length;
-  for (var page = 1; page < 100; page++) {
-    final next = await _tryPage(client, args, page, size);
-    if (next == null || next.comments.isEmpty) {
-      break;
-    }
-    all += next.comments.length;
-  }
-  final second = await _tryPage(client, args, 1, size);
-  final third = await _tryPage(client, args, 2, size);
-  final past = await _tryPage(client, args, all, size);
-
-  if (second == null || third == null || past == null) {
+  final second = await _tryPage(client, args, 2, size);
+  final past = await _tryPage(client, args, 1000, size);
+  if (second == null || past == null) {
     checks.fail('a page request failed; see above');
     return;
   }
-  print('  the whole answer is $all comments');
-  print('  page 0      ${first.comments.length} comments, hasMore=${first.hasMore}');
-  print('  page 1      ${second.comments.length} comments, hasMore=${second.hasMore}');
-  print('  page 2      ${third.comments.length} comments, hasMore=${third.hasMore}');
-  print('  page $all      ${past.comments.length} comments, hasMore=${past.hasMore}');
-  int expected(int page) {
-    final start = page * size;
-    if (start >= all) {
-      return 0;
-    }
-    final end = start + size;
-    return (end > all ? all : end) - start;
-  }
+  print(
+    '  page 1      ${first.page.comments.length} comments,'
+    ' hasMore=${first.page.hasMore}, pageCount=${first.pageCount}',
+  );
+  print('  page 2      ${second.page.comments.length} comments, hasMore=${second.page.hasMore}');
+  print('  page 1000   ${past.page.comments.length} comments, hasMore=${past.page.hasMore}');
 
   checks.expect(
-    first.comments.length == expected(0),
-    'page 0 holds ${expected(0)} comments',
+    first.page.comments.length <= size && first.page.comments.isNotEmpty,
+    'page 1 holds at most one page of comments',
   );
-  checks.expect(
-    second.comments.length == expected(1),
-    'page 1 holds ${expected(1)} comments, not the whole answer again',
-  );
-  checks.expect(
-    third.comments.length == expected(2),
-    'page 2 holds ${expected(2)} comments',
-  );
-  checks.expect(
-    first.hasMore == (all > size),
-    'hasMore on page 0 is set when the answer is longer than a page',
-  );
-  final hasNext = all > size;
-  if (hasNext) {
+  if (first.page.hasMore) {
+    checks.expect(second.page.comments.isNotEmpty, 'page 2 answers when page 1 says hasMore');
     checks.expect(
-      second.comments.first.commentId != first.comments.first.commentId,
-      'page 1 does not repeat page 0',
+      second.page.comments.first.commentId != first.page.comments.first.commentId,
+      'page 2 does not repeat page 1',
     );
   } else {
     checks.pass('the answer fits one page, so there is no next page to order');
   }
+  if (first.pageCount > 1) {
+    checks.expect(
+      second.page.comments.length <= size,
+      'page 2 also holds at most one page of comments',
+    );
+  }
   checks.expect(
-    past.comments.isEmpty && !past.hasMore,
+    past.page.comments.isEmpty && !past.page.hasMore,
     'a page past the end is empty',
   );
 }
 
-Future<CommentPage?> _tryPage(
+Future<CommentPageResult?> _tryPage(
   CommentClient client,
   _Args args,
   int page, [
   int? pageSize,
 ]) async {
   try {
-    final result = await client.fetch(
+    return await client.fetch(
       CommentQuery(
         songName: args.song,
         artistName: args.artist,
@@ -371,7 +356,6 @@ Future<CommentPage?> _tryPage(
         pageSize: pageSize ?? args.pageSize,
       ),
     );
-    return result.page;
   } catch (error) {
     print('  page $page failed: $error');
     return null;
@@ -434,7 +418,7 @@ Future<void> _checkAlbumName(
   }
 
   // And the real server accepts it too.
-  final real = await _tryPage(client, args, 0);
+  final real = await _tryPage(client, args, 1);
   checks.expect(real != null, 'the real server answers the default query');
 }
 
@@ -671,30 +655,40 @@ Future<void> _checkHttps(_Checks checks) async {
   }
 }
 
-/// A two item answer in the measured shape, for the local servers.
+/// A two item answer in the measured shape, for the local servers: the paged
+/// `/api/comments` body.
 final _fixture = {
   'code': 200,
   'msg': 'success',
-  'body': [
-    {
-      'nick': 'probe',
-      'avatarurl': 'http://localhost/a.jpg',
-      'content': 'local answer',
-      'praiseNum': 2,
-      'createTime': 9536475,
-      'commentId': '2',
-      'type': 2,
-    },
-    {
-      'nick': 'probe',
-      'avatarurl': 'http://localhost/b.jpg',
-      'content': 'local answer',
-      'praiseNum': 1,
-      'createTime': 1413530574,
-      'commentId': '1',
-      'type': 2,
-    },
-  ],
+  'body': {
+    'song': {'songId': '1', 'name': 'probe', 'artist': 'probe'},
+    'total': 2,
+    'page': 1,
+    'pageCount': 1,
+    'hasMore': false,
+    'comments': [
+      {
+        'id': '1',
+        'nick': 'probe',
+        'avatarurl': 'http://localhost/a.jpg',
+        'content': 'local answer',
+        'praiseNum': 2,
+        'createTime': 9536475,
+        'commentId': '2',
+        'type': 2,
+      },
+      {
+        'id': '1',
+        'nick': 'probe',
+        'avatarurl': 'http://localhost/b.jpg',
+        'content': 'local answer',
+        'praiseNum': 1,
+        'createTime': 1413530574,
+        'commentId': '1',
+        'type': 2,
+      },
+    ],
+  },
 };
 
 CommentServer _serverAt(_RecordingServer local) => CommentServer(
@@ -754,7 +748,7 @@ void _usage() {
     '  --artist <name>    its artist, 周杰伦 by default\n'
     '  --user <name>      API_USERNAME, when the server is protected\n'
     '  --pass <pass>      API_PASSWORD, likewise\n'
-    '  --page <n>         the page the normal request asks for, 0 by default\n'
+    '  --page <n>         the page the normal request asks for, 1 by default\n'
     '  --pagesize <n>     comments per page, 15 by default\n'
     '  --only-local       skip the checks that need a 127.0.0.1 server, for a\n'
     '                     run whose no_proxy does not cover the loopback\n'
@@ -806,7 +800,7 @@ class _Args {
       artist: value('--artist') ?? '周杰伦',
       user: value('--user') ?? '',
       pass: value('--pass') ?? '',
-      page: int.tryParse(value('--page') ?? '') ?? 0,
+      page: int.tryParse(value('--page') ?? '') ?? 1,
       pageSize: int.tryParse(value('--pagesize') ?? '') ?? 15,
       onlyLocal: arguments.contains('--only-local'),
       help: arguments.contains('-h') || arguments.contains('--help'),
