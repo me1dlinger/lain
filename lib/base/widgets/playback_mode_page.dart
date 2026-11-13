@@ -117,8 +117,13 @@ class PlaybackModePage extends StatelessWidget {
                       return ListView(
                         padding: const EdgeInsets.only(top: 4, bottom: 30),
                         children: [
+                          // The three modes explain themselves with their
+                          // one-line descriptions, so no dividers between
+                          // them and no further sections: what the modes are
+                          // is all the page needs to say.
                           AppleFormSection(
                             title: l10n.playbackMode,
+                            divided: false,
                             children: [
                               for (final value in modes)
                                 _modeRow(l10n, value, mode),
@@ -126,40 +131,6 @@ class PlaybackModePage extends StatelessWidget {
                           ),
                           if (!isMobilePlatform)
                             _desktopNote(l10n),
-                          AppleFormSection(
-                            title: l10n.playbackModeNotice,
-                            children: [
-                              _bulletRow(l10n, l10n.playbackModeNoticeInCar),
-                              _bulletRow(
-                                l10n,
-                                l10n.playbackModeNoticeNavigation,
-                              ),
-                              _bulletRow(
-                                l10n,
-                                l10n.playbackModeNoticeDesktop,
-                              ),
-                            ],
-                          ),
-                          AppleFormSection(
-                            title: l10n.playbackModeScenarios,
-                            children: [
-                              _scenarioRow(
-                                l10n,
-                                l10n.scenarioDailyListening,
-                                l10n.scenarioDailyListeningMode,
-                              ),
-                              _scenarioRow(
-                                l10n,
-                                l10n.scenarioNavigation,
-                                l10n.scenarioNavigationMode,
-                              ),
-                              _scenarioRow(
-                                l10n,
-                                l10n.scenarioGaming,
-                                l10n.scenarioGamingMode,
-                              ),
-                            ],
-                          ),
                         ],
                       );
                     },
@@ -220,61 +191,6 @@ class PlaybackModePage extends StatelessWidget {
               Icon(Icons.check_rounded, size: 18, color: textColor),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _bulletRow(AppLocalizations l10n, String text) {
-    final textColor = colorManager.getSpecificTextColor();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1, right: 8),
-            child: Text(
-              '•',
-              style: TextStyle(fontSize: 15, color: textColor.withAlpha(160)),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 15, color: textColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// One use case: what the situation is, then the mode that suits it.
-  Widget _scenarioRow(AppLocalizations l10n, String scenario, String mode) {
-    final textColor = colorManager.getSpecificTextColor();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              scenario,
-              style: TextStyle(fontSize: 15, color: textColor),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(l10n.scenarioArrow, style: TextStyle(color: textColor)),
-          const SizedBox(width: 8),
-          Text(
-            mode,
-            style: TextStyle(
-              fontSize: 15,
-              color: textColor.withAlpha(160),
-            ),
-          ),
-        ],
       ),
     );
   }

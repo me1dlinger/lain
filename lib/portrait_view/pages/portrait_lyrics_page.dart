@@ -27,6 +27,7 @@ import 'package:lain/base/widgets/seekbar.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/widgets/comment_page.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
+import 'package:lain/portrait_view/pages/driving_mode_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:text_scroll/text_scroll.dart';
 
@@ -614,6 +615,36 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                               onTap: () {
                                 Navigator.pop(context);
                                 showAdjustLyrics(context);
+                              },
+                            ),
+
+                            // One tap to the full screen driving mode: the
+                            // menu closes first, so only the big page shows.
+                            ListTile(
+                              leading: Icon(
+                                Icons.directions_car_rounded,
+                                color: value,
+                              ),
+                              title: Text(
+                                l10n.drivingMode,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: value,
+                                ),
+                              ),
+                              visualDensity: const VisualDensity(
+                                horizontal: 0,
+                                vertical: -4,
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  this.context,
+                                  MaterialPageRoute(
+                                    fullscreenDialog: true,
+                                    builder: (_) => const DrivingModePage(),
+                                  ),
+                                );
                               },
                             ),
                           ],

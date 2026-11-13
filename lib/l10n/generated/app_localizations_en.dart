@@ -1015,6 +1015,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adjustLyrics => 'Adjust Lyrics';
 
   @override
+  String get drivingMode => 'Driving Mode';
+
+  @override
   String get fontSize => 'Font Size';
 
   @override

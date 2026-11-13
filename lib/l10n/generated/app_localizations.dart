@@ -2048,6 +2048,12 @@ abstract class AppLocalizations {
   /// **'Adjust Lyrics'**
   String get adjustLyrics;
 
+  /// No description provided for @drivingMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Driving Mode'**
+  String get drivingMode;
+
   /// No description provided for @fontSize.
   ///
   /// In en, this message translates to:

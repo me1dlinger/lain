@@ -1004,6 +1004,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adjustLyrics => '调整歌词';
 
   @override
+  String get drivingMode => '驾驶模式';
+
+  @override
   String get fontSize => '字体大小';
 
   @override

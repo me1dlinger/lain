@@ -31,7 +31,16 @@ class AppleFormSection extends StatelessWidget {
   final String? title;
   final List<Widget> children;
 
-  const AppleFormSection({super.key, this.title, required this.children});
+  /// Whether thin dividers are drawn between the rows. Off for sections whose
+  /// rows carry enough structure of their own to not need the separation.
+  final bool divided;
+
+  const AppleFormSection({
+    super.key,
+    this.title,
+    required this.children,
+    this.divided = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +62,7 @@ class AppleFormSection extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
-                if (i > 0)
+                if (divided && i > 0)
                   MyDivider(thickness: 0.5, height: 1, color: dividerColor),
                 children[i],
               ],
