@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pool/pool.dart';
 
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -49,98 +48,98 @@ class CacheDownloadManager {
     CacheTaskProgress.idle,
   );
 
+  final List<MyAudioMetadata> _pending = [];
   final List<CancelToken> _cancellations = [];
   Completer<void>? _done;
   bool _running = false;
   bool _cancelRequested = false;
+  int _doneCount = 0;
+  int _failedCount = 0;
+  int _totalCount = 0;
 
   bool get isRunning => _running;
 
-  /// Starts [songs]; the returned future completes when every worker is done or
-  /// the task is canceled. A start while one is already running joins it
-  /// instead of interleaving two batches.
+  /// Starts [songs]; the returned future completes when the whole queue has
+  /// drained or the task is canceled. A start while the queue is running
+  /// appends its songs behind the ones still waiting, so several playlists
+  /// can be queued back to back instead of the second request being
+  /// rejected.
   Future<void> start(Iterable<MyAudioMetadata> songs) {
-    if (_running) {
-      return _done?.future ?? Future.value();
-    }
-
-    final pending = <MyAudioMetadata>[];
-    final seen = <String>{};
+    final fresh = <MyAudioMetadata>[];
     for (final song in songs) {
-      if (!song.cacheExist && seen.add(song.id)) {
-        pending.add(song);
+      if (!song.cacheExist &&
+          !_pending.any((queued) => queued.id == song.id) &&
+          !fresh.any((queued) => queued.id == song.id)) {
+        fresh.add(song);
       }
     }
-    if (pending.isEmpty) {
-      notifier.value = const CacheTaskProgress(
-        phase: CacheTaskPhase.completed,
-        done: 0,
-        total: 0,
-        failed: 0,
-      );
-      return Future.value();
+    if (fresh.isEmpty) {
+      return _running ? (_done?.future ?? Future.value()) : Future.value();
+    }
+
+    _pending.addAll(fresh);
+
+    if (_running) {
+      _totalCount += fresh.length;
+      _report();
+      return _done!.future;
     }
 
     _running = true;
     _cancelRequested = false;
+    _doneCount = 0;
+    _failedCount = 0;
+    _totalCount = fresh.length;
     _cancellations.clear();
     final completer = Completer<void>();
     _done = completer;
-    notifier.value = CacheTaskProgress(
-      phase: CacheTaskPhase.running,
-      done: 0,
-      total: pending.length,
-      failed: 0,
-    );
+    _report();
 
-    var done = 0;
-    var failed = 0;
-    final pool = Pool(_concurrency);
-
-    Future<void> runOne(MyAudioMetadata song) async {
-      if (_cancelRequested) {
-        return;
-      }
-      final token = CancelToken();
-      _cancellations.add(token);
-      try {
-        final cached = await library.tryAddCache(song, cancelToken: token);
-        if (!cached && !_cancelRequested) {
-          failed++;
+    // Four workers each pull the next song off the queue, so appended songs
+    // are picked up by whichever worker frees up first.
+    Future<void> worker() async {
+      while (true) {
+        if (_cancelRequested) {
+          return;
         }
-      } catch (e) {
-        if (!_cancelRequested) {
-          failed++;
-          logger.output('[cache] download failed for ${song.id}: $e');
+        if (_pending.isEmpty) {
+          return;
         }
-      } finally {
-        _cancellations.remove(token);
-        if (!_cancelRequested) {
-          done++;
-          notifier.value = CacheTaskProgress(
-            phase: CacheTaskPhase.running,
-            done: done,
-            total: pending.length,
-            failed: failed,
-          );
+        final song = _pending.removeAt(0);
+        final token = CancelToken();
+        _cancellations.add(token);
+        try {
+          final cached = await library.tryAddCache(song, cancelToken: token);
+          if (!cached && !_cancelRequested) {
+            _failedCount++;
+          }
+        } catch (e) {
+          if (!_cancelRequested) {
+            _failedCount++;
+            logger.output('[cache] download failed for ${song.id}: $e');
+          }
+        } finally {
+          _cancellations.remove(token);
+          if (!_cancelRequested) {
+            _doneCount++;
+            _report();
+          }
         }
       }
     }
 
-    final futures = [
-      for (final song in pending) pool.withResource(() => runOne(song)),
-    ];
-
-    Future.wait(futures).whenComplete(() async {
-      await pool.close();
+    Future.wait([
+      for (var i = 0; i < _concurrency; i++) worker(),
+    ]).whenComplete(() async {
       _running = false;
       final canceled = _cancelRequested;
+      _pending.clear();
       _cancellations.clear();
       notifier.value = CacheTaskProgress(
         phase: canceled ? CacheTaskPhase.canceled : CacheTaskPhase.completed,
-        done: done,
-        total: pending.length,
-        failed: failed,
+        done: _doneCount,
+        total: _totalCount,
+        failed: _failedCount,
       );
       _done = null;
       try {
@@ -155,6 +154,15 @@ class CacheDownloadManager {
     });
 
     return completer.future;
+  }
+
+  void _report() {
+    notifier.value = CacheTaskProgress(
+      phase: CacheTaskPhase.running,
+      done: _doneCount,
+      total: _totalCount,
+      failed: _failedCount,
+    );
   }
 
   /// Stops scheduling new songs and aborts the requests already in flight.

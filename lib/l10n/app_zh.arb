@@ -224,6 +224,7 @@
   "cacheTaskDone": "缓存完成",
   "cacheTaskCanceled": "已取消缓存",
   "cacheTaskBusy": "已有缓存任务在进行",
+  "cacheTaskQueued": "已加入缓存队列",
   "cacheFailedCount": "{count} 首失败",
   "cacheBackPrompt": "缓存仍在进行，要取消还是放到后台？",
   "cacheKeepRunning": "继续等待",

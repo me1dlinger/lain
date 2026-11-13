@@ -702,6 +702,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheTaskBusy => 'A caching task is already running';
 
   @override
+  String get cacheTaskQueued => 'Added to the caching queue';
+
+  @override
   String cacheFailedCount(int count) {
     return '$count failed';
   }

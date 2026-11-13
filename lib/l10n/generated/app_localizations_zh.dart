@@ -700,6 +700,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheTaskBusy => '已有缓存任务在进行';
 
   @override
+  String get cacheTaskQueued => '已加入缓存队列';
+
+  @override
   String cacheFailedCount(int count) {
     return '$count 首失败';
   }

@@ -147,26 +147,31 @@ class _CommentServersPageState extends State<CommentServersPage> {
     final l10n = AppLocalizations.of(context);
     // Wait for the menu to close before navigating; pushing while its route is
     // still popping left the menu on top of the edit page.
+    // The dialog lives on the root navigator while this page sits on the
+    // settings navigator: pop it through its own context, or the pop lands on
+    // the settings navigator underneath and closes this page instead.
     final action = await showAnimationDialog<String>(
       context: context,
-      child: SizedBox(
-        width: 280,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(l10n.recheck),
-              onTap: () => Navigator.pop(context, 'recheck'),
-            ),
-            ListTile(
-              title: Text(l10n.edit),
-              onTap: () => Navigator.pop(context, 'edit'),
-            ),
-            ListTile(
-              title: Text(l10n.delete),
-              onTap: () => Navigator.pop(context, 'delete'),
-            ),
-          ],
+      child: Builder(
+        builder: (dialogContext) => SizedBox(
+          width: 280,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(l10n.recheck),
+                onTap: () => Navigator.pop(dialogContext, 'recheck'),
+              ),
+              ListTile(
+                title: Text(l10n.edit),
+                onTap: () => Navigator.pop(dialogContext, 'edit'),
+              ),
+              ListTile(
+                title: Text(l10n.delete),
+                onTap: () => Navigator.pop(dialogContext, 'delete'),
+              ),
+            ],
+          ),
         ),
       ),
     );

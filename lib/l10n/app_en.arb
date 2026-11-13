@@ -280,6 +280,7 @@
   "cacheTaskDone": "Caching finished",
   "cacheTaskCanceled": "Caching canceled",
   "cacheTaskBusy": "A caching task is already running",
+  "cacheTaskQueued": "Added to the caching queue",
   "cacheFailedCount": "{count} failed",
   "@cacheFailedCount": {
     "placeholders": {

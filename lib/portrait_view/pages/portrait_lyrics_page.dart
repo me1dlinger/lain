@@ -24,6 +24,8 @@ import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/widgets/seekbar.dart';
+import 'package:lain/base/data/comment_setting.dart';
+import 'package:lain/base/widgets/comment_page.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:text_scroll/text_scroll.dart';
@@ -444,6 +446,31 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
               icon: ImageIcon(timerImage, size: 25),
             ),
             remainTimesText(textColor: lyricsPageForegroundColor.value),
+
+            // Only when the feature is switched on and a server can
+            // answer: an entry that opens a page that can only fail is
+            // worse than no entry.
+            ValueListenableBuilder(
+              valueListenable: commentSwitchNotifier,
+              builder: (_, commentEnabled, _) {
+                if (!commentEnabled ||
+                    activeCommentServer == null ||
+                    currentSong == null) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  color: lyricsPageForegroundColor.value,
+                  icon: const Icon(Icons.forum_rounded, size: 25),
+                  onPressed: () {
+                    tryVibrate();
+                    Navigator.push(
+                      context,
+                      CommentPageView.route(currentSong),
+                    );
+                  },
+                );
+              },
+            ),
             Spacer(),
 
             // The font size moved to this row's menu ("adjust lyrics"), so it no

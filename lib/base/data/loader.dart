@@ -98,15 +98,19 @@ class Loader {
     // fills the cache (biographies, and whether each artist has an image) in
     // one go, so the artist lists are decided from the first frame.
     await loadArtistInfoCache();
-    // Artist pictures (and default detection) depend on this, so it finishes
-    // before the artist list is built.
-    await prefetchArtistInfo();
 
     artistAlbumManager.classify();
 
     await history.load();
 
     await playlistManager.load();
+
+    // The artist biography/image prefetch hits the network; run it after the
+    // cached data has been put on screen, so a cold start with an online
+    // source shows its lists first instead of an empty page. The call reads
+    // the same disk cache again (idempotent) and bumps the artist list's
+    // notifier when the fresh summaries arrive.
+    unawaited(prefetchArtistInfo());
 
     _busy = false;
     stateNotifier.value++;

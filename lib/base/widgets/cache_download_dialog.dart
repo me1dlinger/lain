@@ -26,7 +26,9 @@ Future<void> showCacheDownloadDialog(
     return;
   }
   if (manager.isRunning) {
-    showCenterMessage(l10n.cacheTaskBusy);
+    // The queue is appendable: join it instead of being rejected.
+    await manager.start(list);
+    showCenterMessage(l10n.cacheTaskQueued);
     return;
   }
 

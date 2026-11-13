@@ -7,7 +7,9 @@ import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/play_queue_logic.dart';
 
 MyAudioMetadata song(String id) {
-  return MyAudioMetadata(AudioMetadata(title: id), id: id);
+  // A path is required: with the default local source the constructor builds
+  // the picture from it (a null there is what these tests used to crash on).
+  return MyAudioMetadata(AudioMetadata(title: id), id: id, path: 'test-$id');
 }
 
 void main() {

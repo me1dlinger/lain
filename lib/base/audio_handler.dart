@@ -228,13 +228,6 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _pubArtVersion;
   int _artVersionCounter = 0;
 
-  /// What the last publish handed to the broadcast gate, so the next one can
-  /// tell a track change or a new cover (publish at once) from a lyric line
-  /// (publish coalesced).
-  String? _deliveredSnapshotId;
-  String? _deliveredSmallArtPath;
-  String? _deliveredFetchArtUri;
-
   /// The load generation the track switch that is opening was started for.
   /// Everything a load does after its first await checks it, so a switch that
   /// was superseded by a later one cannot publish its track or reset the
@@ -393,17 +386,52 @@ class MyAudioHandler extends BaseAudioHandler {
       if (couldBeSegmentEnd) {
         _fakeCompleteResumes++;
         _completionLog(
-          'end of a buffered segment, reopening id=${song?.id ?? '-'} '
-          'from 0 (attempt $_fakeCompleteResumes)',
+          'end of a buffered segment, resuming id=${song?.id ?? '-'} '
+          'from ${_fmtDuration(position)} (attempt $_fakeCompleteResumes)',
         );
         if (_fakeCompleteResumes <= 3) {
-          await _player.seek(Duration.zero);
+          // Resume from where the track stopped - never from the beginning.
+          // A real end of file can sit well short of the duration mpv
+          // estimated (a VBR header that disagrees with the frames that
+          // follow), and restarting from zero on it is what played a handful
+          // of tracks twice, every single time, regardless of network, cache
+          // or how they were started.
+          final before = _player.state.position;
           await _player.play();
           updatePlaybackState();
-          return;
+
+          // Give the resumed stream a moment to move. A stalled segment
+          // continues and its position advances; the end of a file does not,
+          // and neither does it buffer. Telling the two apart is what keeps a
+          // short-of-duration track from being replayed while still resuming
+          // a genuine mid-track stall.
+          var waited = 0;
+          while (waited < 5000) {
+            await Future<void>.delayed(const Duration(milliseconds: 250));
+            waited += 250;
+            if (loadGenerationAtEntry != _loadGeneration) {
+              return;
+            }
+            if (_player.state.position > before) {
+              _completionLog(
+                'resumed from ${_fmtDuration(before)}, position advancing',
+              );
+              return;
+            }
+            if (!_player.state.buffering) {
+              break;
+            }
+          }
+          _completionLog(
+            'resume did not advance, reading it as the end of the track '
+            '(reported duration ${_fmtDuration(duration)} '
+            'ended at ${_fmtDuration(position)})',
+          );
+          // Fall through: this was the track's real end, not a segment.
+        } else {
+          // Giving up on that theory: let it move on rather than loop forever.
+          _completionLog('too many segment-end reports, advancing anyway');
         }
-        // Giving up on that theory: let it move on rather than loop forever.
-        _completionLog('too many segment-end reports, advancing anyway');
       }
 
       _lastCompletionKey = key;
@@ -1371,6 +1399,29 @@ class MyAudioHandler extends BaseAudioHandler {
     // Only the load that is still opening the queue's track may announce it:
     // a load superseded a moment ago has nothing to say to the session.
     if (_isCurrentLoad(loadGeneration)) {
+      // A local cover that is not on disk yet is only a moment away - it is
+      // extracted from the file the first time the track plays. Publishing
+      // before it lands hands the session an item with no artwork, which a
+      // head unit renders as the cover disappearing, only to repaint it when
+      // the file arrives. Wait briefly instead, so the title, the artist and
+      // the cover reach the car together. A cover that takes longer than this
+      // still publishes the title first - a late cover beats a missing one.
+      if (isMobile && isNotStreamSource) {
+        final coverPath = currentSong.picture.path;
+        final coverOnDisk =
+            coverPath.isNotEmpty && File(coverPath).existsSync();
+        if (!coverOnDisk && !currentSong.picture.isLoaded) {
+          try {
+            await loadPictureSafe(currentSong.picture, priority: true)
+                .timeout(const Duration(milliseconds: 500));
+          } catch (_) {
+            // A cover that would not load publishes without artwork, as
+            // before.
+          }
+        }
+      }
+    }
+    if (_isCurrentLoad(loadGeneration)) {
       updateServiceMediaItem(currentSong);
     }
 
@@ -1900,31 +1951,33 @@ class MyAudioHandler extends BaseAudioHandler {
       // current item?" check - so two quick track switches can land in the
       // wrong order and the head unit keeps showing the previous track's
       // title, artist and cover while the phone has already moved on. A
-      // content:// URI is sent synchronously, in order, every time.
+      // content:// URI is sent synchronously, in order, every time - so on
+      // Android nothing is published as artUri until one is resolved; the
+      // bitmap in extras carries the artwork meanwhile, and a resolved
+      // content URI re-publishes on its own.
       final contentUri = _contentUriCache[path];
       if (contentUri != null) {
         _pubFileArtUri = contentUri;
+      } else if (Platform.isAndroid) {
+        unawaited(_cacheContentUri(song, path, generation));
       } else {
         _pubFileArtUri = File(path).uri.toString();
-        if (Platform.isAndroid) {
-          unawaited(_cacheContentUri(song, path, generation));
-        }
       }
 
       // The broadcast-sized copy is what goes to the car; the original can be
       // several megabytes and a head unit shows a thumbnail. Nothing else is
       // ever published as the bitmap.
       _pubSmallArtPath ??= mediaArt.readyPath(path);
-      if (_pubSmallArtPath == null &&
-          _smallArtInFlight.add(path) &&
-          _broadcast.shouldAttemptCover(
-            path,
-            relayGeneration: streamRelay.lanBaseUrlGeneration,
-            generation: generation,
-          )) {
-        unawaited(_resolveSmallArt(song, generation));
-      } else if (_pubSmallArtPath == null) {
-        _smallArtInFlight.remove(path);
+      if (_pubSmallArtPath == null && _smallArtInFlight.add(path)) {
+        if (!_broadcast.shouldAttemptCover(
+          path,
+          relayGeneration: streamRelay.lanBaseUrlGeneration,
+          generation: generation,
+        )) {
+          _smallArtInFlight.remove(path);
+        } else {
+          unawaited(_resolveSmallArt(song, generation));
+        }
       }
     }
 
@@ -2052,6 +2105,11 @@ class MyAudioHandler extends BaseAudioHandler {
     // artwork, which is the expensive part of every track change. A track
     // switch and a newly arrived cover are published at once; a lyric line is
     // coalesced.
+    //
+    // Every publish is coalesced, a track switch included: an immediate one
+    // bypassed the debounce, so every press of "next" on a steering wheel
+    // reached the head unit as its own item and the queue walked through them
+    // one by one, long after the phone had moved on.
     _broadcast.publish(
       MediaSnapshot(
         id: id,
@@ -2084,14 +2142,7 @@ class MyAudioHandler extends BaseAudioHandler {
           );
         },
       ),
-      immediate:
-          id != _deliveredSnapshotId ||
-          art.smallArtPath != _deliveredSmallArtPath ||
-          art.fetchUri != _deliveredFetchArtUri,
     );
-    _deliveredSnapshotId = id;
-    _deliveredSmallArtPath = art.smallArtPath;
-    _deliveredFetchArtUri = art.fetchUri;
   }
 
   /// A new artwork version for the current song. Every path that puts new

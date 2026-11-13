@@ -1448,6 +1448,12 @@ abstract class AppLocalizations {
   /// **'A caching task is already running'**
   String get cacheTaskBusy;
 
+  /// No description provided for @cacheTaskQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to the caching queue'**
+  String get cacheTaskQueued;
+
   /// No description provided for @cacheFailedCount.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,34 @@
 
 ---
 
+## 0. 当前版本基线（每次发版后更新这里）
+
+| 项 | 值 |
+| --- | --- |
+| 应用名 | Lain（中文：临音） |
+| 包名 / applicationId | `com.meidlinger.lain` |
+| 显示版本 versionName | `1.0.0-beta1` |
+| 发布 ABI | 只发 **arm64-v8a** |
+| Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
+| 对外分发文件名 | `lain-1.0.0-beta1-arm64-v8a.apk` |
+| 最近一次规范构建的 versionCode | **946104**（对应 `--build-number 944104`） |
+| 下一次打包的 build number | **944105**（预期 versionCode **946105**） |
+
+**当前状态（2026-11-13）**
+
+- 规范产物是 arm64 split APK；最近一次是 versionCode 946104。
+- `build/app/outputs/flutter-apk/app-release.apk` 是误打的全量包（约 213MB、versionCode 1），**不要分发，也不要把它当作版本基线**；可以直接删除。
+- 下一次打包用 `--build-number 944105`，得到 versionCode 946105；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
+
+**版本号规则**
+
+- versionName 来自 `pubspec.yaml` 的 `version: 1.0.0-beta1+1`，同时必须同步 `lib/base/app.dart` 的 `const String versionNumber`（设置 → 关于页显示的是这个常量）。
+- versionCode 由 `--build-number` 加 ABI 偏移得到；arm64-v8a 是 `buildNumber + 2000`。
+- 不带 `--build-number` 时才会使用 `pubspec.yaml` 里的 `+1` 作为 versionCode（本工程曾因此打出 versionCode=1 的包）。**发版必须显式传 `--build-number`。**
+- 不要改包名，不要打 universal APK，不要发 armeabi-v7a/x86_64。
+
+---
+
 ## 1. 需要安装的东西
 
 | 组件 | 版本 / 要求 | 说明 |
@@ -94,7 +122,7 @@ flutter pub get
 
 依赖没变化、只是重新打包时，用 `--no-pub` 跳过这一步更快。
 
-### 3.2 打 arm64 包（最常用）
+### 3.2 打 arm64 包（唯一发布方式）
 
 ```bash
 export JAVA_HOME='D:\Work\JDK17'
@@ -102,19 +130,30 @@ flutter build apk --release \
   --target-platform android-arm64 \
   --split-per-abi \
   --no-pub \
-  --build-number 942063
+  --build-number 944105
 ```
 
-产物：
+产物固定为：
 
-```
+```text
 build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 ```
 
+预期版本：versionName `1.0.0-beta1`，versionCode `946105`。打包后必须核对：
+
+```bash
+AAPT=/e/android-sdk/build-tools/37.0.0/aapt.exe
+"$AAPT" dump badging build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | head -1
+```
+
+> **不要省略 `--target-platform android-arm64 --split-per-abi`，也不要省略 `--build-number`。**
+> 省略它们会产出 `app-release.apk` 全量包，versionCode 变成 pubspec 的 `+1`（曾出现 versionCode=1、约 213MB 的包），既不是发布产物，也会导致覆盖安装失败。
+
 ### 3.3 版本号（versionCode）怎么算
 
-`android/app/build.gradle.kts` 用 `flutter.versionCode`，它来自 `pubspec.yaml` 的 `version: 4.5.1+13` 里的 `+13`，
-但**打包时用 `--build-number` 覆盖**。按 ABI 加偏移（Flutter 的分包逻辑）：
+`android/app/build.gradle.kts` 用 `flutter.versionCode`，它来自 `pubspec.yaml` 的 `version: 1.0.0-beta1+1` 里的 `+1`，
+但**打包时用 `--build-number` 覆盖**。`1.0.0-beta1` 是显示给用户的 versionName，和不带后缀的 build number 是两件事。
+按 ABI 加偏移（Flutter 的分包逻辑）：
 
 | ABI | versionCode |
 | --- | --- |
@@ -125,15 +164,32 @@ build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
 **每打一个新包，`--build-number` 一定要比上一版大**，否则手机上“覆盖安装”会失败。
 
-### 3.4 打其它组合
+### 3.4 其它 ABI（只用于本地调试，不发布）
+
+本项目只发布 arm64-v8a。需要给旧 32 位设备临时调试时：
 
 ```bash
-# 只要 armeabi-v7a
-flutter build apk --release --target-platform android-arm --split-per-abi --no-pub --build-number <n>
-
-# 一个包含 arm64 的通用包（体积大，不推荐日常用）
-flutter build apk --release --target-platform android-arm64 --no-pub --build-number <n>
+flutter build apk --release --target-platform android-arm --split-per-abi --no-pub --build-number <下一个 build number>
 ```
+
+不要打 universal（不带 `--split-per-abi`）的包：它会产出 `app-release.apk`，versionCode 取 pubspec 的 `+1`，既不是发布产物，也容易造成覆盖安装失败。
+
+### 3.5 发版检查清单
+
+1. 确认在 `main`，工作区干净。
+2. `flutter analyze lib`，必须 0 error。
+3. 用 3.2 节的命令，`--build-number` 取第 0 节的“下一次 build number”。
+4. 用 aapt 核对 versionName/versionCode；versionCode 必须大于设备上已安装的版本。
+5. 产物拷出并命名为 `lain-1.0.0-beta1-arm64-v8a.apk`（版本名变了就改文件名）。
+6. 把第 0 节的“最近一次 versionCode”和“下一次 build number”各加 1，再提交。
+
+如果设备连接了电脑，可以先查已安装版本：
+
+```bash
+adb shell dumpsys package com.meidlinger.lain | grep -E "versionCode|versionName"
+```
+
+versionCode 必须严格递增。如果设备上曾装过更高 versionCode 的包（例如历史误出的 946088/946100），下一次构建要大于那个数。
 
 ---
 
@@ -157,7 +213,14 @@ flutter gen-l10n
 
 ### 4.3 改了 `pubspec.yaml` 的版本
 
-`version: 4.5.1+13` 中的 `4.5.1` 是显示给用户的版本名，`+13` 不用于正式打包（用 `--build-number`）。
+`version: 1.0.0-beta1+1` 中的 `1.0.0-beta1` 是显示给用户的版本名，`+1` 不用于正式打包（用 `--build-number`）。
+
+改版本名时**必须同时改两处**，否则关于页和安装包会不一致：
+
+1. `pubspec.yaml` 的 `version:`
+2. `lib/base/app.dart` 的 `const String versionNumber = ...`
+
+然后重新打包；Android 的 versionName 会用 pubspec 的值，关于页用 `versionNumber`。
 
 ---
 

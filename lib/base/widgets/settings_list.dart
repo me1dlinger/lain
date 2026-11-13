@@ -33,6 +33,7 @@ import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/widgets/comment_settings_page.dart';
 import 'package:lain/base/services/download_manager.dart';
+import 'package:lain/base/services/cache_download_manager.dart';
 import 'package:lain/base/widgets/cache_download_dialog.dart';
 import 'package:lain/base/widgets/downloads_page.dart';
 import 'package:lain/base/widgets/home_layout_settings.dart';
@@ -616,8 +617,36 @@ class _SettingsListState extends State<SettingsList> {
       trailing: ValueListenableBuilder(
         valueListenable: cacheSizeNotifier,
         builder: (context, value, child) {
-          // use blank as placeholders
-          return Text("${value.toStringAsFixed(1)}MB  ");
+          // While a caching task runs in the background, its progress is
+          // visible here so the user is never left guessing after moving the
+          // dialog to the background.
+          return ValueListenableBuilder(
+            valueListenable: cacheDownloadManager.notifier,
+            builder: (context, progress, child) {
+              if (!progress.isRunning) {
+                // use blank as placeholders
+                return Text("${value.toStringAsFixed(1)}MB  ");
+              }
+              final counts =
+                  "${progress.done}/${progress.total}"
+                  "${progress.failed > 0 ? '·${progress.failed}' : ''}";
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      value: progress.fraction,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Text(counts),
+                ],
+              );
+            },
+          );
         },
       ),
     );
