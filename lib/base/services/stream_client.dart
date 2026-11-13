@@ -231,4 +231,16 @@ abstract class StreamClient {
     >?
   >
   getArtistSummaries() async => null;
+
+  /// The newest songs of the library (added on the server, whatever the local
+  /// cache still holds), newest first, or null when the source cannot answer.
+  /// Used to refresh the recently-added list without a full sync.
+  Future<List<MyAudioMetadata>?> getNewestSongs(int count) async => null;
+
+  /// The most played songs, most played first, or null when unsupported.
+  Future<List<MyAudioMetadata>?> getMostPlayedSongs(int count) async => null;
+
+  /// The recently played songs, latest first, or null when unsupported.
+  Future<List<MyAudioMetadata>?> getRecentlyPlayedSongs(int count) async =>
+      null;
 }

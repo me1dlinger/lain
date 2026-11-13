@@ -446,15 +446,44 @@ class _SongListState extends State<SongList> {
     }
   }
 
-  /// The order the songs of a locally-built playlist were added in, oldest
-  /// first: the playlist keeps them newest first, and the servers report a
-  /// per-entry `created` instead.
-  List<MyAudioMetadata>? get playlistAddedOrder {
-    final target = playlist;
-    if (target == null || isStreamSource) {
-      return null;
+  /// The order the songs were added in, oldest first: the playlist keeps its
+  /// newest song first (a local one by its own inserts, a Navidrome one as
+  /// the client fetches it), so [Playlist.addedOrder] is the whole answer.
+  /// Other server playlists report no per-entry order and answer null, so
+  /// "added time" there falls back to each song's own.
+  List<MyAudioMetadata>? get playlistAddedOrder => playlist?.addedOrder;
+
+  /// Background refresh of the list this page shows; see [initState].
+  ///
+  /// A null answer (the source cannot report the list, or the request failed)
+  /// leaves everything as it is - the cached contents stay on screen.
+  Future<void> _refreshFromServer() async {
+    final client = streamClient;
+    if (client == null) {
+      return;
     }
-    return target.songList.reversed.toList();
+    try {
+      if (isRecentlyAdded) {
+        final songs = await client.getNewestSongs(200);
+        if (songs != null && songs.isNotEmpty) {
+          await library.mergeFreshSongs(songs);
+        }
+      } else if (isFrequently) {
+        final songs = await client.getMostPlayedSongs(200);
+        if (songs != null) {
+          history.applyFrequently(songs);
+        }
+      } else if (isRecently) {
+        final songs = await client.getRecentlyPlayedSongs(200);
+        if (songs != null) {
+          history.applyRecently(songs);
+        }
+      } else if (playlist != null) {
+        await playlist!.sync();
+      }
+    } catch (e) {
+      debugPrint('[SongList] refresh: $e');
+    }
   }
 
   void startNewSearchIfNeed() {
@@ -593,6 +622,15 @@ class _SongListState extends State<SongList> {
       loadArtistInfoIfNeed(artist!).then((_) {
         if (mounted) setState(() {});
       });
+    }
+
+    // The page opens on cached data; a streamed source may have newer
+    // contents, so this list is asked for in the background and the page - it
+    // listens to the list's own notifier - updates itself when the fresh
+    // songs arrive. Playlists are re-synced (songs and membership, not
+    // covers); the home-detail lists each ask their own endpoint.
+    if (isStreamSource) {
+      unawaited(_refreshFromServer());
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {

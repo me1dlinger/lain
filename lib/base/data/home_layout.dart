@@ -9,7 +9,17 @@ import 'package:material_ui/material_ui.dart';
 enum HomeButton { artists, albums, songs, playlists, favorites, listeningReport }
 
 /// The shelves below it.
-enum HomeShelf { albums, frequently, recentlyAdded, recently, playlists }
+///
+/// [HomeShelf.stats] is the Navidrome-only statistics card; on any other
+/// source the home page simply skips it.
+enum HomeShelf {
+  albums,
+  frequently,
+  recentlyAdded,
+  recently,
+  playlists,
+  stats,
+}
 
 final homeButtonOrder = ValueNotifier<List<HomeButton>>(
   List.of(HomeButton.values),

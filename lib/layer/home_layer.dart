@@ -14,6 +14,8 @@ import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/navidrome_client.dart';
+import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
@@ -571,7 +573,145 @@ class HomeLayerState extends State<HomeLayer> {
           ),
           SizedBox(height: 15),
         ];
+      case HomeShelf.stats:
+        // A Navidrome-only card; nothing is drawn for any other source, so
+        // the shelf takes no space there.
+        if (sourceType != SourceType.navidrome ||
+            streamClient is! NavidromeClient) {
+          return [];
+        }
+        return [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
+            child: _statsShelf(context, streamClient as NavidromeClient),
+          ),
+          SizedBox(height: 15),
+        ];
     }
+  }
+
+  /// The library statistics card: a 2x3 grid of value + label tiles, without
+  /// a heading. Its values are the client's cached snapshot, so the card does
+  /// not hammer the server every time the home page is rebuilt.
+  Widget _statsShelf(BuildContext context, NavidromeClient client) {
+    final l10n = AppLocalizations.of(context);
+    return FutureBuilder<NavidromeLibraryStats?>(
+      future: client.libraryStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data;
+        final cells = <(String, String)>[
+          (
+            l10n.statsSongs,
+            _groupNumber(stats?.songCount),
+          ),
+          (l10n.albums, _groupNumber(stats?.albumCount)),
+          (l10n.artists, _groupNumber(stats?.artistCount)),
+          (l10n.folders, _groupNumber(stats?.folderCount)),
+          (
+            l10n.totalSize,
+            stats == null ? '—' : formatLibrarySize(stats.totalSize),
+          ),
+          (
+            l10n.totalDuration,
+            stats == null
+                ? '—'
+                : l10n.libraryDurationHours(
+                    formatLibraryDuration(
+                      stats.totalDuration,
+                      inDays: stats.totalDuration >= 100 * 3600,
+                    ),
+                    stats.totalDuration >= 100 * 3600
+                        ? l10n.daysUnit
+                        : l10n.hoursUnit,
+                  ),
+          ),
+        ];
+
+        // The colour depends on the theme and on whether the playing page is
+        // up, and the home page is not rebuilt when such a page is dismissed,
+        // so the card watches the palette itself.
+        return ListenableBuilder(
+          listenable: Listenable.merge([
+            displayLyricsPageNotifier,
+            textColor.valueNotifier,
+            lyricsPageForegroundColor.valueNotifier,
+            viewModeNotifier,
+          ]),
+          builder: (context, child) {
+            final textColor = colorManager.getSpecificTextColor();
+            return GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.5,
+              children: [
+                for (final (label, value) in cells)
+                  Container(
+                    decoration: ShapeDecoration(
+                      color: textColor.withAlpha(20),
+                      shape: SmoothRectangleBorder(
+                        smoothness: 1,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor.withAlpha(160),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// `3,583`-style grouping; an unknown value shows a dash.
+  String _groupNumber(int? value) {
+    if (value == null) {
+      return '—';
+    }
+    final text = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      final remaining = text.length - i - 1;
+      if (remaining > 0 && remaining % 3 == 0) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
   }
 
   Widget songListView(

@@ -70,6 +70,26 @@ class History {
     }
   }
 
+  /// Replaces the most-played list with [songs] - the server's own answer,
+  /// already ordered - so the list the home shelf and its page show is the
+  /// latest one without a full sync.
+  void applyFrequently(List<MyAudioMetadata> songs) {
+    frequentlySongList
+      ..clear()
+      ..addAll(songs);
+    _trim(frequentlySongList);
+    frequentlyChangeNotifier.value++;
+  }
+
+  /// Replaces the recently-played list with [songs]; see [applyFrequently].
+  void applyRecently(List<MyAudioMetadata> songs) {
+    recentlySongList
+      ..clear()
+      ..addAll(songs);
+    _trim(recentlySongList);
+    recentlyChangeNotifier.value++;
+  }
+
   void _addSongTimes(MyAudioMetadata song, int times) {
     int index = frequentlySongList.indexOf(song);
 

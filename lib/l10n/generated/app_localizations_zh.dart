@@ -1351,4 +1351,73 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commentShowMoreReplies => '查看更多回复';
+
+  @override
+  String get statsCard => '统计';
+
+  @override
+  String get serverStatus => '服务器状态';
+
+  @override
+  String get serverInfo => '服务器信息';
+
+  @override
+  String get mediaStats => '媒体统计';
+
+  @override
+  String get statsSongs => '歌曲';
+
+  @override
+  String get totalSize => '总大小';
+
+  @override
+  String get serverVersion => '服务端版本';
+
+  @override
+  String get subsonicApiVersion => 'Subsonic API';
+
+  @override
+  String get openSubsonic => 'Open Subsonic';
+
+  @override
+  String get supported => '支持';
+
+  @override
+  String get notSupported => '不支持';
+
+  @override
+  String get status => '状态';
+
+  @override
+  String latencyMs(int ms) {
+    return '延迟 $ms ms';
+  }
+
+  @override
+  String get scanStatus => '扫描状态';
+
+  @override
+  String get lastScanTime => '最后扫描时间';
+
+  @override
+  String get scanning => '扫描中';
+
+  @override
+  String get scanCompleted => '已完成';
+
+  @override
+  String get hoursUnit => '小时';
+
+  @override
+  String get daysUnit => '天';
+
+  @override
+  String librarySizeGB(String size) {
+    return '$size GB';
+  }
+
+  @override
+  String libraryDurationHours(String hours, String unit) {
+    return '$hours $unit';
+  }
 }

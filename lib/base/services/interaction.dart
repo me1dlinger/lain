@@ -9,6 +9,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/setting.dart';
@@ -21,6 +22,7 @@ import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/zoom_page_route.dart';
 import 'package:lain/base/widgets/cache_badge.dart';
+import 'package:lain/base/widgets/comment_page.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/custom_text_field.dart';
 import 'package:lain/base/widgets/edit_metadata.dart';
@@ -1023,6 +1025,18 @@ void showSongOptions({
                     onTap: () {
                       Navigator.pop(context);
                       goToAlbum(song, context: context);
+                    },
+                  ),
+
+                // Same visibility rule as the comment button on the lyrics
+                // page: the feature is on and a server can be asked.
+                if (commentSwitchNotifier.value && activeCommentServer != null)
+                  _optionItem(
+                    leading: Icon(Icons.forum_outlined),
+                    text: l10n.comment,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, CommentPageView.route(song));
                     },
                   ),
 

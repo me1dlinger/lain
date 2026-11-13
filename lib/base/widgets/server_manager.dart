@@ -16,6 +16,7 @@ import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/custom_text_field.dart';
+import 'package:lain/base/widgets/server_status_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
 
@@ -192,6 +193,13 @@ class _ServerListPageState extends State<ServerListPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // The status page speaks Navidrome's own API, so only a
+              // Navidrome server gets the entry.
+              if (server.type == SourceType.navidrome)
+                ListTile(
+                  title: Text(l10n.serverStatus),
+                  onTap: () => Navigator.pop(dialogContext, 'status'),
+                ),
               ListTile(
                 title: Text(l10n.recheck),
                 onTap: () => Navigator.pop(dialogContext, 'recheck'),
@@ -213,6 +221,11 @@ class _ServerListPageState extends State<ServerListPage> {
       return;
     }
     switch (action) {
+      case 'status':
+        await pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => ServerStatusPage(server: server)),
+        );
       case 'recheck':
         await _activate(server);
       case 'edit':

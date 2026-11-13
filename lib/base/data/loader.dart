@@ -112,8 +112,55 @@ class Loader {
     // notifier when the fresh summaries arrive.
     unawaited(prefetchArtistInfo());
 
+    // The cached lists are what is on screen; the server may have newer data
+    // (songs added there, plays scrobbled elsewhere, playlists edited).
+    // Refresh the dynamic lists in the background - never blocking the first
+    // paint - so the home page is up to date without a manual sync. Covers
+    // are the sync's job and stay untouched.
+    unawaited(refreshServerLists());
+
     _busy = false;
     stateNotifier.value++;
+  }
+
+  /// Fetches the lists the home page shows straight from the server and
+  /// updates what is on screen: the newest songs (merged into the library),
+  /// the most played, the recently played, and the playlists' contents. Every
+  /// step is best-effort: a source that cannot answer one of them keeps the
+  /// list it already shows.
+  static Future<void> refreshServerLists() async {
+    final client = streamClient;
+    if (client == null || !isStreamSource) {
+      return;
+    }
+
+    final newest = await client.getNewestSongs(100);
+    if (newest != null && newest.isNotEmpty) {
+      try {
+        await library.mergeFreshSongs(newest);
+      } catch (e) {
+        logger.output('[refresh] newest songs: $e');
+      }
+    }
+
+    final mostPlayed = await client.getMostPlayedSongs(100);
+    if (mostPlayed != null) {
+      history.applyFrequently(mostPlayed);
+    }
+
+    final recentlyPlayed = await client.getRecentlyPlayedSongs(100);
+    if (recentlyPlayed != null) {
+      history.applyRecently(recentlyPlayed);
+    }
+
+    // Playlists: the list of them and each one's songs, fresh from the
+    // server. The covers stay as cached - they are only re-downloaded by a
+    // full sync.
+    try {
+      await playlistManager.sync();
+    } catch (e) {
+      logger.output('[refresh] playlists: $e');
+    }
   }
 
   static Future<void> reload() async {

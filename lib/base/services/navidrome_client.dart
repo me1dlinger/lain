@@ -127,6 +127,159 @@ class NavidromeClient extends StreamClient {
     return response['scanStatus']['count'];
   }
 
+  /// The fetch in flight, so the home card and the status page asking at the
+  /// same time share one pass over the server instead of racing.
+  Future<NavidromeLibraryStats?>? _libraryStatsFuture;
+
+  /// The library and server snapshot used by the home stats card and the
+  /// server status page.
+  ///
+  /// The total size and duration need one pass over every song, so the result
+  /// is cached per client; pass [forceRefresh] to redo the whole snapshot.
+  Future<NavidromeLibraryStats?> libraryStats({bool forceRefresh = false}) {
+    if (forceRefresh) {
+      _libraryStatsFuture = null;
+    }
+    return _libraryStatsFuture ??= _fetchLibraryStats();
+  }
+
+  static int? _asInt(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.round();
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
+  }
+
+  /// Row count of a native list endpoint, from its `X-Total-Count` header;
+  /// `_end=0` asks for no rows at all.
+  Future<int?> _nativeCount(String path, Map<String, String> headers) async {
+    try {
+      final response = await Dio().get(
+        '$_nativeRoot$path',
+        queryParameters: {'_start': 0, '_end': 0},
+        options: Options(headers: headers),
+      );
+      return _asInt(response.headers.value('x-total-count'));
+    } catch (e) {
+      logger.output('[Navidrome] native count $path: $e');
+      return null;
+    }
+  }
+
+  Future<NavidromeLibraryStats?> _fetchLibraryStats() async {
+    // The ping doubles as the latency measure and reports what the server is.
+    final stopwatch = Stopwatch()..start();
+    final ping = await safeRequest('/rest/ping.view');
+    stopwatch.stop();
+    if (ping == null) {
+      // A failed run must not be cached as "the" result.
+      _libraryStatsFuture = null;
+      return null;
+    }
+    final serverType = ping['type']?.toString();
+    final serverVersion = ping['serverVersion']?.toString();
+    final subsonicVersion = ping['version']?.toString();
+    final openSubsonic = ping['openSubsonic'] == true;
+
+    // The scan status reports how many songs the library has, whether a scan
+    // is running, and when the last one finished.
+    int? songCount;
+    bool? scanning;
+    DateTime? lastScan;
+    final scan = await safeRequest('/rest/getScanStatus.view');
+    if (scan?['scanStatus'] is Map) {
+      final status = scan!['scanStatus'] as Map;
+      songCount = _asInt(status['count']);
+      scanning = status['scanning'] == true;
+      final lastScanRaw = status['lastScan']?.toString();
+      if (lastScanRaw != null && lastScanRaw.isNotEmpty) {
+        lastScan = DateTime.tryParse(lastScanRaw);
+      }
+    }
+
+    int? folderCount;
+    final folders = await safeRequest('/rest/getMusicFolders.view');
+    if (folders?['musicFolders'] is Map) {
+      final list = folders!['musicFolders']['musicFolder'];
+      folderCount = list is List ? list.length : (list == null ? 0 : 1);
+    }
+
+    // Counts of artists and albums, plus the total size and duration, are
+    // only available through Navidrome's own API, which needs its own login.
+    int? artistCount;
+    int? albumCount;
+    int totalSize = 0;
+    int totalDuration = 0;
+    final token = await _nativeTokenIfAvailable();
+    if (token != null) {
+      final headers = {'x-nd-authorization': 'Bearer $token'};
+      artistCount = await _nativeCount('/api/artist', headers);
+      albumCount = await _nativeCount('/api/album', headers);
+
+      // One pass over the songs in pages: the total size and duration have
+      // no dedicated endpoint, so they are summed song by song.
+      const pageSize = 500;
+      try {
+        for (var start = 0; ; start += pageSize) {
+          final response = await Dio().get(
+            '$_nativeRoot/api/song',
+            queryParameters: {
+              '_start': start,
+              '_end': start + pageSize,
+              '_sort': 'id',
+            },
+            options: Options(headers: headers),
+          );
+          final page = response.data;
+          if (page is! List || page.isEmpty) {
+            break;
+          }
+          for (final raw in page) {
+            if (raw is! Map) {
+              continue;
+            }
+            totalSize += _asInt(raw['size']) ?? 0;
+            totalDuration += _asInt(raw['duration']) ?? 0;
+          }
+          if (page.length < pageSize) {
+            break;
+          }
+        }
+      } catch (e) {
+        logger.output('[Navidrome] library totals: $e');
+      }
+    }
+
+    final stats = NavidromeLibraryStats(
+      latency: stopwatch.elapsed,
+      serverType: (serverType == null || serverType.isEmpty)
+          ? null
+          : serverType,
+      serverVersion: (serverVersion == null || serverVersion.isEmpty)
+          ? null
+          : serverVersion,
+      subsonicVersion: (subsonicVersion == null || subsonicVersion.isEmpty)
+          ? null
+          : subsonicVersion,
+      openSubsonic: openSubsonic,
+      songCount: songCount,
+      artistCount: artistCount,
+      albumCount: albumCount,
+      folderCount: folderCount,
+      totalSize: totalSize,
+      totalDuration: totalDuration,
+      scanning: scanning,
+      lastScan: lastScan,
+    );
+    return stats;
+  }
+
   @override
   Future<List<MyAudioMetadata>?> getSongs(int size, int offset) async {
     final response = await safeRequest(
@@ -237,9 +390,194 @@ class NavidromeClient extends StreamClient {
     if (response == null) {
       return null;
     }
-    return (normalize(response?['playlist']['entry']) ?? [])
+    final songs = (normalize(response?['playlist']['entry']) ?? [])
         .map((e) => MyAudioMetadata.fromMap(e, .navidrome))
         .toList();
+
+    // The Subsonic answer is the playlist's own order; what "added time"
+    // should mean here is when each song joined *the playlist*. Navidrome
+    // numbers its playlist rows in the order they were added, so its native
+    // tracks endpoint - sorted by that row id, descending - is the playlist's
+    // added order, newest first.
+    final order = await _playlistAddedOrder(playlistId);
+    if (order.isNotEmpty) {
+      final position = {
+        for (var index = 0; index < order.length; index++) order[index]: index,
+      };
+      songs.sort((a, b) {
+        final positionA = position[a.id];
+        final positionB = position[b.id];
+        if (positionA == null || positionB == null) {
+          return 0;
+        }
+        return positionA.compareTo(positionB);
+      });
+    }
+    return songs;
+  }
+
+  /// Ids of the playlist's songs, newest added first. Navidrome's own
+  /// playlist-tracks endpoint reports the rows it keeps per playlist; sorting
+  /// them by `id`, descending, walks them backwards through the order they
+  /// were added in. Empty when the native API is unavailable - the Subsonic
+  /// order is then kept as before.
+  Future<List<String>> _playlistAddedOrder(String playlistId) async {
+    final token = await _nativeTokenIfAvailable();
+    if (token == null) {
+      return const [];
+    }
+    final headers = {'x-nd-authorization': 'Bearer $token'};
+    final ids = <String>[];
+    const pageSize = 500;
+    try {
+      for (var start = 0; ; start += pageSize) {
+        final response = await Dio().get(
+          '$_nativeRoot/api/playlist/$playlistId/tracks',
+          queryParameters: {
+            '_start': start,
+            '_end': start + pageSize,
+            '_sort': 'id',
+            '_order': 'DESC',
+          },
+          options: Options(headers: headers),
+        );
+        final page = response.data;
+        if (page is! List || page.isEmpty) {
+          break;
+        }
+        for (final raw in page) {
+          if (raw is! Map) {
+            continue;
+          }
+          final id = raw['mediaFileId']?.toString();
+          if (id != null && id.isNotEmpty) {
+            ids.add(id);
+          }
+        }
+        if (page.length < pageSize) {
+          break;
+        }
+      }
+    } catch (e) {
+      logger.output('[Navidrome] playlist order $playlistId: $e');
+    }
+    return ids;
+  }
+
+  @override
+  Future<List<MyAudioMetadata>?> getNewestSongs(int count) {
+    return _nativeSongs(
+      sort: 'createdAt',
+      count: count,
+      keep: (song) => true,
+    );
+  }
+
+  @override
+  Future<List<MyAudioMetadata>?> getMostPlayedSongs(int count) {
+    return _nativeSongs(
+      sort: 'playCount',
+      count: count,
+      keep: (song) => song.playCount > 0,
+    );
+  }
+
+  @override
+  Future<List<MyAudioMetadata>?> getRecentlyPlayedSongs(int count) {
+    return _nativeSongs(
+      sort: 'playedAt',
+      count: count,
+      keep: (song) =>
+          song.lastPlayed != null && song.lastPlayed!.year > 2000,
+    );
+  }
+
+  /// The first [count] songs of the whole library in the native API's own
+  /// order for [sort] (newest / most played / latest played first), for lists
+  /// the Subsonic API has no sorted answer for. Null when the native API is
+  /// unavailable; the caller then keeps what it already shows.
+  Future<List<MyAudioMetadata>?> _nativeSongs({
+    required String sort,
+    required int count,
+    required bool Function(MyAudioMetadata song) keep,
+  }) async {
+    final token = await _nativeTokenIfAvailable();
+    if (token == null) {
+      return null;
+    }
+    try {
+      final response = await Dio().get(
+        '$_nativeRoot/api/song',
+        queryParameters: {
+          '_start': 0,
+          '_end': count,
+          '_sort': sort,
+          '_order': 'DESC',
+        },
+        options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
+      );
+      final page = response.data;
+      if (page is! List) {
+        return null;
+      }
+      final songs = <MyAudioMetadata>[];
+      for (final raw in page) {
+        if (raw is! Map) {
+          continue;
+        }
+        final song = _metadataFromNativeSong(raw);
+        if (song != null && keep(song)) {
+          songs.add(song);
+        }
+      }
+      return songs;
+    } catch (e) {
+      logger.output('[Navidrome] native songs ($sort): $e');
+      return null;
+    }
+  }
+
+  /// One song row of the native API, converted to the Subsonic-shaped map the
+  /// metadata parser reads (the field names differ), with the fresh dynamic
+  /// values written through to the song object the parser hands back - it
+  /// reuses the one the library already holds, whose fields it does not touch.
+  MyAudioMetadata? _metadataFromNativeSong(Map raw) {
+    final id = raw['id']?.toString();
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+    final duration = raw['duration'];
+    final created = (raw['createdAt'] ?? raw['created'])?.toString();
+    final played = (raw['playedAt'] ?? raw['played'])?.toString();
+    final song = MyAudioMetadata.fromMap({
+      'id': id,
+      'title': raw['title'],
+      'artist': raw['artist'],
+      'album': raw['album'],
+      'displayAlbumArtist': raw['displayAlbumArtist'] ?? raw['albumArtist'],
+      'genre': raw['genre'],
+      'year': raw['year'],
+      'track': raw['trackNumber'],
+      'discNumber': raw['discNumber'],
+      'bitRate': raw['bitRate'],
+      'samplingRate': raw['samplingRate'],
+      'duration': duration is num ? duration.round() : duration,
+      'contentType': raw['contentType'],
+      'path': raw['path'],
+      'created': created,
+      'played': played,
+      'playCount': (raw['playCount'] as num?)?.toInt(),
+      'size': raw['size'],
+      'albumId': raw['albumId'],
+      'artistId': raw['artistId'],
+    }, .navidrome);
+    song.playCount = (raw['playCount'] as num?)?.toInt() ?? song.playCount;
+    final playedTime = DateTime.tryParse(played ?? '');
+    if (playedTime != null && playedTime.year > 2000) {
+      song.lastPlayed = playedTime;
+    }
+    song.created ??= DateTime.tryParse(created ?? '');
+    return song;
   }
 
   @override
@@ -687,6 +1025,90 @@ class NavidromeClient extends StreamClient {
         null;
   }
 }
+
+/// Snapshot of a Navidrome server and its library, for the home stats card
+/// and the server status page.
+///
+/// Every field is what the server reported; a value the server does not give
+/// stays null and the pages show a dash for it.
+class NavidromeLibraryStats {
+  /// How long the ping took, measured while the snapshot was fetched.
+  final Duration latency;
+
+  /// The server software behind the Subsonic API, e.g. `navidrome`.
+  final String? serverType;
+
+  /// The server's own version, e.g. `0.6.4.1 (285dc4f3)`.
+  final String? serverVersion;
+
+  /// The Subsonic API version the server speaks, e.g. `1.16.1`.
+  final String? subsonicVersion;
+
+  /// Whether the server answered with the OpenSubsonic flag.
+  final bool openSubsonic;
+
+  /// Songs visible through the Subsonic API (the scan count).
+  final int? songCount;
+
+  final int? artistCount;
+  final int? albumCount;
+  final int? folderCount;
+
+  /// Sum of every song's file size, in bytes.
+  final int totalSize;
+
+  /// Sum of every song's duration, in seconds.
+  final int totalDuration;
+
+  /// Whether a scan was running when the snapshot was taken.
+  final bool? scanning;
+
+  /// When the last scan finished.
+  final DateTime? lastScan;
+
+  const NavidromeLibraryStats({
+    required this.latency,
+    this.serverType,
+    this.serverVersion,
+    this.subsonicVersion,
+    this.openSubsonic = false,
+    this.songCount,
+    this.artistCount,
+    this.albumCount,
+    this.folderCount,
+    this.totalSize = 0,
+    this.totalDuration = 0,
+    this.scanning,
+    this.lastScan,
+  });
+}
+
+/// `108.4 GB`-style formatting of a byte count for the stats display.
+String formatLibrarySize(int bytes) {
+  if (bytes <= 0) {
+    return '0';
+  }
+  final gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) {
+    return gb >= 100
+        ? gb.round().toString()
+        : gb.toStringAsFixed(gb >= 10 ? 1 : 2);
+  }
+  final mb = bytes / (1024 * 1024);
+  return mb >= 1 ? '${mb.round()} MB' : '${(bytes / 1024).round()} KB';
+}
+
+/// `273.4`-style hour value of a duration in seconds; larger libraries are
+/// shown in whole days plus hours instead, with the unit chosen by the
+/// caller through [inDays].
+String formatLibraryDuration(int seconds, {required bool inDays}) {
+  if (inDays) {
+    return '${seconds ~/ 86400}';
+  }
+  final hours = seconds / 3600;
+  return hours >= 100 ? hours.round().toString() : hours.toStringAsFixed(1);
+}
+
 
 /// Formats milliseconds as `MM:SS.mmm`, the timestamp shape the LRC parser
 /// understands for both line and angle-bracket word timestamps.

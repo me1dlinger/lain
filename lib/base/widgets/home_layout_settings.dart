@@ -77,6 +77,7 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
                           HomeShelf.recentlyAdded => l10n.recentlyAdded,
                           HomeShelf.recently => l10n.recently,
                           HomeShelf.playlists => l10n.playlists,
+                          HomeShelf.stats => l10n.statsCard,
                         },
                       ),
                     ],

@@ -2713,6 +2713,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show more replies'**
   String get commentShowMoreReplies;
+
+  /// No description provided for @statsCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get statsCard;
+
+  /// No description provided for @serverStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Server status'**
+  String get serverStatus;
+
+  /// No description provided for @serverInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Server info'**
+  String get serverInfo;
+
+  /// No description provided for @mediaStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Media library'**
+  String get mediaStats;
+
+  /// No description provided for @statsSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs'**
+  String get statsSongs;
+
+  /// No description provided for @totalSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Total size'**
+  String get totalSize;
+
+  /// No description provided for @serverVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version'**
+  String get serverVersion;
+
+  /// No description provided for @subsonicApiVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Subsonic API'**
+  String get subsonicApiVersion;
+
+  /// No description provided for @openSubsonic.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Subsonic'**
+  String get openSubsonic;
+
+  /// No description provided for @supported.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported'**
+  String get supported;
+
+  /// No description provided for @notSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not supported'**
+  String get notSupported;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @latencyMs.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency {ms} ms'**
+  String latencyMs(int ms);
+
+  /// No description provided for @scanStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan status'**
+  String get scanStatus;
+
+  /// No description provided for @lastScanTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Last scan'**
+  String get lastScanTime;
+
+  /// No description provided for @scanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning'**
+  String get scanning;
+
+  /// No description provided for @scanCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get scanCompleted;
+
+  /// No description provided for @hoursUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'h'**
+  String get hoursUnit;
+
+  /// No description provided for @daysUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'d'**
+  String get daysUnit;
+
+  /// No description provided for @librarySizeGB.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} GB'**
+  String librarySizeGB(String size);
+
+  /// No description provided for @libraryDurationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} {unit}'**
+  String libraryDurationHours(String hours, String unit);
 }
 
 class _AppLocalizationsDelegate

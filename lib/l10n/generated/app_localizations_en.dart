@@ -1377,4 +1377,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commentShowMoreReplies => 'Show more replies';
+
+  @override
+  String get statsCard => 'Stats';
+
+  @override
+  String get serverStatus => 'Server status';
+
+  @override
+  String get serverInfo => 'Server info';
+
+  @override
+  String get mediaStats => 'Media library';
+
+  @override
+  String get statsSongs => 'Songs';
+
+  @override
+  String get totalSize => 'Total size';
+
+  @override
+  String get serverVersion => 'Server version';
+
+  @override
+  String get subsonicApiVersion => 'Subsonic API';
+
+  @override
+  String get openSubsonic => 'Open Subsonic';
+
+  @override
+  String get supported => 'Supported';
+
+  @override
+  String get notSupported => 'Not supported';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String latencyMs(int ms) {
+    return 'Latency $ms ms';
+  }
+
+  @override
+  String get scanStatus => 'Scan status';
+
+  @override
+  String get lastScanTime => 'Last scan';
+
+  @override
+  String get scanning => 'Scanning';
+
+  @override
+  String get scanCompleted => 'Completed';
+
+  @override
+  String get hoursUnit => 'h';
+
+  @override
+  String get daysUnit => 'd';
+
+  @override
+  String librarySizeGB(String size) {
+    return '$size GB';
+  }
+
+  @override
+  String libraryDurationHours(String hours, String unit) {
+    return '$hours $unit';
+  }
 }

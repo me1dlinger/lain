@@ -277,8 +277,25 @@ class Playlist {
   /// list is also what gets written back to the server.
   List<MyAudioMetadata> get sortedSongList {
     final songs = List<MyAudioMetadata>.from(songList);
-    sortSongList(songSortTypeNotifier(sortKey).value, songs);
+    sortSongList(songSortTypeNotifier(sortKey).value, songs, addedOrder: addedOrder);
     return songs;
+  }
+
+  /// The playlist's own order of addition, oldest first, for the lists that
+  /// have one: a local playlist keeps its newest song first, and the Navidrome
+  /// client fetches a server playlist newest-first too (see
+  /// [NavidromeClient.getPlaylistSongs]). Inside such a list "added time"
+  /// means when the song joined *it* - not when its file was created. Other
+  /// sources report no per-entry order, so they answer null and sorting falls
+  /// back to each song's own added time.
+  List<MyAudioMetadata>? get addedOrder {
+    if (isFavorite) {
+      return null;
+    }
+    if (isStreamSource && sourceType != .navidrome) {
+      return null;
+    }
+    return songList.reversed.toList();
   }
 
   MyPicture? get picture =>

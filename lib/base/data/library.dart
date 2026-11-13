@@ -431,6 +431,39 @@ class Library {
   /// Removes a single cached file and keeps the song's state in sync.
   Future<void> refreshCache() => _accumulateCache();
 
+  /// Merges songs fetched straight from the server into the library: a song
+  /// the last sync missed joins the list itself (so the recently-added shelf
+  /// and its page show it), and its added time is remembered the way a sync
+  /// would. Known songs only have their dynamic fields refreshed by the
+  /// client; their list entry is untouched.
+  Future<void> mergeFreshSongs(List<MyAudioMetadata> songs) async {
+    final newSongs = <MyAudioMetadata>[];
+    for (final song in songs) {
+      if (!songList.contains(song)) {
+        songList.insert(0, song);
+        newSongs.add(song);
+      }
+      if (song.created != null) {
+        serverCreatedTimes.record(song.id, song.created);
+      }
+    }
+    if (newSongs.isEmpty) {
+      return;
+    }
+    unawaited(serverCreatedTimes.flush());
+    if (isStreamSource) {
+      // The metadata database is what the next launch reads; without this the
+      // merged songs would be gone again until the next full sync.
+      try {
+        await _saveBatchMetadata(newSongs);
+      } catch (e) {
+        logger.output('[library] merge fresh songs: $e');
+      }
+    }
+    changeNotifier.value++;
+    layersManager.updateBackground();
+  }
+
   Future<void> deleteCacheEntry(CacheEntry entry) async {
     final file = File(entry.path);
     if (await file.exists()) {
