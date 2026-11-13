@@ -37,20 +37,41 @@ class Loader {
 
   static Future<void> init() async {
     if (Platform.isAndroid) {
-      await Permission.storage.request();
-      await Permission.audio.request();
+      // Best-effort and time limited: a permission dialog that is dismissed by
+      // the system (or an activity that is rebuilt while it is open) must not
+      // keep the app on the launch window forever.
+      await _requestPermission(Permission.storage);
+      await _requestPermission(Permission.audio);
     } else if (Platform.isIOS) {
-      await BookmarkService.init();
-      File keepFile = File('${appDocsDir.path}/lain.keep');
-      if (!keepFile.existsSync()) {
-        keepFile.createSync();
+      try {
+        await BookmarkService.init();
+        File keepFile = File('${appDocsDir.path}/lain.keep');
+        if (!keepFile.existsSync()) {
+          keepFile.createSync();
+        }
+      } catch (e) {
+        logger.output('[startup] bookmark init failed: $e');
       }
     }
 
-    _handleLegacyVersionData();
+    // Each step is independent: a corrupt or unreadable one leaves the rest of
+    // the startup defaults in place instead of aborting before runApp.
+    try {
+      _handleLegacyVersionData();
+    } catch (e) {
+      logger.output('[startup] legacy migration failed: $e');
+    }
 
-    await config.load();
-    await setting.load();
+    try {
+      await config.load();
+    } catch (e) {
+      logger.output('[startup] config load failed: $e');
+    }
+    try {
+      await setting.load();
+    } catch (e) {
+      logger.output('[startup] settings load failed: $e');
+    }
 
     // A comment server that answered is written through to the settings, so
     // the next launch asks it first instead of probing both addresses. The
@@ -60,67 +81,102 @@ class Loader {
     // Offline mode is persisted, so a launch that would otherwise come up on
     // the last server always starts on the local library instead.
     if (offlineModeNotifier.value && sourceType != .local) {
-      await config.activateLocal();
+      try {
+        await config.activateLocal();
+      } catch (e) {
+        logger.output('[startup] activate local failed: $e');
+      }
     }
 
     colorManager.updateColors();
 
-    await fontManager.loadFonts();
+    try {
+      await fontManager.loadFonts();
+    } catch (e) {
+      logger.output('[startup] font load failed: $e');
+    }
+  }
+
+  static Future<void> _requestPermission(Permission permission) async {
+    try {
+      await permission.request().timeout(const Duration(seconds: 20));
+    } catch (e) {
+      logger.output('[startup] permission request failed: $e');
+    }
   }
 
   static Future<void> load() async {
     _busy = true;
     stateNotifier.value++;
 
-    if (isStreamSource && streamClient != null) {
-      if (!File(getSyncedFilePath(sourceType)).existsSync()) {
+    // try/finally: an early return (a first sync, an interrupted scan) and a
+    // throw both used to leave `_busy` true for the life of the process, which
+    // silently disabled every action guarded by it.
+    try {
+      if (isStreamSource && streamClient != null) {
+        if (!File(getSyncedFilePath(sourceType)).existsSync()) {
+          await firstSync();
+          return;
+        }
+      }
+
+      await library.load();
+
+      if (isNotStreamSource &&
+          library.songList.isEmpty &&
+          library.folderList.isNotEmpty) {
+        // Nothing is indexed, yet folders are configured: the previous scan was
+        // interrupted (the app was closed while it ran), so build the library now
+        // instead of leaving an empty page behind.
         await firstSync();
         return;
       }
+
+      audioHandler.loadStates();
+
+      // Read before the lists are built, so a local library can show what
+      // Navidrome cached for the same artists. Navidrome's own artist list then
+      // fills the cache (biographies, and whether each artist has an image) in
+      // one go, so the artist lists are decided from the first frame.
+      try {
+        await loadArtistInfoCache();
+      } catch (e) {
+        logger.output('[startup] artist cache load failed: $e');
+      }
+
+      artistAlbumManager.classify();
+
+      try {
+        await history.load();
+      } catch (e) {
+        logger.output('[startup] history load failed: $e');
+      }
+
+      try {
+        await playlistManager.load();
+      } catch (e) {
+        logger.output('[startup] playlist load failed: $e');
+      }
+
+      // The artist biography/image prefetch hits the network; run it after the
+      // cached data has been put on screen, so a cold start with an online
+      // source shows its lists first instead of an empty page. The call reads
+      // the same disk cache again (idempotent) and bumps the artist list's
+      // notifier when the fresh summaries arrive.
+      unawaited(prefetchArtistInfo());
+
+      // The cached lists are what is on screen; the server may have newer data
+      // (songs added there, plays scrobbled elsewhere, playlists edited).
+      // Refresh the dynamic lists in the background - never blocking the first
+      // paint - so the home page is up to date without a manual sync. Covers
+      // are the sync's job and stay untouched.
+      unawaited(refreshServerLists());
+    } catch (e) {
+      logger.output('[startup] load failed: $e');
+    } finally {
+      _busy = false;
+      stateNotifier.value++;
     }
-
-    await library.load();
-
-    if (isNotStreamSource &&
-        library.songList.isEmpty &&
-        library.folderList.isNotEmpty) {
-      // Nothing is indexed, yet folders are configured: the previous scan was
-      // interrupted (the app was closed while it ran), so build the library now
-      // instead of leaving an empty page behind.
-      await firstSync();
-      return;
-    }
-
-    audioHandler.loadStates();
-
-    // Read before the lists are built, so a local library can show what
-    // Navidrome cached for the same artists. Navidrome's own artist list then
-    // fills the cache (biographies, and whether each artist has an image) in
-    // one go, so the artist lists are decided from the first frame.
-    await loadArtistInfoCache();
-
-    artistAlbumManager.classify();
-
-    await history.load();
-
-    await playlistManager.load();
-
-    // The artist biography/image prefetch hits the network; run it after the
-    // cached data has been put on screen, so a cold start with an online
-    // source shows its lists first instead of an empty page. The call reads
-    // the same disk cache again (idempotent) and bumps the artist list's
-    // notifier when the fresh summaries arrive.
-    unawaited(prefetchArtistInfo());
-
-    // The cached lists are what is on screen; the server may have newer data
-    // (songs added there, plays scrobbled elsewhere, playlists edited).
-    // Refresh the dynamic lists in the background - never blocking the first
-    // paint - so the home page is up to date without a manual sync. Covers
-    // are the sync's job and stay untouched.
-    unawaited(refreshServerLists());
-
-    _busy = false;
-    stateNotifier.value++;
   }
 
   /// Fetches the lists the home page shows straight from the server and

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/services/exit.dart';
+import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/utils/path.dart';
 import 'package:lain/mini_view/mini_view.dart';
@@ -95,8 +96,15 @@ class MyWindowListener extends WindowListener {
   }
 
   void loadConfig() {
-    final String content = windowConfigFile.readAsStringSync();
-    fromJson(jsonDecode(content));
+    // Written from a debounced, non-atomic write: a window that is killed in
+    // between leaves a truncated file, and before this guard the next launch
+    // threw here - before runApp - and never showed a window.
+    try {
+      final String content = windowConfigFile.readAsStringSync();
+      fromJson(jsonDecode(content));
+    } catch (e) {
+      logger.output('[startup] window config unreadable: $e');
+    }
   }
 
   @override

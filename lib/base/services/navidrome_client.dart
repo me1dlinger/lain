@@ -464,7 +464,7 @@ class NavidromeClient extends StreamClient {
     const pageSize = 500;
     try {
       for (var start = 0; ; start += pageSize) {
-        final response = await Dio().get(
+        final response = await _nativeDio.get(
           '$_nativeRoot/api/playlist/$playlistId/tracks',
           queryParameters: {
             '_start': start,
@@ -529,7 +529,7 @@ class NavidromeClient extends StreamClient {
       return null;
     }
     try {
-      final response = await Dio().get(
+      final response = await _nativeDio.get(
         '$_nativeRoot/api/song',
         queryParameters: {
           '_start': 0,
@@ -811,7 +811,7 @@ class NavidromeClient extends StreamClient {
       return cached;
     }
     try {
-      final response = await Dio().post(
+      final response = await _nativeDio.post(
         '$_nativeRoot/auth/login',
         data: {'username': username, 'password': password},
         options: Options(contentType: 'application/json'),
@@ -834,7 +834,7 @@ class NavidromeClient extends StreamClient {
       return null;
     }
     try {
-      final response = await Dio().get(
+      final response = await _nativeDio.get(
         '$_nativeRoot/api/artist/$artistId',
         options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
       );
@@ -859,7 +859,7 @@ class NavidromeClient extends StreamClient {
       return null;
     }
     try {
-      final response = await Dio().get(
+      final response = await _nativeDio.get(
         '$_nativeRoot/api/album/$albumId',
         options: Options(headers: {'x-nd-authorization': 'Bearer $token'}),
       );
@@ -907,7 +907,7 @@ class NavidromeClient extends StreamClient {
         >[];
     try {
       for (var start = 0; ; start += pageSize) {
-        final response = await Dio().get(
+        final response = await _nativeDio.get(
           '$_nativeRoot/api/artist',
           queryParameters: {
             '_start': start,

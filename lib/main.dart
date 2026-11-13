@@ -31,6 +31,13 @@ import 'base/audio_handler.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // A startup step that throws used to end main() before runApp, leaving the
+  // Android launch window's white background on screen forever - with no log
+  // and no way out but clearing the app data. Every step below is guarded and
+  // logged, and an uncaught error from an isolate is logged instead of killing
+  // the process.
+  _installErrorHandlers();
+
   appDocsDir = await getApplicationDocumentsDirectory();
   appSupportDir = await getApplicationSupportDirectory();
   tmpDir = await getTemporaryDirectory();
@@ -40,8 +47,12 @@ Future<void> main() async {
   } else {
     final viewModeFile = File("${appSupportDir.path}/viewMode.json");
     String viewMode = 'normal';
-    if (viewModeFile.existsSync()) {
-      viewMode = viewModeFile.readAsStringSync();
+    try {
+      if (viewModeFile.existsSync()) {
+        viewMode = viewModeFile.readAsStringSync();
+      }
+    } catch (e) {
+      _startupLog('[startup] view mode unreadable: $e');
     }
     viewModeNotifier.value = ViewMode.values.firstWhere(
       (e) => e.name == viewMode,
@@ -52,36 +63,62 @@ Future<void> main() async {
     });
   }
 
-  await logger.init();
+  await _guarded('logger', logger.init);
 
   if (isMobile) {
-    final screenRadius = await CornerRadiusPlugin.init();
-    screenTopLeftRadius = screenRadius.topLeft;
-    screenTopRightRadius = screenRadius.topRight;
-    CornerRadiusPlugin.screenRadiusStream.listen((radius) {
-      screenTopLeftRadius = radius.topLeft;
-      screenTopRightRadius = radius.topRight;
-    });
-    await HomeWidget.setAppGroupId('group.com.meidlinger.lain');
+    final screenRadius = await _guarded(
+      'screen radius',
+      CornerRadiusPlugin.init,
+      timeout: const Duration(seconds: 3),
+    );
+    if (screenRadius != null) {
+      screenTopLeftRadius = screenRadius.topLeft;
+      screenTopRightRadius = screenRadius.topRight;
+      CornerRadiusPlugin.screenRadiusStream.listen((radius) {
+        screenTopLeftRadius = radius.topLeft;
+        screenTopRightRadius = radius.topRight;
+      });
+    }
+    await _guarded(
+      'home widget group',
+      () => HomeWidget.setAppGroupId('group.com.meidlinger.lain'),
+      timeout: const Duration(seconds: 3),
+    );
   } else {
     if (kReleaseMode) {
-      await SingleInstance.start();
+      await _guarded('single instance', SingleInstance.start);
     }
 
     keyboardInit();
 
-    await _setupWindow();
-    await _setupTray();
+    await _guarded('window', _setupWindow, timeout: const Duration(seconds: 5));
+    await _guarded('tray', _setupTray, timeout: const Duration(seconds: 5));
   }
 
   _registerLicenses();
 
-  await initSystemProxy();
+  await _guarded(
+    'system proxy',
+    initSystemProxy,
+    timeout: const Duration(seconds: 5),
+  );
 
-  await initAudioService();
+  await _guarded(
+    'audio service',
+    initAudioService,
+    timeout: const Duration(seconds: 10),
+  );
 
-  await Loader.init();
-  await LiquidGlassWidgets.initialize();
+  await _guarded(
+    'loader init',
+    Loader.init,
+    timeout: const Duration(seconds: 15),
+  );
+  await _guarded(
+    'liquid glass',
+    LiquidGlassWidgets.initialize,
+    timeout: const Duration(seconds: 5),
+  );
   if (isTV) {
     FocusManager.instance.highlightStrategy =
         FocusHighlightStrategy.alwaysTraditional;
@@ -274,6 +311,51 @@ Future<void> main() async {
   );
   logger.output('App start');
   await Loader.load();
+}
+
+/// Logs a startup message before (or without) the log file being ready.
+void _startupLog(String message) {
+  try {
+    logger.output(message);
+  } catch (_) {
+    debugPrint(message);
+  }
+}
+
+/// Logs uncaught errors instead of leaving the app dead with nothing to show.
+void _installErrorHandlers() {
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    _startupLog('[error] ${details.exceptionAsString()}');
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    _startupLog('[error] $error\n$stack');
+    return true;
+  };
+}
+
+/// Runs one startup step with a time limit, logging a failure instead of
+/// letting it escape `main()` before `runApp`. Only the steps whose failure
+/// leaves the app able to run are guarded here; a step that times out keeps
+/// running in the background, so a slow platform channel cannot hold the first
+/// frame back forever.
+Future<T?> _guarded<T>(
+  String label,
+  Future<T> Function() step, {
+  Duration? timeout,
+}) async {
+  final stopwatch = Stopwatch()..start();
+  try {
+    final future = step();
+    final result = timeout == null ? await future : await future.timeout(timeout);
+    _startupLog('[startup] $label ${stopwatch.elapsedMilliseconds}ms');
+    return result;
+  } catch (error) {
+    _startupLog(
+      '[startup] $label failed after ${stopwatch.elapsedMilliseconds}ms: $error',
+    );
+    return null;
+  }
 }
 
 Future<void> _setupWindow() async {

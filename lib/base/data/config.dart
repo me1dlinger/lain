@@ -19,6 +19,11 @@ import 'package:lain/layer/premium_layer.dart';
 
 final config = Config();
 
+/// Whether the app should pick the address that answers fastest instead of the
+/// one remembered last. Persisted with the other settings; read by
+/// [Config.reProbeActiveServer] and the server status page.
+final preferFastestAddressNotifier = ValueNotifier<bool>(true);
+
 class Config {
   late final File file;
 
@@ -96,10 +101,28 @@ class Config {
       return;
     }
 
-    final content = await file.readAsString();
-
-    final Map<String, dynamic> map =
-        jsonDecode(content) as Map<String, dynamic>;
+    // A force-stop during a save can leave the file half written. Reading it
+    // used to throw inside Loader.init - before runApp - and the app then
+    // showed the launch window's white background forever, on every launch. A
+    // file that cannot be parsed is set aside and the app starts from defaults
+    // instead: an empty source list can be reconnected from the settings, a
+    // white screen cannot.
+    Map<String, dynamic>? map;
+    try {
+      final content = await file.readAsString();
+      final decoded = jsonDecode(content);
+      if (decoded is Map<String, dynamic>) {
+        map = decoded;
+      }
+    } catch (error) {
+      logger.output('[config] unreadable config.json, starting fresh: $error');
+    }
+    if (map == null) {
+      try {
+        await file.rename('${file.path}.corrupt');
+      } catch (_) {}
+      return;
+    }
 
     await _loadServers(map);
 
@@ -303,6 +326,22 @@ class Config {
       }
     }
 
+    if (preferFastestAddressNotifier.value) {
+      // The remembered address stopped answering: instead of taking the first
+      // one that works, take the quickest - that is what "speed first" means.
+      final best = await _fastestAddress(server);
+      if (best != null && best != current) {
+        logger.output('[servers] ${server.name} fastest address is $best');
+        server.lastGoodUrl = best;
+        _openClient(server, best);
+        await save();
+        return true;
+      }
+      if (best != null) {
+        return false;
+      }
+    }
+
     for (final address in server.addresses) {
       if (address == current) {
         continue;
@@ -317,6 +356,57 @@ class Config {
     }
 
     return false;
+  }
+
+  /// Moves the app to the active server's fastest reachable address.
+  ///
+  /// Only called when the user turns "speed first" on (and as the failover
+  /// choice while it is on): every address is probed in parallel, so the cost
+  /// is one round trip and not the sum of them.
+  Future<bool> selectFastestAddress() async {
+    final server = activeServer;
+    if (server == null) {
+      return false;
+    }
+    final current = streamClient?.baseUrl ?? webdavClient?.baseUrl;
+    final best = await _fastestAddress(server);
+    if (best == null || best == current) {
+      return false;
+    }
+    logger.output('[servers] ${server.name} fastest address is $best');
+    server.lastGoodUrl = best;
+    _openClient(server, best);
+    await save();
+    return true;
+  }
+
+  /// The address of [server] that answered in the shortest time, or null when
+  /// none answered.
+  Future<String?> _fastestAddress(MusicServer server) async {
+    final addresses = server.addresses;
+    if (addresses.isEmpty) {
+      return null;
+    }
+    final timings = await Future.wait(
+      addresses.map((address) async {
+        final stopwatch = Stopwatch()..start();
+        final reachable = await _probe(server, address);
+        return (
+          address: address,
+          reachable: reachable,
+          milliseconds: stopwatch.elapsedMilliseconds,
+        );
+      }),
+    );
+    final reachable = [
+      for (final timing in timings)
+        if (timing.reachable) timing,
+    ];
+    if (reachable.isEmpty) {
+      return null;
+    }
+    reachable.sort((a, b) => a.milliseconds.compareTo(b.milliseconds));
+    return reachable.first.address;
   }
 
   /// Switches the app to [server]: probes its addresses (LAN first) and only
@@ -444,13 +534,20 @@ class Config {
       entries.add(json);
     }
 
-    await file.writeAsString(
+    // Write beside the file and rename over it: a process that is killed in
+    // the middle of a save leaves the previous file intact instead of a
+    // truncated one the next launch cannot parse.
+    final target = file;
+    final tmp = File('${target.path}.tmp');
+    await tmp.writeAsString(
       jsonEncode({
         'sourceType': sourceType.name,
         'activeServerId': activeServerId,
         'servers': entries,
       }),
+      flush: true,
     );
+    await tmp.rename(target.path);
   }
 
   Future<void> _trySecureDelete(String key) async {
