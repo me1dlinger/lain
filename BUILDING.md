@@ -14,7 +14,6 @@
 | 显示版本 versionName | `1.0.0-beta1` |
 | 发布 ABI | 只发 **arm64-v8a** |
 | Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
-| 对外分发文件名 | `lain-1.0.0-beta1-arm64-v8a.apk` |
 | 最近一次规范构建的 versionCode | **946113**（对应 `--build-number 944113`） |
 | 下一次打包的 build number | **944114**（预期 versionCode **946114**） |
 
@@ -180,7 +179,7 @@ flutter build apk --release --target-platform android-arm --split-per-abi --no-p
 2. `flutter analyze lib`，必须 0 error。
 3. 用 3.2 节的命令，`--build-number` 取第 0 节的“下一次 build number”。
 4. 用 aapt 核对 versionName/versionCode；versionCode 必须大于设备上已安装的版本。
-5. 产物拷出并命名为 `lain-1.0.0-beta1-arm64-v8a.apk`（版本名变了就改文件名）。
+5. 产物就留在 `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`，不要拷到工程根目录；需要分发时再自行拷出。
 6. 把第 0 节的“最近一次 versionCode”和“下一次 build number”各加 1，再提交。
 
 如果设备连接了电脑，可以先查已安装版本：
