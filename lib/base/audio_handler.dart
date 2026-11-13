@@ -12,6 +12,7 @@ import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/home_widget_service.dart';
+import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
 import 'package:lain/base/services/my_window_listener.dart';
 import 'package:lain/base/services/picture_service.dart';
@@ -413,7 +414,14 @@ class MyAudioHandler extends BaseAudioHandler {
       }
 
       if (playModeNotifier.value == 2) {
-        // repeat
+        // Repeat one: the same track from the beginning, the queue untouched.
+        // A load flag left behind by an earlier superseded load must not
+        // swallow the replay (the generation check above already ruled out a
+        // newer switch being in flight).
+        _completionLog(
+          'repeat one, restarting id=${song?.id ?? '-'}',
+        );
+        _loading = false;
         await load();
       } else {
         _completedAdvanceCount++;
@@ -755,17 +763,45 @@ class MyAudioHandler extends BaseAudioHandler {
     int playMode, {
     int? targetIndex,
   }) async {
-    if (targetIndex != null) {
-      currentIndex = targetIndex;
+    if (source.isEmpty) {
+      return;
+    }
+    final tapped = targetIndex != null &&
+            targetIndex >= 0 &&
+            targetIndex < source.length
+        ? source[targetIndex]
+        : null;
+    // A tap on a row keeps the mode the user is in; the page's play-all and
+    // shuffle buttons choose one.
+    final mode = tapped != null ? playModeNotifier.value : playMode;
+
+    // The order this queue was created in. Every later mode change rebuilds
+    // from it, so it must always describe the queue being installed now. The
+    // old code left a snapshot from an earlier queue behind, and asking for
+    // "list loop" later swapped that stale list in - or found no current song
+    // at all when the page had rebuilt its objects (the favourites case).
+    _playQueueTmp = List.from(source);
+
+    if (mode == 1) {
+      // Shuffle: the tapped song (if any) plays first, the rest random.
+      final others = List.of(source)
+        ..removeWhere((song) => song.id == tapped?.id)
+        ..shuffle();
+      playQueue = [?tapped, ...others];
+      currentIndex = 0;
     } else {
-      currentIndex = playMode == 0 ? 0 : math.Random().nextInt(source.length);
-      playModeNotifier.value = playMode;
+      playQueue = List.from(source);
+      currentIndex = tapped == null ? 0 : _indexOfId(playQueue, tapped.id);
+      if (currentIndex < 0) {
+        currentIndex = 0;
+      }
     }
-    playQueue = List.from(source);
-    if (playModeNotifier.value == 1 ||
-        (playModeNotifier.value == 2 && audioHandler._tmpPlayMode == 1)) {
-      shuffle();
+
+    if (mode != 2) {
+      _tmpPlayMode = mode;
     }
+    playModeNotifier.value = mode;
+
     await audioHandler.load();
     audioHandler.play();
 
@@ -777,19 +813,31 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     playQueue = playQueue.reversed.toList();
-    currentIndex = playQueue.indexOf(currentSongNotifier.value!);
+    if (_playQueueTmp.isNotEmpty) {
+      _playQueueTmp = _playQueueTmp.reversed.toList();
+    }
+    currentIndex = _indexOfId(playQueue, currentSongNotifier.value?.id);
+    if (currentIndex < 0) {
+      currentIndex = 0;
+    }
     _prefetchNeighbours();
     saveAllStates();
   }
 
+  /// Puts the current song first and shuffles the rest of the *original* order.
   void shuffle() {
     if (playQueue.isEmpty) {
       return;
     }
-    _playQueueTmp = List.from(playQueue);
-    final others = List.of(playQueue)..removeAt(currentIndex);
-    others.shuffle();
-    playQueue = [playQueue[currentIndex], ...others];
+    final current = currentSongNotifier.value ??
+        playQueue[currentIndex.clamp(0, playQueue.length - 1)];
+    if (_playQueueTmp.isEmpty) {
+      _playQueueTmp = List.from(playQueue);
+    }
+    final others = List.of(_playQueueTmp)
+      ..removeWhere((song) => song.id == current.id)
+      ..shuffle();
+    playQueue = [current, ...others];
     currentIndex = 0;
     _prefetchNeighbours();
   }
@@ -798,45 +846,82 @@ class MyAudioHandler extends BaseAudioHandler {
     if (newPlayMode == playModeNotifier.value) {
       return;
     }
+    final previousMode = playModeNotifier.value;
+    final current = currentSongNotifier.value ??
+        (playQueue.isEmpty
+            ? null
+            : playQueue[currentIndex.clamp(0, playQueue.length - 1)]);
 
     switch (newPlayMode) {
       case 0:
-        if (_playQueueTmp.isNotEmpty) {
-          playQueue = List.from(_playQueueTmp);
-          _playQueueTmp = [];
-          currentIndex = playQueue.indexOf(currentSongNotifier.value!);
+        // List loop: the order the queue was created in, with the song that is
+        // playing now still playing.
+        playQueue = List.from(
+          _playQueueTmp.isNotEmpty ? _playQueueTmp : playQueue,
+        );
+        currentIndex = _indexOfId(playQueue, current?.id);
+        if (currentIndex < 0) {
+          currentIndex = 0;
         }
         break;
       case 1:
-        if (_playQueueTmp.isEmpty) {
-          shuffle();
-        }
+        // Shuffle always rebuilds from the original order. The old code did
+        // nothing when a snapshot existed, which is why the button looked dead
+        // after a previous shuffle.
+        final base =
+            _playQueueTmp.isNotEmpty ? List.of(_playQueueTmp) : List.of(playQueue);
+        final others = base
+            .where((song) => song.id != current?.id)
+            .toList()
+          ..shuffle();
+        playQueue = [?current, ...others];
+        currentIndex = 0;
         break;
       default:
+        // Repeat one keeps the queue exactly as it is, and remembers the mode
+        // to return to when the user leaves it.
+        if (previousMode != 2) {
+          _tmpPlayMode = previousMode;
+        }
         break;
     }
+
     playModeNotifier.value = newPlayMode;
+    _showPlayModeMessage(newPlayMode);
     if (newPlayMode != 2) {
       await _savePlayQueueState();
     }
-
+    _prefetchNeighbours();
     savePlayState();
   }
 
-  void toggleRepeat() {
-    if (playModeNotifier.value != 2) {
-      _tmpPlayMode = playModeNotifier.value;
-      playModeNotifier.value = 2;
-    } else {
-      playModeNotifier.value = _tmpPlayMode;
+  void _showPlayModeMessage(int mode) {
+    final l10n = getAppLocalizations();
+    showCenterMessage(
+      mode == 0
+          ? l10n.loop
+          : mode == 1
+          ? l10n.shuffle
+          : l10n.repeat,
+    );
+  }
+
+  int _indexOfId(List<MyAudioMetadata> list, String? id) {
+    if (id == null) {
+      return -1;
     }
-    savePlayState();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id == id) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   void delete(int index) {
     MyAudioMetadata tmp = playQueue[index];
     if (_playQueueTmp.isNotEmpty) {
-      _playQueueTmp.remove(tmp);
+      _playQueueTmp.removeWhere((song) => song.id == tmp.id);
     }
     playQueue.removeAt(index);
     _prefetchNeighbours();
