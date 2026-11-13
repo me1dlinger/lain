@@ -178,6 +178,18 @@ Future<void> loadPictureSafe(
 }
 
 Future<void> _loadPicture(MyPicture picture) async {
+  // Disk first: another instance of the same id may have downloaded the
+  // image already (a refreshed list builds new picture objects for the same
+  // songs), and re-downloading what is cached is what makes re-entering a
+  // page slow.
+  try {
+    if (await File(picture.path).exists()) {
+      picture.isExist = true;
+      picture.isLoaded = true;
+      return;
+    }
+  } catch (_) {}
+
   Uint8List? bytes;
 
   final resolver = picture.remoteResolver;

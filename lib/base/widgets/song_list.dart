@@ -473,11 +473,6 @@ class _SongListState extends State<SongList> {
         if (songs != null) {
           history.applyFrequently(songs);
         }
-      } else if (isRecently) {
-        final songs = await client.getRecentlyPlayedSongs(200);
-        if (songs != null) {
-          history.applyRecently(songs);
-        }
       } else if (playlist != null) {
         await playlist!.sync();
       }
@@ -680,6 +675,9 @@ class _SongListState extends State<SongList> {
               picture: picture,
               fallbackPicture: artist?.albumCoverPicture,
               elevation: 5,
+              // The page's own cover goes to the front of the load queue; it
+              // must not wait behind the thumbnails of the song rows.
+              priorityLoad: true,
               color: colorManager.getSpecificMainPageCoverArtBaseColorForm(
                 picture,
               ), // keep stable color

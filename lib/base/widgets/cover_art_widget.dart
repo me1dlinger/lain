@@ -20,6 +20,10 @@ class CoverArtWidget extends StatelessWidget {
   final Color? color;
   final bool useResize;
 
+  /// Whether this cover goes to the front of the load queue (page headers,
+  /// the now-playing artwork) instead of lining up behind list thumbnails.
+  final bool priorityLoad;
+
   const CoverArtWidget({
     super.key,
     this.size,
@@ -30,6 +34,7 @@ class CoverArtWidget extends StatelessWidget {
     this.elevation = 0,
     this.color,
     this.useResize = true,
+    this.priorityLoad = false,
   });
 
   @override
@@ -63,6 +68,7 @@ class CoverArtWidget extends StatelessWidget {
       size: size,
       imageWidget: imageWidget,
       fallback: fallbackContent,
+      priorityLoad: priorityLoad,
       // An artist image can take a while (an external URL); show the album
       // cover in the meantime instead of an empty hole.
       loading: fallbackPicture == null ? null : fallbackContent(),
@@ -118,12 +124,16 @@ class _FuturePicture extends StatefulWidget {
   /// empty space to show (an album cover for an artist image).
   final Widget? loading;
 
+  /// Whether the load goes to the front of the scheduler's queue.
+  final bool priorityLoad;
+
   const _FuturePicture({
     required this.picture,
     required this.size,
     required this.imageWidget,
     required this.fallback,
     this.loading,
+    this.priorityLoad = false,
   });
   @override
   State<StatefulWidget> createState() => _FuturePictureState();
@@ -131,6 +141,7 @@ class _FuturePicture extends StatefulWidget {
 
 class _FuturePictureState extends State<_FuturePicture> {
   late final int widgetId;
+  bool _recheckDone = false;
   @override
   void initState() {
     super.initState();
@@ -146,7 +157,11 @@ class _FuturePictureState extends State<_FuturePicture> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: loadPictureSafe(widget.picture, widgetId: widgetId),
+      future: loadPictureSafe(
+        widget.picture,
+        widgetId: widgetId,
+        priority: widget.priorityLoad,
+      ),
       builder: (context, asyncSnapshot) {
         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
           return widget.loading ??
@@ -154,12 +169,30 @@ class _FuturePictureState extends State<_FuturePicture> {
         }
 
         // A load that produced no file is the same as a missing image: the
-        // album cover replaces it instead of a music note.
+        // album cover replaces it instead of a music note. The file may have
+        // landed on disk after this instance was built (a refreshed list
+        // builds new picture objects for the same ids), so the disk is asked
+        // once more before giving up - that is what kept a re-entered page's
+        // cover blank until an app restart.
         if (asyncSnapshot.hasError || !widget.picture.isExist) {
+          _recheckDisk();
           return widget.fallback();
         }
         return widget.imageWidget(widget.picture.path);
       },
     );
+  }
+
+  /// One-shot disk re-check; if the image appeared, [setState] shows it.
+  void _recheckDisk() {
+    if (_recheckDone || widget.picture.id.isEmpty) {
+      return;
+    }
+    _recheckDone = true;
+    File(widget.picture.path).exists().then((exists) {
+      if (exists && mounted) {
+        setState(() => widget.picture.isExist = true);
+      }
+    });
   }
 }

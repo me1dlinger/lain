@@ -609,18 +609,20 @@ class HomeLayerState extends State<HomeLayer> {
           (l10n.folders, _groupNumber(stats?.folderCount)),
           (
             l10n.totalSize,
-            stats == null ? '—' : formatLibrarySize(stats.totalSize),
+            stats?.totalSize == null
+                ? '—'
+                : formatLibrarySize(stats!.totalSize!),
           ),
           (
             l10n.totalDuration,
-            stats == null
+            stats?.totalDuration == null
                 ? '—'
                 : l10n.libraryDurationHours(
                     formatLibraryDuration(
-                      stats.totalDuration,
-                      inDays: stats.totalDuration >= 100 * 3600,
+                      stats!.totalDuration!,
+                      inDays: stats.totalDuration! >= 100 * 3600,
                     ),
-                    stats.totalDuration >= 100 * 3600
+                    stats.totalDuration! >= 100 * 3600
                         ? l10n.daysUnit
                         : l10n.hoursUnit,
                   ),

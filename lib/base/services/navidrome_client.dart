@@ -20,12 +20,25 @@ class NavidromeClient extends StreamClient {
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 15),
         sendTimeout: const Duration(seconds: 15),
       ),
     );
   }
+
+  /// Client for Navidrome's own (non-Subsonic) API. It carries real timeouts:
+  /// a bare `Dio()` has none, so a dead address made every native call hang
+  /// until the OS gave up - the seconds-long "connecting" the status page and
+  /// the artist images showed.
+  Dio? _nativeDioInstance;
+  Dio get _nativeDio => _nativeDioInstance ??= Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 15),
+        ),
+      );
 
   @protected
   String randomSalt() {
@@ -131,6 +144,11 @@ class NavidromeClient extends StreamClient {
   /// same time share one pass over the server instead of racing.
   Future<NavidromeLibraryStats?>? _libraryStatsFuture;
 
+  /// Library-wide size and duration, summed once per client; see
+  /// [_fetchLibraryStats].
+  int? _cachedTotalSize;
+  int? _cachedTotalDuration;
+
   /// The library and server snapshot used by the home stats card and the
   /// server status page.
   ///
@@ -160,7 +178,7 @@ class NavidromeClient extends StreamClient {
   /// `_end=0` asks for no rows at all.
   Future<int?> _nativeCount(String path, Map<String, String> headers) async {
     try {
-      final response = await Dio().get(
+      final response = await _nativeDio.get(
         '$_nativeRoot$path',
         queryParameters: {'_start': 0, '_end': 0},
         options: Options(headers: headers),
@@ -214,45 +232,60 @@ class NavidromeClient extends StreamClient {
     // only available through Navidrome's own API, which needs its own login.
     int? artistCount;
     int? albumCount;
-    int totalSize = 0;
-    int totalDuration = 0;
+    // The totals are summed song by song - a pass over the whole library that
+    // takes ages on a big one. They barely ever change, so they are computed
+    // once per client and every later refresh (also the status page's) reuses
+    // them and stays fast.
+    int? totalSize;
+    int? totalDuration;
     final token = await _nativeTokenIfAvailable();
     if (token != null) {
       final headers = {'x-nd-authorization': 'Bearer $token'};
       artistCount = await _nativeCount('/api/artist', headers);
       albumCount = await _nativeCount('/api/album', headers);
 
-      // One pass over the songs in pages: the total size and duration have
-      // no dedicated endpoint, so they are summed song by song.
-      const pageSize = 500;
-      try {
-        for (var start = 0; ; start += pageSize) {
-          final response = await Dio().get(
-            '$_nativeRoot/api/song',
-            queryParameters: {
-              '_start': start,
-              '_end': start + pageSize,
-              '_sort': 'id',
-            },
-            options: Options(headers: headers),
-          );
-          final page = response.data;
-          if (page is! List || page.isEmpty) {
-            break;
-          }
-          for (final raw in page) {
-            if (raw is! Map) {
-              continue;
+      if (_cachedTotalSize != null && _cachedTotalDuration != null) {
+        totalSize = _cachedTotalSize;
+        totalDuration = _cachedTotalDuration;
+      } else {
+        // One pass over the songs in pages: the total size and duration have
+        // no dedicated endpoint, so they are summed song by song.
+        int sizeSum = 0;
+        int durationSum = 0;
+        const pageSize = 500;
+        try {
+          for (var start = 0; ; start += pageSize) {
+            final response = await _nativeDio.get(
+              '$_nativeRoot/api/song',
+              queryParameters: {
+                '_start': start,
+                '_end': start + pageSize,
+                '_sort': 'id',
+              },
+              options: Options(headers: headers),
+            );
+            final page = response.data;
+            if (page is! List || page.isEmpty) {
+              break;
             }
-            totalSize += _asInt(raw['size']) ?? 0;
-            totalDuration += _asInt(raw['duration']) ?? 0;
+            for (final raw in page) {
+              if (raw is! Map) {
+                continue;
+              }
+              sizeSum += _asInt(raw['size']) ?? 0;
+              durationSum += _asInt(raw['duration']) ?? 0;
+            }
+            if (page.length < pageSize) {
+              break;
+            }
           }
-          if (page.length < pageSize) {
-            break;
-          }
+        } catch (e) {
+          logger.output('[Navidrome] library totals: $e');
         }
-      } catch (e) {
-        logger.output('[Navidrome] library totals: $e');
+        if (sizeSum > 0 || durationSum > 0) {
+          _cachedTotalSize = totalSize = sizeSum;
+          _cachedTotalDuration = totalDuration = durationSum;
+        }
       }
     }
 
@@ -479,16 +512,6 @@ class NavidromeClient extends StreamClient {
       sort: 'playCount',
       count: count,
       keep: (song) => song.playCount > 0,
-    );
-  }
-
-  @override
-  Future<List<MyAudioMetadata>?> getRecentlyPlayedSongs(int count) {
-    return _nativeSongs(
-      sort: 'playedAt',
-      count: count,
-      keep: (song) =>
-          song.lastPlayed != null && song.lastPlayed!.year > 2000,
     );
   }
 
@@ -1055,10 +1078,10 @@ class NavidromeLibraryStats {
   final int? folderCount;
 
   /// Sum of every song's file size, in bytes.
-  final int totalSize;
+  final int? totalSize;
 
   /// Sum of every song's duration, in seconds.
-  final int totalDuration;
+  final int? totalDuration;
 
   /// Whether a scan was running when the snapshot was taken.
   final bool? scanning;

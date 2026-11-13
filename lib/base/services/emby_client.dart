@@ -285,11 +285,6 @@ class EmbyClient extends StreamClient {
   }
 
   @override
-  Future<List<MyAudioMetadata>?> getRecentlyPlayedSongs(int count) {
-    return getRecentlySongs();
-  }
-
-  @override
   Future<List<MyAudioMetadata>?> getStarredSongs() async {
     final response = await safeRequest<Map<String, dynamic>>(
       () => dio.get(

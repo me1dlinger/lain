@@ -239,8 +239,4 @@ abstract class StreamClient {
 
   /// The most played songs, most played first, or null when unsupported.
   Future<List<MyAudioMetadata>?> getMostPlayedSongs(int count) async => null;
-
-  /// The recently played songs, latest first, or null when unsupported.
-  Future<List<MyAudioMetadata>?> getRecentlyPlayedSongs(int count) async =>
-      null;
 }

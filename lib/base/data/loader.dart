@@ -125,8 +125,7 @@ class Loader {
 
   /// Fetches the lists the home page shows straight from the server and
   /// updates what is on screen: the newest songs (merged into the library),
-  /// the most played, the recently played, and the playlists' contents. Every
-  /// step is best-effort: a source that cannot answer one of them keeps the
+  /// the most played, and the playlists' contents. Every step is best-effort: a source that cannot answer one of them keeps the
   /// list it already shows.
   static Future<void> refreshServerLists() async {
     final client = streamClient;
@@ -146,11 +145,6 @@ class Loader {
     final mostPlayed = await client.getMostPlayedSongs(100);
     if (mostPlayed != null) {
       history.applyFrequently(mostPlayed);
-    }
-
-    final recentlyPlayed = await client.getRecentlyPlayedSongs(100);
-    if (recentlyPlayed != null) {
-      history.applyRecently(recentlyPlayed);
     }
 
     // Playlists: the list of them and each one's songs, fresh from the

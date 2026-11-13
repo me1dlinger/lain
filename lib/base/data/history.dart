@@ -81,15 +81,6 @@ class History {
     frequentlyChangeNotifier.value++;
   }
 
-  /// Replaces the recently-played list with [songs]; see [applyFrequently].
-  void applyRecently(List<MyAudioMetadata> songs) {
-    recentlySongList
-      ..clear()
-      ..addAll(songs);
-    _trim(recentlySongList);
-    recentlyChangeNotifier.value++;
-  }
-
   void _addSongTimes(MyAudioMetadata song, int times) {
     int index = frequentlySongList.indexOf(song);
 

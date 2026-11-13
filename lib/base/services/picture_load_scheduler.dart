@@ -20,6 +20,15 @@ class PictureLoadScheduler {
     int? widgetId, {
     bool priority = false,
   }) {
+    final existing = _pictureCompleterMap[id];
+    if (existing != null && existing.isCompleted) {
+      // The previous load for this id finished without leaving a file (it
+      // failed, or its bytes went to an older picture object). Keeping the
+      // completed completer would make every later widget for this id show
+      // the "no image" fallback forever, so drop it and allow a fresh load.
+      _pictureCompleterMap.remove(id);
+      _scheduled.remove(id);
+    }
     final completer = _pictureCompleterMap.putIfAbsent(
       id,
       () => Completer<void>(),

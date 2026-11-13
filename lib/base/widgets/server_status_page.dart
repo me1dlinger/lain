@@ -110,13 +110,7 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
                       ),
                       IconButton(
                         tooltip: l10n.refresh,
-                        icon: _loading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Icon(Icons.refresh_rounded, color: textColor),
+                        icon: Icon(Icons.refresh_rounded, color: textColor),
                         onPressed: _loading ? null : _fetch,
                       ),
                     ],
@@ -197,13 +191,23 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
             _row(l10n.artists, _groupNumber(stats.artistCount)),
             _row(l10n.albums, _groupNumber(stats.albumCount)),
             _row(l10n.folders, _groupNumber(stats.folderCount)),
-            _row(l10n.totalSize, formatLibrarySize(stats.totalSize)),
+            _row(
+              l10n.totalSize,
+              stats.totalSize == null
+                  ? '—'
+                  : formatLibrarySize(stats.totalSize!),
+            ),
             _row(
               l10n.totalDuration,
-              l10n.libraryDurationHours(
-                formatLibraryDuration(stats.totalDuration, inDays: _inDays),
-                _inDays ? l10n.daysUnit : l10n.hoursUnit,
-              ),
+              stats.totalDuration == null
+                  ? '—'
+                  : l10n.libraryDurationHours(
+                      formatLibraryDuration(
+                        stats.totalDuration!,
+                        inDays: _inDays,
+                      ),
+                      _inDays ? l10n.daysUnit : l10n.hoursUnit,
+                    ),
             ),
             _row(
               l10n.scanStatus,
@@ -236,9 +240,8 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
   String _groupNumber(int? value) => value?.toString() ?? '—';
 
   /// Whole days once the library passes 100 hours, like the home card.
-  bool get _inDays => _stats?.totalDuration == null
-      ? false
-      : _stats!.totalDuration >= 100 * 3600;
+  bool get _inDays =>
+      _stats?.totalDuration != null && _stats!.totalDuration! >= 100 * 3600;
 
   /// Local time of the server's last scan; an unknown one shows a dash.
   String _formatDateTime(DateTime? time) {
