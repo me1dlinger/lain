@@ -18,6 +18,17 @@ import 'package:lain/base/utils/path.dart';
 
 List<MyPicture> globalPictureList = [];
 
+/// One picture object per id for the whole process.
+///
+/// A cover is shown in several places (the home card, the page header, the
+/// media session), and each place used to build its own [MyPicture] for the
+/// same id. The objects then disagreed: one had `isLoaded`/`isExist` set from
+/// the load it ran, while the others kept their placeholder state and asked the
+/// scheduler for the same image again - which is how a header ended up blank
+/// after the home card had already shown the cover. Sharing the object means a
+/// cover loaded once is a cover known everywhere.
+final Map<String, MyPicture> _pictureRegistry = {};
+
 /// Below this many bytes a server "artist image" is the placeholder star, not
 /// a real picture.
 const _artistPlaceholderMinBytes = 2048;
@@ -83,7 +94,14 @@ class MyPicture {
     bool allowServerCover = false,
   }) {
     final key = name.trim().toLowerCase();
-    final picture = MyPicture('artist:$key', explicitPath: artistPath(name));
+    final cached = _pictureRegistry['artist:$key'];
+    if (cached != null) {
+      return cached;
+    }
+    final picture = MyPicture(
+      'artist:$key',
+      explicitPath: artistPath(name),
+    );
     picture.remoteResolver = () async {
       if (!isStreamSource) {
         return null;
@@ -102,13 +120,19 @@ class MyPicture {
       }
       return null;
     };
+    _pictureRegistry[picture.id] = picture;
     globalPictureList.add(picture);
     return picture;
   }
 
   factory MyPicture.form(String id) {
+    final cached = _pictureRegistry[id];
+    if (cached != null) {
+      return cached;
+    }
     final md5Hash = md5.convert(utf8.encode(id)).toString();
     final picture = MyPicture(id, md5Hash: md5Hash);
+    _pictureRegistry[id] = picture;
     globalPictureList.add(picture);
     return picture;
   }
@@ -166,22 +190,29 @@ Future<void> loadPictureSafe(
   int? widgetId,
   bool priority = false,
 }) async {
-  if (picture.isLoaded) {
+  if (picture.id.isEmpty) {
+    return;
+  }
+  // Only a load that ended with an image sets isLoaded (see [_loadPicture]), so
+  // this short-circuit never hides a cover whose fetch failed.
+  if (picture.isLoaded && picture.isExist) {
     return;
   }
   return pictureLoadScheduler.load(
     picture.id,
-    () => _loadPicture(picture),
+    () async {
+      await _loadPicture(picture);
+      return picture.isLoaded && picture.isExist;
+    },
     widgetId,
     priority: priority,
   );
 }
 
 Future<void> _loadPicture(MyPicture picture) async {
-  // Disk first: another instance of the same id may have downloaded the
-  // image already (a refreshed list builds new picture objects for the same
-  // songs), and re-downloading what is cached is what makes re-entering a
-  // page slow.
+  // Disk first: the image may already be there - from another instance of the
+  // same id, or from a previous run - and re-downloading what is cached is what
+  // makes re-entering a page slow.
   try {
     if (await File(picture.path).exists()) {
       picture.isExist = true;
@@ -242,7 +273,11 @@ Future<void> _loadPicture(MyPicture picture) async {
       logger.output(e.toString());
     }
   }
-  picture.isLoaded = true;
+  // A load that produced nothing stays retryable: `isLoaded` means "an image
+  // is available", and setting it on a failed fetch is what made a cover blank
+  // forever - the media session's artwork path already had to work around it by
+  // asking the file directly.
+  picture.isLoaded = picture.isExist;
 }
 
 Future<Color> computeColor(MyPicture? picture) async {

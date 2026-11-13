@@ -40,7 +40,11 @@ class CoverArtWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      key: ValueKey(picture?.changeNotifier.value),
+      // The cover's identity is part of the key: when the slot shows a
+      // different picture (a sort change picks another first song, a resync
+      // replaces the list) the state below must start over instead of reusing
+      // the previous picture's one-shot flags.
+      key: ValueKey('${picture?.id ?? picturePath}#${picture?.changeNotifier.value}'),
       elevation: elevation,
       color: color ?? Colors.transparent,
       shape: SmoothRectangleBorder(
@@ -142,10 +146,39 @@ class _FuturePicture extends StatefulWidget {
 class _FuturePictureState extends State<_FuturePicture> {
   late final int widgetId;
   bool _recheckDone = false;
+
+  /// The load this state is showing, and the picture it belongs to. Created
+  /// once per picture instead of on every rebuild: the old code asked the
+  /// scheduler again for every parent rebuild (a lyric tick, a background
+  /// colour change), which piled up tasks for one id.
+  late Future<void> _future;
+  late String _futureKey;
+
   @override
   void initState() {
     super.initState();
     widgetId = _widgetId++;
+    _startLoad();
+  }
+
+  @override
+  void didUpdateWidget(_FuturePicture oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_keyOf(widget.picture) != _futureKey) {
+      _startLoad();
+      _recheckDone = false;
+    }
+  }
+
+  String _keyOf(MyPicture picture) => '${picture.id}|${picture.path}';
+
+  void _startLoad() {
+    _futureKey = _keyOf(widget.picture);
+    _future = loadPictureSafe(
+      widget.picture,
+      widgetId: widgetId,
+      priority: widget.priorityLoad,
+    );
   }
 
   @override
@@ -157,11 +190,7 @@ class _FuturePictureState extends State<_FuturePicture> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: loadPictureSafe(
-        widget.picture,
-        widgetId: widgetId,
-        priority: widget.priorityLoad,
-      ),
+      future: _future,
       builder: (context, asyncSnapshot) {
         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
           return widget.loading ??
@@ -170,10 +199,9 @@ class _FuturePictureState extends State<_FuturePicture> {
 
         // A load that produced no file is the same as a missing image: the
         // album cover replaces it instead of a music note. The file may have
-        // landed on disk after this instance was built (a refreshed list
-        // builds new picture objects for the same ids), so the disk is asked
-        // once more before giving up - that is what kept a re-entered page's
-        // cover blank until an app restart.
+        // landed on disk after this instance was built (another view loaded the
+        // same cover), so the disk is asked once more before giving up - that
+        // is what kept a re-entered page's cover blank until an app restart.
         if (asyncSnapshot.hasError || !widget.picture.isExist) {
           _recheckDisk();
           return widget.fallback();
@@ -184,15 +212,45 @@ class _FuturePictureState extends State<_FuturePicture> {
   }
 
   /// One-shot disk re-check; if the image appeared, [setState] shows it.
+  ///
+  /// When it did not, one bounded retry is scheduled: a cover fetch that failed
+  /// on a flaky link stays blank otherwise, and this screen never asks again
+  /// until it is re-entered.
   void _recheckDisk() {
     if (_recheckDone || widget.picture.id.isEmpty) {
       return;
     }
     _recheckDone = true;
     File(widget.picture.path).exists().then((exists) {
-      if (exists && mounted) {
-        setState(() => widget.picture.isExist = true);
+      if (!mounted) {
+        return;
       }
+      if (exists) {
+        setState(() {
+          widget.picture.isExist = true;
+          widget.picture.isLoaded = true;
+        });
+        return;
+      }
+      _scheduleRetry();
+    });
+  }
+
+  int _retries = 0;
+
+  void _scheduleRetry() {
+    if (_retries >= 2) {
+      return;
+    }
+    _retries++;
+    Future<void>.delayed(const Duration(milliseconds: 2500), () {
+      if (!mounted || widget.picture.isExist) {
+        return;
+      }
+      setState(() {
+        _recheckDone = false;
+        _startLoad();
+      });
     });
   }
 }
