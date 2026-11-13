@@ -15,14 +15,14 @@
 | 发布 ABI | 只发 **arm64-v8a** |
 | Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
 | 对外分发文件名 | `lain-1.0.0-beta1-arm64-v8a.apk` |
-| 最近一次规范构建的 versionCode | **946104**（对应 `--build-number 944104`） |
-| 下一次打包的 build number | **944105**（预期 versionCode **946105**） |
+| 最近一次规范构建的 versionCode | **946105**（对应 `--build-number 944105`） |
+| 下一次打包的 build number | **944106**（预期 versionCode **946106**） |
 
 **当前状态（2026-11-13）**
 
-- 规范产物是 arm64 split APK；最近一次是 versionCode 946104。
+- 规范产物是 arm64 split APK；最近一次是 versionCode 946105（已核对 `aapt dump badging`）。
 - `build/app/outputs/flutter-apk/app-release.apk` 是误打的全量包（约 213MB、versionCode 1），**不要分发，也不要把它当作版本基线**；可以直接删除。
-- 下一次打包用 `--build-number 944105`，得到 versionCode 946105；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
+- 下一次打包用 `--build-number 944106`，得到 versionCode 946106；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
 
 **版本号规则**
 
