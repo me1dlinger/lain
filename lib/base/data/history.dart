@@ -20,6 +20,10 @@ class History {
   final recentlyChangeNotifier = ValueNotifier(0);
 
   Future<void> load() async {
+    // Rebuilt from the library every time; loading twice must not duplicate.
+    frequentlySongList.clear();
+    recentlySongList.clear();
+
     if (sourceType == .emby) {
       frequentlySongList.addAll(
         await (streamClient as EmbyClient?)?.getFrequentlySongs() ?? [],

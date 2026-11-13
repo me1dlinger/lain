@@ -221,6 +221,14 @@ class PlaylistManager {
     updateNotifier.value++;
   }
 
+  /// Lets every playlist resolve the ids it could not resolve when it was
+  /// read - after a library scan that filled the song map.
+  void resolveAfterLibraryLoad() {
+    for (final playlist in playlists) {
+      playlist.resolveAfterLibraryLoad();
+    }
+  }
+
   void reset() {
     playlists.clear();
     playlistMap.clear();
@@ -237,6 +245,13 @@ class Playlist {
   late File songListFile;
 
   List<MyAudioMetadata> songList = [];
+
+  /// The ids as they are stored in this playlist's file. They are kept even
+  /// when the library cannot resolve one (a scan that has not finished, a
+  /// database migration that emptied the library): the file is the user's
+  /// data, and dropping an id because the library was momentarily empty is
+  /// what deleted playlists and favourites on an upgrade.
+  final List<String> _storedIds = [];
 
   late bool isFavorite;
   late bool isNotFavorite;
@@ -316,50 +331,83 @@ class Playlist {
     changeNotifier.value++;
 
     final decoded = await readJsonListFile(songListFile);
-    for (String id in decoded) {
-      MyAudioMetadata? song = library.id2Song[id];
-      if (song == null) {
-        continue;
-      }
-      songList.add(song);
-      if (isFavorite) {
-        song.isFavoriteNotifier.value = true;
-      }
-    }
-    await songListFile.writeAsString(
-      jsonEncode(songList.map((e) => e.id).toList()),
-    );
+    _storedIds
+      ..clear()
+      ..addAll(decoded.whereType<String>());
+    _resolveStoredIds();
 
+    // Nothing is written back here. The old code wrote the *resolved* list,
+    // so a library that was empty at that moment (a database migration, an
+    // unfinished scan) turned the playlist into an empty file - a data loss
+    // that a restart could not undo.
     canModify = true;
     changeNotifier.value++;
     layersManager.updateBackground();
   }
 
+  /// Rebuilds [songList] from [_storedIds] in the stored order, keeping only
+  /// what the library can resolve right now.
+  void _resolveStoredIds() {
+    final songs = <MyAudioMetadata>[];
+    final seen = <String>{};
+    for (final id in _storedIds) {
+      final song = library.id2Song[id];
+      if (song == null || !seen.add(id)) {
+        continue;
+      }
+      songs.add(song);
+      if (isFavorite) {
+        song.isFavoriteNotifier.value = true;
+      }
+    }
+    songList
+      ..clear()
+      ..addAll(songs);
+  }
+
+  /// Called after the library has been (re)built: ids that could not be
+  /// resolved when the playlist was read get their songs now.
+  void resolveAfterLibraryLoad() {
+    if (_storedIds.isEmpty) {
+      return;
+    }
+    final before = songList.length;
+    _resolveStoredIds();
+    if (songList.length != before) {
+      changeNotifier.value++;
+    }
+  }
+
   Future<void> sync() async {
     songList.clear();
     if (isNotStreamSource) {
+      // Reload from disk. An id the library cannot resolve stays in the file
+      // untouched, so a later library load brings the song back.
       await load();
-    } else {
-      canModify = false;
-      changeNotifier.value++;
-      List<MyAudioMetadata>? tmpSongs;
-      if (isFavorite) {
-        tmpSongs = (await streamClient?.getStarredSongs());
-      } else {
-        tmpSongs = (await streamClient?.getPlaylistSongs(id!));
-      }
-      for (final song in tmpSongs ?? []) {
-        songList.add(song);
-        if (isFavorite) {
-          song.isFavoriteNotifier.value = true;
-        }
-      }
-      canModify = true;
-      changeNotifier.value++;
-      layersManager.updateBackground();
+      return;
     }
-    final songIds = songList.map((e) => e.id).toList();
-    await songListFile.writeAsString(jsonEncode(songIds));
+
+    canModify = false;
+    changeNotifier.value++;
+    List<MyAudioMetadata>? tmpSongs;
+    if (isFavorite) {
+      tmpSongs = (await streamClient?.getStarredSongs());
+    } else {
+      tmpSongs = (await streamClient?.getPlaylistSongs(id!));
+    }
+    for (final song in tmpSongs ?? []) {
+      songList.add(song);
+      if (isFavorite) {
+        song.isFavoriteNotifier.value = true;
+      }
+    }
+    _storedIds
+      ..clear()
+      ..addAll(songList.map((e) => e.id));
+    canModify = true;
+    changeNotifier.value++;
+    layersManager.updateBackground();
+    await songListFile.writeAsString(jsonEncode(_storedIds));
   }
 
   Future<void> add(List<MyAudioMetadata> songList) async {
@@ -373,6 +421,9 @@ class Playlist {
         continue;
       }
       targetSongList.insert(0, song);
+      if (!_storedIds.contains(song.id)) {
+        _storedIds.insert(0, song.id);
+      }
 
       if (isFavorite) {
         song.isFavoriteNotifier.value = true;
@@ -389,6 +440,7 @@ class Playlist {
     for (MyAudioMetadata song in songList) {
       final targetSongList = this.songList;
       targetSongList.remove(song);
+      _storedIds.remove(song.id);
 
       if (isFavorite) {
         song.isFavoriteNotifier.value = false;
@@ -412,7 +464,9 @@ class Playlist {
 
     layersManager.updateBackground();
 
-    final songIds = songList.map((e) => e.id).toList();
+    // The stored ids are authoritative: a song whose id is not resolvable
+    // right now must not be dropped by an unrelated edit.
+    final songIds = List<String>.of(_storedIds);
     await songListFile.writeAsString(jsonEncode(songIds));
     if (isStreamSource) {
       late bool success;

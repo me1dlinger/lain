@@ -262,9 +262,12 @@ class Loader {
 
       history.clear();
 
-      playlistManager.reset();
-
       await library.sync();
+
+      // A playlist is not thrown away because the library was empty while the
+      // scan ran: its file still lists every id, and the songs that resolve
+      // now are put back on screen.
+      playlistManager.resolveAfterLibraryLoad();
 
       audioHandler.sync();
 
@@ -313,9 +316,13 @@ class Loader {
 
     layersManager.switchRootLayer('songs');
 
-    playlistManager.reset();
-
     await library.sync();
+
+    // Read the playlist list from disk (not reset: a scan after an upgrade
+    // must not delete the user's playlists) and resolve what the fresh scan
+    // made available.
+    await playlistManager.load();
+    playlistManager.resolveAfterLibraryLoad();
 
     audioHandler.loadStates();
 

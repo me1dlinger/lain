@@ -877,6 +877,20 @@ class Library {
           pathAndModified.addAll(folder.pathAndModified);
           pathAndCreated.addAll(folder.pathAndCreated);
         }
+        // A scan that found no files must not wipe a library that is there.
+        // An unavailable SD card, a storage permission that has not been
+        // granted yet or a folder list that did not load all look exactly like
+        // "the user deleted every song"; keeping the library and trying again
+        // on the next sync is the safe reading.
+        if (pathAndModified.isEmpty &&
+            songList.isNotEmpty &&
+            folderList.isNotEmpty) {
+          logger.output(
+            '[library] scan found no files, keeping the current library',
+          );
+          canModify = true;
+          return;
+        }
 
         // Reading tags is per file and both I/O and CPU bound; a fixed six
         // workers left most cores idle during a first local scan.
