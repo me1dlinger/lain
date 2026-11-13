@@ -71,8 +71,9 @@ class _CommentPageViewState extends State<CommentPageView>
   /// index, so going back and forth never asks twice.
   final Map<int, CommentPageResult> _pages = {};
 
-  /// How the list is ordered.
-  CommentSort _sort = CommentSort.recommended;
+  /// How the list is ordered. Hot: its pages are a plain count, so paging
+  /// back and forth through them works well.
+  CommentSort _sort = CommentSort.hot;
 
   /// The current page, 1 based, as the server numbers them.
   int _page = 1;
@@ -435,15 +436,15 @@ class _CommentPageViewState extends State<CommentPageView>
     );
   }
 
-  /// The orders the page offers, as pills with the selected one filled. The
-  /// server also has a "hot" order, but it answers it exactly like
-  /// "recommended", so the two are one pill here.
+  /// The orders the page offers, as pills with the selected one filled. Hot
+  /// is the default: its pages count plainly, so they page well; the
+  /// "recommended" order drifts as pages are read, which breaks paging.
   Widget _sortChips(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (final (sort, label) in [
-          (CommentSort.recommended, l10n.commentSortRecommended),
+          (CommentSort.hot, l10n.commentSortHot),
           (CommentSort.time, l10n.commentSortTime),
         ])
           Padding(

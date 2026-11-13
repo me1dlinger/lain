@@ -1326,6 +1326,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commentSortRecommended => 'Recommended';
 
   @override
+  String get commentSortHot => 'Hot';
+
+  @override
   String get commentSortTime => 'Latest';
 
   @override

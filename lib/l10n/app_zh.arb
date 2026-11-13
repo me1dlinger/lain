@@ -442,6 +442,7 @@
   "commentOnWithServer": "已开启 · {server}",
   "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}},
   "commentSortRecommended": "推荐",
+  "commentSortHot": "最热",
   "commentSortTime": "最新",
   "commentMatchedSong": "来自「{name}」的评论",
   "@commentMatchedSong": {"description": "The song the comment server matched, shown under the local song header.", "placeholders": {"name": {"type": "String"}}},

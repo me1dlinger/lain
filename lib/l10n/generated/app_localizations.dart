@@ -2624,6 +2624,12 @@ abstract class AppLocalizations {
   /// **'Recommended'**
   String get commentSortRecommended;
 
+  /// No description provided for @commentSortHot.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot'**
+  String get commentSortHot;
+
   /// No description provided for @commentSortTime.
   ///
   /// In en, this message translates to:
