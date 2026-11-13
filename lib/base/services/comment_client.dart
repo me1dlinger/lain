@@ -90,9 +90,10 @@ class CommentClient {
   /// in-memory [CommentServer.lastGoodUrl] is set either way.
   static void Function(CommentServer server, String baseUrl)? rememberAddress;
 
-  /// Timeout for one address. Short enough that falling back to the other
-  /// address is not a waiting game.
-  static const _timeout = Duration(seconds: 8);
+  /// Timeout for one address. The working server answers in well under a
+  /// second, so this is really the patience for a dead address before falling
+  /// back to the next candidate; eight seconds made a fallback feel frozen.
+  static const _timeout = Duration(seconds: 4);
 
   /// A probe only has to prove the address is alive, and an unreachable one
   /// usually fails fast, so it does not wait as long as a real request.

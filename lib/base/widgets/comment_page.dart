@@ -12,8 +12,14 @@ import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
 
-/// How many comments one page holds.
+/// How many comments one page holds. Paging is local: the whole answer is
+/// fetched once and sliced, so turning a page is instant and costs nothing.
 const _commentPageSize = 15;
+
+/// A page size big enough to be "everything the server has": the server sends
+/// the full list in one answer and never sees a page size, so this only
+/// disables the client-side slicing for the single fetch.
+const _fetchEverythingSize = 1 << 30;
 
 /// The comments of one song, and the server that answers them.
 ///
@@ -48,8 +54,9 @@ class _CommentPageViewState extends State<CommentPageView>
     duration: const Duration(milliseconds: 260),
   );
 
-  /// Pages already loaded, by their index.
-  final Map<int, CommentPage> _pages = {};
+  /// Every comment of the song, fetched once and sorted by likes; pages are
+  /// slices of this list, so paging never touches the network.
+  List<SongComment>? _all;
 
   int _page = 0;
   bool _loading = false;
@@ -75,34 +82,38 @@ class _CommentPageViewState extends State<CommentPageView>
     songName: getTitle(widget.currentSong),
     artistName: getArtist(widget.currentSong),
     songId: widget.currentSong.id.isEmpty ? null : widget.currentSong.id,
-    page: _page,
-    pageSize: _commentPageSize,
+    pageSize: _fetchEverythingSize,
   );
 
-  CommentPage get _currentPage => _pages[_page] ?? CommentPage.empty;
+  /// The comments of the current page: a local slice of the one full answer.
+  List<SongComment> get _pageItems {
+    final all = _all;
+    if (all == null) {
+      return const [];
+    }
+    final start = _page * _commentPageSize;
+    if (start >= all.length) {
+      return const [];
+    }
+    final end = start + _commentPageSize;
+    return all.sublist(start, end > all.length ? all.length : end);
+  }
 
-  /// Whether a previous page exists. Any page already loaded can be shown
-  /// again without asking the server, so this is simply "not the first page".
+  /// Whether a previous page exists. Every page is in memory, so this is
+  /// simply "not the first page".
   bool get _hasPrevious => _page > 0;
 
-  /// Whether a next page exists. The source has no paging of its own: it
-  /// answers a whole song's comments at once, and whether that answer reached
-  /// a later page is what the page itself reports as [hasMore].
-  bool get _hasNext =>
-      _page + 1 < _highestPage || _pages[_page]?.hasMore == true;
-
-  /// The furthest page loaded so far.
-  int get _highestPage =>
-      _pages.isEmpty ? 0 : _pages.keys.reduce((a, b) => a > b ? a : b);
+  /// Whether a next page exists, counting the pages the one full answer can
+  /// fill after the current one.
+  bool get _hasNext => (_page + 1) * _commentPageSize < (_all?.length ?? 0);
 
   Future<void> _load(int page, {bool force = false}) async {
     final server = _server;
     if (server == null || page < 0) {
       return;
     }
-    // A page already fetched is shown from memory; only a retry or a page that
-    // is not here yet reaches the network.
-    if (!force && _pages.containsKey(page)) {
+    // The answer is already in memory; only a retry goes back to the server.
+    if (!force && _all != null) {
       setState(() {
         _page = page;
         _errorReason = null;
@@ -117,13 +128,15 @@ class _CommentPageViewState extends State<CommentPageView>
     });
 
     try {
-      final result = await CommentClient(server).fetch(_query.atPage(page));
+      final result = await CommentClient(server).fetch(_query);
       if (!mounted) {
         return;
       }
       setState(() {
         _loading = false;
-        _pages[page] = result.page;
+        // Sorted once over the whole answer, so the hottest comments are
+        // always on the earliest pages no matter where the server put them.
+        _all = _sorted(result.page.comments);
       });
       _fadeController.forward(from: 0);
     } on CommentFetchException catch (error) {
@@ -298,19 +311,19 @@ class _CommentPageViewState extends State<CommentPageView>
       ];
     }
     // Nothing has loaded yet and nothing failed: this is the first request.
-    if (_loading && !_pages.containsKey(_page)) {
+    if (_loading && _all == null) {
       return [_loadingState(textColor)];
     }
 
-    final page = _currentPage;
-    if (page.isEmpty) {
+    final items = _pageItems;
+    if (items.isEmpty) {
       return [_message(l10n.commentEmpty, textColor: textColor)];
     }
 
     return [
-      // Sorted by likes, so the comments worth reading come first. The source
-      // already sorts, but a hot section from another source may not.
-      for (final comment in _sorted(page.comments))
+      // Already sorted over the whole answer when it arrived, so the comments
+      // worth reading are always on the earliest pages.
+      for (final comment in items)
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: _CommentTile(
@@ -320,7 +333,7 @@ class _CommentPageViewState extends State<CommentPageView>
             textColor: textColor,
           ),
         ),
-      if (_page > 0 || page.hasMore) _pager(l10n, textColor),
+      if (_hasPrevious || _hasNext) _pager(l10n, textColor),
       if (_loading) ...[
         const SizedBox(height: 8),
         LinearProgressIndicator(color: colorManager.getSpecificButtonColor()),

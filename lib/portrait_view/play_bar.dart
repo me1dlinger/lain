@@ -1,12 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:lain/base/audio_handler.dart';
-import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
-import 'package:lain/base/widgets/comment_page.dart';
 import 'package:lain/base/widgets/play_queue_sheet.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/layer/layers_manager.dart';
@@ -120,30 +118,6 @@ class PlayBar extends StatelessWidget {
                   ),
                 ),
 
-                // Only when the feature is switched on and a server can
-                // answer: an entry that opens a page that can only fail is
-                // worse than no entry.
-                ValueListenableBuilder(
-                  valueListenable: commentSwitchNotifier,
-                  builder: (_, commentEnabled, _) {
-                    if (!commentEnabled || activeCommentServer == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return SizedBox(
-                      width: 40,
-                      child: IconButton(
-                        icon: const Icon(Icons.forum_rounded, size: 28),
-                        onPressed: () {
-                          tryVibrate();
-                          Navigator.push(
-                            context,
-                            CommentPageView.route(currentSong),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
                 const SizedBox(width: 15),
               ],
             ),

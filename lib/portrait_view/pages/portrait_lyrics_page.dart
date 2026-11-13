@@ -460,7 +460,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 }
                 return IconButton(
                   color: lyricsPageForegroundColor.value,
-                  icon: const Icon(Icons.forum_rounded, size: 25),
+                  // Outlined, to match the linear timer icon beside it instead
+                  // of a solid block.
+                  icon: const Icon(Icons.forum_outlined, size: 25),
                   onPressed: () {
                     tryVibrate();
                     Navigator.push(
