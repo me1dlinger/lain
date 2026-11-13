@@ -512,7 +512,6 @@
   "commentOnWithServer": "On · {server}",
   "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}},
   "commentSortRecommended": "Recommended",
-  "commentSortHot": "Hot",
   "commentSortTime": "Latest",
   "commentMatchedSong": "Comments of “{name}”",
   "@commentMatchedSong": {"description": "The song the comment server matched, shown under the local song header.", "placeholders": {"name": {"type": "String"}}},

@@ -1300,9 +1300,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commentSortRecommended => '推荐';
 
   @override
-  String get commentSortHot => '最热';
-
-  @override
   String get commentSortTime => '最新';
 
   @override

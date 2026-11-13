@@ -22,6 +22,18 @@ const _commentPageSize = 20;
 /// are fetched on demand through the replies endpoint.
 const _replyLimit = 3;
 
+/// Text colour that stays readable on the page's own opaque background.
+///
+/// The comments page and its sheet are pushed over any of the app's themes,
+/// and the theme's button colour is a *background* colour (dark grey in the
+/// dark theme, near-white in the light one), so it vanishes when used as
+/// text. Pills, links and the picker sheet therefore take their contrast
+/// from the background they are actually drawn on.
+Color _fgOnPage() {
+  final bg = colorManager.getSpecificOpaqueBgColor();
+  return bg.computeLuminance() < 0.5 ? Colors.white : Colors.black87;
+}
+
 /// The comments of one song, and the server that answers them.
 ///
 /// The page opens on the current song for a pushed route, or on any song when
@@ -234,6 +246,9 @@ class _CommentPageViewState extends State<CommentPageView>
     final picked = await showModalBottomSheet<CommentSong>(
       context: context,
       isScrollControlled: true,
+      // The sheet's own surface, so it follows the page's theme instead of
+      // the navigator's default one; the sheet's text is coloured against it.
+      backgroundColor: colorManager.getSpecificOpaqueBgColor(),
       builder: (context) => _SongPickerSheet(
         server: _server!,
         initialKeywords: '${getTitle(widget.currentSong)} ${getArtist(widget.currentSong)}',
@@ -311,7 +326,7 @@ class _CommentPageViewState extends State<CommentPageView>
                           child: _matchedRow(l10n, textColor),
                         ),
                         const SizedBox(height: 8),
-                        _sortChips(l10n, textColor),
+                        _sortChips(l10n),
                       ],
                       const SizedBox(height: 12),
                       ..._body(l10n, textColor),
@@ -411,7 +426,7 @@ class _CommentPageViewState extends State<CommentPageView>
               l10n.commentChangeSong,
               style: TextStyle(
                 fontSize: 12,
-                color: colorManager.getSpecificButtonColor(),
+                color: _fgOnPage().withAlpha(220),
               ),
             ),
           ),
@@ -420,15 +435,15 @@ class _CommentPageViewState extends State<CommentPageView>
     );
   }
 
-  /// The three orders the server offers, as pills with the selected one
-  /// filled.
-  Widget _sortChips(AppLocalizations l10n, Color textColor) {
+  /// The orders the page offers, as pills with the selected one filled. The
+  /// server also has a "hot" order, but it answers it exactly like
+  /// "recommended", so the two are one pill here.
+  Widget _sortChips(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (final (sort, label) in [
           (CommentSort.recommended, l10n.commentSortRecommended),
-          (CommentSort.hot, l10n.commentSortHot),
           (CommentSort.time, l10n.commentSortTime),
         ])
           Padding(
@@ -436,7 +451,6 @@ class _CommentPageViewState extends State<CommentPageView>
             child: _pagerButton(
               label,
               sort == _sort ? () {} : () => _changeSort(sort),
-              textColor: textColor,
               filled: sort == _sort,
             ),
           ),
@@ -531,10 +545,10 @@ class _CommentPageViewState extends State<CommentPageView>
             style: TextStyle(fontSize: 12, color: textColor.withAlpha(130)),
           ),
         ),
-      if (_hasPrevious || _hasNext) _pager(l10n, textColor),
+      if (_hasPrevious || _hasNext) _pager(l10n),
       if (_loading) ...[
         const SizedBox(height: 8),
-        LinearProgressIndicator(color: colorManager.getSpecificButtonColor()),
+        LinearProgressIndicator(color: _fgOnPage().withAlpha(170)),
       ],
     ];
   }
@@ -588,12 +602,7 @@ class _CommentPageViewState extends State<CommentPageView>
           ],
           if (actionLabel != null) ...[
             const SizedBox(height: 14),
-            _pagerButton(
-              actionLabel,
-              onAction,
-      textColor: textColor,
-              filled: true,
-            ),
+            _pagerButton(actionLabel, onAction, filled: true),
           ],
         ],
       ),
@@ -657,28 +666,29 @@ class _CommentPageViewState extends State<CommentPageView>
 
   /// Previous / page caption / next, as rounded pills in the app's button
   /// colour.
-  Widget _pager(AppLocalizations l10n, Color textColor) {
+  Widget _pager(AppLocalizations l10n) {
+    final fg = _fgOnPage();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _pagerButton(l10n.commentPagePrevious, _hasPrevious ? () => _goTo(_page - 1) : null, textColor: textColor),
+          _pagerButton(l10n.commentPagePrevious, _hasPrevious ? () => _goTo(_page - 1) : null),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 10),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: textColor.withAlpha(22),
+              color: fg.withAlpha(22),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               (_current?.pageCount ?? 0) > 0
                   ? l10n.commentPageOf(_page, _current!.pageCount)
                   : l10n.commentPageIndicator(_page),
-              style: TextStyle(fontSize: 12, color: textColor.withAlpha(190)),
+              style: TextStyle(fontSize: 12, color: fg.withAlpha(200)),
             ),
           ),
-          _pagerButton(l10n.commentPageNext, _hasNext ? () => _goTo(_page + 1) : null, textColor: textColor),
+          _pagerButton(l10n.commentPageNext, _hasNext ? () => _goTo(_page + 1) : null),
         ],
       ),
     );
@@ -687,16 +697,16 @@ class _CommentPageViewState extends State<CommentPageView>
   Widget _pagerButton(
     String label,
     VoidCallback? onPressed, {
-    required Color textColor,
     bool filled = false,
   }) {
     final disabled = onPressed == null;
+    final fg = _fgOnPage();
     final background = filled
-        ? colorManager.getSpecificButtonColor().withAlpha(disabled ? 60 : 255)
-        : textColor.withAlpha(disabled ? 14 : 22);
+        ? fg.withAlpha(disabled ? 30 : 60)
+        : fg.withAlpha(disabled ? 12 : 22);
     final foreground = filled
-        ? (disabled ? textColor.withAlpha(120) : textColor)
-        : textColor.withAlpha(disabled ? 90 : 200);
+        ? (disabled ? fg.withAlpha(120) : fg)
+        : fg.withAlpha(disabled ? 90 : 210);
 
     return Material(
       color: background,
@@ -882,14 +892,14 @@ class _CommentTileState extends State<_CommentTile> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
-                        expanded
-                            ? l10n.commentHideReplies
-                            : l10n.commentShowReplies(comment.replyCount),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorManager.getSpecificButtonColor(),
-                        ),
+                      expanded
+                          ? l10n.commentHideReplies
+                          : l10n.commentShowReplies(comment.replyCount),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _fgOnPage().withAlpha(220),
                       ),
+                    ),
                     ),
                   ),
               ],
@@ -956,7 +966,7 @@ class _CommentTileState extends State<_CommentTile> {
                               l10n.commentShowMoreReplies,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: colorManager.getSpecificButtonColor(),
+                                color: _fgOnPage().withAlpha(220),
                               ),
                             ),
                           ),
@@ -1120,7 +1130,9 @@ class _SongPickerSheetState extends State<_SongPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final textColor = colorManager.getSpecificTextColor();
+    // The sheet's background is the page's opaque colour, so the writing on
+    // it takes its contrast from that background, not from the theme.
+    final textColor = _fgOnPage();
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),

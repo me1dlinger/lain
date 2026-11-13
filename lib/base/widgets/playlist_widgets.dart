@@ -233,6 +233,10 @@ Future<void> showImportPlaylistDialog(BuildContext context) async {
       playlistManager.playlistMap[name] ?? Playlist(name: name, id: null);
   if (playlistManager.playlistMap[name] == null) {
     playlistManager.addPlaylist(playlist);
+    // Writes the playlist's name into the stored name list, which is what the
+    // manager reads back on start-up; without it the playlist (and its songs)
+    // would be lost the next time the app launches.
+    playlistManager.update();
   }
 
   // Reversed: see the note above about the order.
