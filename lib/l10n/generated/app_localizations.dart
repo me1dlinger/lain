@@ -2138,6 +2138,12 @@ abstract class AppLocalizations {
   /// **'Control Center Lyrics'**
   String get controlCenterLyrics;
 
+  /// No description provided for @broadcastLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast lyrics'**
+  String get broadcastLyrics;
+
   /// No description provided for @connect.
   ///
   /// In en, this message translates to:
@@ -2791,6 +2797,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latency {ms} ms'**
   String latencyMs(int ms);
+
+  /// No description provided for @latencyValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{ms} ms'**
+  String latencyValue(int ms);
+
+  /// No description provided for @customDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom domain'**
+  String get customDomain;
+
+  /// No description provided for @showAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Show full address'**
+  String get showAddress;
+
+  /// No description provided for @hideAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide address'**
+  String get hideAddress;
+
+  /// No description provided for @speedFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed first'**
+  String get speedFirst;
+
+  /// No description provided for @speedFirstDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, the app picks the reachable route with the lowest latency; when off, the manual priority order is kept.'**
+  String get speedFirstDescription;
 
   /// No description provided for @scanStatus.
   ///

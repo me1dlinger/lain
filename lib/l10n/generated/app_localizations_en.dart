@@ -1061,6 +1061,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controlCenterLyrics => 'Control Center Lyrics';
 
   @override
+  String get broadcastLyrics => 'Broadcast lyrics';
+
+  @override
   String get connect => 'Connect';
 
   @override
@@ -1418,6 +1421,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String latencyMs(int ms) {
     return 'Latency $ms ms';
   }
+
+  @override
+  String latencyValue(int ms) {
+    return '$ms ms';
+  }
+
+  @override
+  String get customDomain => 'Custom domain';
+
+  @override
+  String get showAddress => 'Show full address';
+
+  @override
+  String get hideAddress => 'Hide address';
+
+  @override
+  String get speedFirst => 'Speed first';
+
+  @override
+  String get speedFirstDescription =>
+      'When on, the app picks the reachable route with the lowest latency; when off, the manual priority order is kept.';
 
   @override
   String get scanStatus => 'Scan status';

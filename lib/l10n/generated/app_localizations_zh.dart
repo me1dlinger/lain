@@ -1049,6 +1049,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get controlCenterLyrics => '控制中心歌词';
 
   @override
+  String get broadcastLyrics => '广播歌词';
+
+  @override
   String get connect => '连接';
 
   @override
@@ -1392,6 +1395,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String latencyMs(int ms) {
     return '延迟 $ms ms';
   }
+
+  @override
+  String latencyValue(int ms) {
+    return '$ms ms';
+  }
+
+  @override
+  String get customDomain => '自定义域名';
+
+  @override
+  String get showAddress => '显示完整地址';
+
+  @override
+  String get hideAddress => '隐藏地址';
+
+  @override
+  String get speedFirst => '速度优先';
+
+  @override
+  String get speedFirstDescription => '开启后自动选择延迟最低的可用链路，关闭后按手动优先级选择';
 
   @override
   String get scanStatus => '扫描状态';

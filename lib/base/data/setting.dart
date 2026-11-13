@@ -9,6 +9,7 @@ import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/comment_setting.dart';
+import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/notice_setting.dart';
@@ -224,6 +225,9 @@ class Setting {
     controlCenterLyricsNotifier.value =
         json['controlCenterLyrics'] as bool? ?? false;
 
+    preferFastestAddressNotifier.value =
+        json['preferFastestAddress'] as bool? ?? true;
+
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
 
@@ -337,6 +341,8 @@ class Setting {
         'recursiveScan': recursiveScanNotifier.value,
 
         'controlCenterLyrics': controlCenterLyricsNotifier.value,
+
+        'preferFastestAddress': preferFastestAddressNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,
