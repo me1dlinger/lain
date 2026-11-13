@@ -1205,7 +1205,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commentSettings => '评论设置';
 
   @override
-  String get commentSwitch => '评论';
+  String get commentSwitch => '评论展示';
 
   @override
   String get commentSwitchDesc => '配置评论服务器后，在播放栏显示评论入口。';

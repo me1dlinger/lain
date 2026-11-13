@@ -1225,7 +1225,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commentSettings => 'Comment settings';
 
   @override
-  String get commentSwitch => 'Comments';
+  String get commentSwitch => 'Comment display';
 
   @override
   String get commentSwitchDesc =>

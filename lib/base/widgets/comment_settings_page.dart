@@ -71,39 +71,22 @@ class CommentSettingsPage extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.only(top: 4, bottom: 30),
                     children: [
-                      AppleFormSection(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    4,
-                                    0,
-                                    4,
-                                  ),
-                                  child: Text(
-                                    l10n.commentSwitch,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: textColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(right: 16),
-                                child: MySwitch(
-                                  valueNotifier: commentSwitchNotifier,
-                                  // The switch only changes a notifier, and a
-                                  // notifier does not write itself to disk.
-                                  onToggleCallBack: () => setting.save(),
-                                ),
-                              ),
-                            ],
+                      // Plain tile, matching the startup/background switches:
+                      // a lone master switch does not need a section box.
+                      ListTile(
+                        title: Text(
+                          l10n.commentSwitch,
+                          style: TextStyle(fontSize: 15, color: textColor),
+                        ),
+                        trailing: SizedBox(
+                          width: 50,
+                          child: MySwitch(
+                            valueNotifier: commentSwitchNotifier,
+                            // The switch only changes a notifier, and a
+                            // notifier does not write itself to disk.
+                            onToggleCallBack: () => setting.save(),
                           ),
-                        ],
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),

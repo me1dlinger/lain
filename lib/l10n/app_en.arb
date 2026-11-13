@@ -461,7 +461,7 @@
   "comment": "Comments",
   "comments": "Comments",
   "commentSettings": "Comment settings",
-  "commentSwitch": "Comments",
+  "commentSwitch": "Comment display",
   "commentSwitchDesc": "Shows a comment entry on the now-playing bar once a comment server is configured.",
   "commentServer": "Comment server",
   "commentServers": "Comment servers",

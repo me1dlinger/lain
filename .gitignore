@@ -53,3 +53,5 @@ app.*.map.json
 
 # Local agent/tool state
 .codefree/
+
+*.apk

@@ -309,8 +309,10 @@ class _SettingsListState extends State<SettingsList> {
     switch (category) {
       case SettingsCategory.musicSource:
         return [
-          localSourceListTile(context, l10n),
           serversListTile(context, l10n),
+          // The local library sits behind the servers so a stray tap does not
+          // switch sources on the way to something else.
+          localSourceListTile(context, l10n),
           offlineModeListTile(l10n),
           // WebDAV still uses the generic folder manager; the local library
           // has its own second-level page.
@@ -342,15 +344,12 @@ class _SettingsListState extends State<SettingsList> {
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
-        ];
-      case SettingsCategory.notifications:
-        return [
-          mobileDataWarningListTile(l10n),
           if (viewModeNotifier.value != .bigPicture)
             controlCenterLyricsListTile(l10n),
+          commentSettingsListTile(context, l10n),
         ];
-      case SettingsCategory.comments:
-        return [commentSettingsListTile(context, l10n)];
+      case SettingsCategory.notifications:
+        return [mobileDataWarningListTile(l10n)];
       case SettingsCategory.startupBackground:
         return [
           autoPlayOnStartupListTile(l10n),

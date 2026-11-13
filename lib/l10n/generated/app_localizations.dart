@@ -2453,7 +2453,7 @@ abstract class AppLocalizations {
   /// No description provided for @commentSwitch.
   ///
   /// In en, this message translates to:
-  /// **'Comments'**
+  /// **'Comment display'**
   String get commentSwitch;
 
   /// No description provided for @commentSwitchDesc.

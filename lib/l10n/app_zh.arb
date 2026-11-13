@@ -391,7 +391,7 @@
   "comment": "评论",
   "comments": "评论",
   "commentSettings": "评论设置",
-  "commentSwitch": "评论",
+  "commentSwitch": "评论展示",
   "commentSwitchDesc": "配置评论服务器后，在播放栏显示评论入口。",
   "commentServer": "评论服务器",
   "commentServers": "评论服务器",

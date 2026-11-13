@@ -6,7 +6,6 @@ import 'package:lain/l10n/generated/app_localizations.dart';
 enum SettingsCategory {
   musicSource,
   userInterface,
-  comments,
   playbackLyrics,
   notifications,
   startupBackground,
@@ -27,8 +26,6 @@ String settingsCategoryTitle(AppLocalizations l10n, SettingsCategory category) {
       return l10n.settingsMusicSource;
     case SettingsCategory.userInterface:
       return l10n.settingsUserInterface;
-    case SettingsCategory.comments:
-      return l10n.settingsComments;
     case SettingsCategory.playbackLyrics:
       return l10n.settingsPlaybackLyrics;
     case SettingsCategory.notifications:
@@ -50,8 +47,6 @@ IconData settingsCategoryIcon(SettingsCategory category) {
       return Icons.dns_rounded;
     case SettingsCategory.userInterface:
       return Icons.palette_outlined;
-    case SettingsCategory.comments:
-      return Icons.forum_rounded;
     case SettingsCategory.playbackLyrics:
       return Icons.play_circle_outline_rounded;
     case SettingsCategory.notifications:
