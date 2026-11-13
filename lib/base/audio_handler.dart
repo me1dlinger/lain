@@ -12,7 +12,6 @@ import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/home_widget_service.dart';
-import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
 import 'package:lain/base/services/my_window_listener.dart';
 import 'package:lain/base/services/picture_service.dart';
@@ -63,44 +62,18 @@ final autoPlayOnStartupNotifier = ValueNotifier(false);
 
 final currentLyricsIndexNotifier = ValueNotifier(-1);
 
+/// Whether lyric lines are broadcast to a car head unit (the settings tile
+/// "broadcast lyrics"). Named for Core's control centre when this was a
+/// notification feature; the stored key is kept so an existing setting carries
+/// over.
+///
+/// On: the primary line is the current lyric line and the secondary one is
+/// `<< artist - title >>`. Off: plain track metadata, and no metadata update
+/// per lyric line at all - each one is a full AVRCP/`MediaSession` read on the
+/// head unit.
 final controlCenterLyricsNotifier = ValueNotifier(false);
 
 bool loadingSong = false;
-
-// Android side helper that turns an app-private cover file into a
-// content:// URI (see MainActivity.kt / the media_provider FileProvider), so
-// the media session can expose artwork that other processes can read.
-const _mediaChannel = MethodChannel('com.meidlinger.lain.media');
-
-// cover file path -> a URI that other processes can fetch, so a track's media
-// item can be published synchronously once it has been resolved once.
-final Map<String, String> _coverUriCache = {};
-
-/// Cover file path -> its content:// URI, resolved once per file. Published in
-/// place of the file:// URI on Android (see [_artworkFor]) and reused, since
-/// asking the platform for it again on every publish would defeat the point of
-/// publishing synchronously.
-final Map<String, String> _contentUriCache = {};
-
-/// Cover paths whose content:// URI is being resolved, so a burst of publishes
-/// asks the platform once.
-final Set<String> _contentUriInFlight = {};
-
-// Covers that could not be exposed, with the modification time of the file
-// that failed: the same file is not retried, but a cover written since (which
-// is what happens the first time a local song's artwork is extracted) is.
-/// Cover path -> (file mtime, relay generation, time) at which resolving its
-/// URL failed. The generation lets a failure recorded on one network be retried
-/// on the next; the time lets a failure on a weak signal (a basement car park)
-/// be retried a little later instead of being remembered for good.
-final Map<String, ({DateTime mtime, int generation, DateTime at})>
-_coverUriFailed = {};
-
-/// How long a failed cover-URI resolution is remembered before another attempt
-/// is allowed. Long enough not to spin while the network is down, short enough
-/// that a cover appears once the signal comes back - without the user having
-/// to change track to force it.
-const _coverUriFailureTtl = Duration(seconds: 15);
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
@@ -198,7 +171,6 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _pubFileArtUri;
   String? _pubCoverPath;
   String? _pubSmallArtPath;
-  String? _pubFetchArtUri;
 
   // The broadcast gate for the system media session: one generation per
   // announced track (an async cover result from an older one is dropped
@@ -225,8 +197,6 @@ class MyAudioHandler extends BaseAudioHandler {
   /// key changed, and a consumer (audio_service's bitmap cache, a head unit)
   /// keys artwork by item id - so a cover that arrived after the first publish
   /// must change the id, or it is never read.
-  String? _pubArtVersion;
-  int _artVersionCounter = 0;
 
   /// The load generation the track switch that is opening was started for.
   /// Everything a load does after its first await checks it, so a switch that
@@ -269,8 +239,7 @@ class MyAudioHandler extends BaseAudioHandler {
   // Work already started for a song, so a burst of publishes does not queue the
   // same download or URI resolution twice.
   final Set<String> _coverLoadInFlight = {};
-  final Set<String> _fetchUriInFlight = {};
-  final Set<String> _smallArtInFlight = {};
+  final Map<String, Future<void>> _smallArtWork = {};
 
   DateTime? _songSwitchedAt;
 
@@ -522,16 +491,21 @@ class MyAudioHandler extends BaseAudioHandler {
     if (current != currentLyricsIndexNotifier.value) {
       currentLyricsIndexNotifier.value = current;
 
-      // Publish the current lyric line to the system media session: the Android
-      // media notification and Bluetooth (AVRCP) head units read the now
-      // playing metadata from there, so the lyric has to be written into the
-      // media item itself.
+      // Publish the current lyric line to the system media session, but only
+      // when the user asked for lyrics to be broadcast: every metadata update
+      // costs the head unit a full AVRCP read, and one per lyric line with the
+      // feature off is pure noise. The playback state is not re-sent either -
+      // the line changed, the playback did not, and a playback update on every
+      // line made the unit re-read the item again.
       final lineText = (current >= 0 && current < lines.length)
           ? lines[current].text
           : null;
-      if (lineText != _publishedLyric) {
-        updateServiceMediaItem(currentSong, lyric: lineText);
-        updatePlaybackState();
+      if (controlCenterLyricsNotifier.value && lineText != _publishedLyric) {
+        updateServiceMediaItem(
+          currentSong,
+          lyric: lineText,
+          kind: MediaUpdateKind.lyric,
+        );
       }
 
       if (isMobile) {
@@ -965,8 +939,15 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
-  /// Warms the artwork and lyrics of the tracks either side of the current one,
-  /// so going next or previous shows both at once instead of after a download.
+  /// Warms the artwork (and, for the next/previous track, the lyrics) of the
+  /// tracks around the current one, so a switch shows both at once instead of
+  /// after a download.
+  ///
+  /// Two tracks each way: the second one is only reached by skipping twice, but
+  /// a listener who skips through a queue does that often enough that its cover
+  /// being ready is worth the one-time fetch. Only the immediate neighbours
+  /// warm their lyrics as well - lyrics are a server call on most sources,
+  /// while the cover is what a switch needs in the same instant.
   ///
   /// Only worth doing on a phone, where something other than this app displays
   /// them (a head unit); on a desktop it would just do work for nothing.
@@ -978,6 +959,13 @@ class MyAudioHandler extends BaseAudioHandler {
           continue;
         }
         unawaited(_prefetch(playQueue[neighbour]));
+      }
+      for (final delta in const [2, -2]) {
+        final neighbour = currentIndex + delta;
+        if (neighbour < 0 || neighbour >= playQueue.length) {
+          continue;
+        }
+        unawaited(_prefetch(playQueue[neighbour], lyrics: false));
       }
     }
     // Queue changes can alter which track is next. The next track's audio only
@@ -1137,12 +1125,27 @@ class MyAudioHandler extends BaseAudioHandler {
     token.cancel('next-track prefetch superseded');
   }
 
-  Future<void> _prefetch(MyAudioMetadata song) async {
+  Future<void> _prefetch(MyAudioMetadata song, {bool lyrics = true}) async {
     try {
-      if (!song.picture.isLoaded) {
-        await loadPictureSafe(song.picture);
+      // A cover already on disk is used as it is: asking the scheduler for it
+      // would only re-check the same file. `smallFor` below does the same for
+      // the broadcast-sized copy, so a prefetched track costs no request when
+      // its cover was cached by an earlier play (or by the cache page).
+      final picture = song.picture;
+      final path = picture.path;
+      final onDisk = path.isNotEmpty && File(path).existsSync();
+      if (!onDisk && !picture.isLoaded) {
+        await loadPictureSafe(picture);
       }
-      await setParsedLyrics(song);
+      // The broadcast-sized copy is what a switch announces, so make it now:
+      // next/previous then reach the head unit with the cover in the first
+      // item instead of publishing a second, cover-carrying one a moment later.
+      if ((onDisk || picture.isExist) && isMobile) {
+        unawaited(mediaArt.smallFor(path));
+      }
+      if (lyrics) {
+        await setParsedLyrics(song);
+      }
     } catch (e) {
       _mediaLog('prefetch failed for ${song.id}: $e');
     }
@@ -1322,6 +1325,12 @@ class MyAudioHandler extends BaseAudioHandler {
     // published the previous track over the current one and reset the
     // position, which a head unit then walks through track by track.
     final loadGeneration = ++_loadGeneration;
+    // A new broadcast generation too: artwork started for the track announced
+    // before this one must never be written into this track's snapshot. The
+    // generation was bumped by nobody after an earlier refactor, so a cover
+    // that finished late was applied to whichever song was current by then -
+    // exactly how a track could show the previous one's cover.
+    _broadcast.nextGeneration();
     _loading = true;
     _loadingIndex = currentIndex;
     _fakeCompleteResumes = 0;
@@ -1379,50 +1388,40 @@ class MyAudioHandler extends BaseAudioHandler {
     // far cheaper than losing the title, the artist and the lyric line.
     currentSongNotifier.value = currentSong;
 
-    if (isMobile) {
-      final generation = streamRelay.lanBaseUrlGeneration;
-      unawaited(
-        streamRelay.warmUp().then((_) {
-          if (streamRelay.lanBaseUrlGeneration != generation) {
-            // The network changed under us: every URI built from the previous
-            // relay host is now unreachable for the head unit.
-            _coverUriCache.clear();
-            _coverUriFailed.clear();
-            refreshServiceMediaItem();
-          }
-        }),
-      );
-    }
-
     currentLyricsIndexNotifier.value = -1;
     _publishedLyric = null;
     // Only the load that is still opening the queue's track may announce it:
     // a load superseded a moment ago has nothing to say to the session.
+    //
+    // No artwork is waited for here. The old code held the publish for up to
+    // half a second to have the cover ready, which was exactly the delay a
+    // head unit showed on every local track; the small copy is now made from
+    // the cover the list already has, and a cover that has to be fetched is
+    // published once it lands instead of holding the title back.
     if (_isCurrentLoad(loadGeneration)) {
-      // A local cover that is not on disk yet is only a moment away - it is
-      // extracted from the file the first time the track plays. Publishing
-      // before it lands hands the session an item with no artwork, which a
-      // head unit renders as the cover disappearing, only to repaint it when
-      // the file arrives. Wait briefly instead, so the title, the artist and
-      // the cover reach the car together. A cover that takes longer than this
-      // still publishes the title first - a late cover beats a missing one.
-      if (isMobile && isNotStreamSource) {
+      if (isMobile) {
+        // Give the broadcast-sized cover a short chance to be ready, so the
+        // track is announced in a single item *with* its artwork. For a
+        // prefetched neighbour this returns instantly; a cover that has to be
+        // fetched does not hold the switch longer than this.
         final coverPath = currentSong.picture.path;
         final coverOnDisk =
             coverPath.isNotEmpty && File(coverPath).existsSync();
-        if (!coverOnDisk && !currentSong.picture.isLoaded) {
-          try {
-            await loadPictureSafe(currentSong.picture, priority: true)
-                .timeout(const Duration(milliseconds: 500));
-          } catch (_) {
-            // A cover that would not load publishes without artwork, as
-            // before.
-          }
-        }
+        await _prepareSmallArt(
+          currentSong,
+          _broadcast.generation,
+          onDisk: coverOnDisk,
+        ).timeout(
+          const Duration(milliseconds: 300),
+          onTimeout: () {},
+        );
       }
-    }
-    if (_isCurrentLoad(loadGeneration)) {
-      updateServiceMediaItem(currentSong);
+      if (_isCurrentLoad(loadGeneration)) {
+        updateServiceMediaItem(
+          currentSong,
+          kind: MediaUpdateKind.track,
+        );
+      }
     }
 
     // Lyrics and the artwork are what a head unit shows, so on a phone both are
@@ -1553,7 +1552,13 @@ class MyAudioHandler extends BaseAudioHandler {
     // Publish the line the song opens on, instead of waiting for the first
     // position tick to notice it.
     _updateCurrentLyricIndex(getPosition());
-    updateServiceMediaItem(currentSong, lyric: _currentLyricText());
+    if (controlCenterLyricsNotifier.value) {
+      updateServiceMediaItem(
+        currentSong,
+        lyric: _currentLyricText(),
+        kind: MediaUpdateKind.lyric,
+      );
+    }
   }
 
   /// Turns the track into something the player can open: a cache file, a local
@@ -1736,9 +1741,9 @@ class MyAudioHandler extends BaseAudioHandler {
     return ' t=+${DateTime.now().difference(started).inMilliseconds}ms';
   }
 
-  /// Loads the current artwork ahead of any other one and re-publishes once it
-  /// is on disk, so a cover that has to be fetched cannot queue behind list
-  /// thumbnails and does not leave the session without artwork.
+  /// Loads the current cover ahead of the list thumbnails, so a track that has
+  /// to fetch its artwork does not stay without one. The broadcast-sized copy
+  /// is made from whatever lands on disk.
   Future<void> _whenCoverReady(MyAudioMetadata song) async {
     final started = DateTime.now();
     try {
@@ -1759,254 +1764,84 @@ class MyAudioHandler extends BaseAudioHandler {
       'cover ready for ${song.id} in ${ms}ms'
       '${_sinceSwitch()} (on disk: ${song.picture.isExist})',
     );
-    // The published artwork was "none" until now; this is new artwork, so the
-    // snapshot carrying it gets a new item id (see [_artVersion]).
-    _pubArtVersion = null;
-    refreshServiceMediaItem();
     if (isMobile) {
       unawaited(HomeWidgetService.updateNowPlayingWidget());
     }
+    // The cover is on disk now; the session still needs the broadcast-sized
+    // copy of it. No item id is forced here: [_resolveSmallArt] versions the
+    // artwork only when the image it publishes really changed.
+    unawaited(_prepareSmallArt(song, _broadcast.generation, onDisk: true));
   }
 
   /// Refreshes the system media session with the current song and lyric line.
   void refreshServiceMediaItem() {
     final song = currentSongNotifier.value;
     if (song != null) {
-      updateServiceMediaItem(song, lyric: _currentLyricText());
+      updateServiceMediaItem(
+        song,
+        lyric: controlCenterLyricsNotifier.value ? _currentLyricText() : null,
+      );
     }
   }
 
-  /// Drops every URI that was built against the server's previous address, so
-  /// covers are re-resolved against the one that now answers, and republishes
-  /// the media session (a head unit keeps showing the stale cover otherwise).
+  /// A different server address is in use now. The artwork files themselves are
+  /// local, so the snapshot only has to be re-published.
   void _onServerAddressChanged() {
-    _pubFetchArtUri = null;
-    _coverUriCache.clear();
     refreshServiceMediaItem();
   }
 
-  /// Resolves the URI a head unit fetches for the current artwork, then
-  /// re-publishes so it reaches the session.
+  /// The artwork to announce for [song].
   ///
-  /// Preference: a server URL the car can reach on its own, then this phone on
-  /// the LAN through the relay, and only then a `content://` URI - which another
-  /// process can read only if it was granted access, but beats nothing.
-  Future<void> _resolveFetchArtUri(MyAudioMetadata song, int generation) async {
-    final path = song.picture.path;
-    if (path.isEmpty) {
-      return;
-    }
-
-    // The relay serves the broadcast-sized copy when it exists, so the URL the
-    // head unit gets is the small one. Keyed by the size the relay was told
-    // about, not by the original path, so the same cover at two sizes never
-    // shares a URL.
-    final key = mediaArt.broadcastPathFor(path) ?? path;
-
-    final failedAt = _coverUriFailed[path];
-    if (failedAt != null) {
-      final file = File(path);
-      final unchanged =
-          file.existsSync() && file.statSync().modified == failedAt.mtime;
-      final sameNetwork =
-          failedAt.generation == streamRelay.lanBaseUrlGeneration;
-      final stillFresh =
-          DateTime.now().difference(failedAt.at) < _coverUriFailureTtl;
-      // Retry when the cover was written since the failure, when the relay has
-      // a different LAN address, or once the failure has aged out - a weak
-      // signal is temporary, so the cover must not stay missing because of it.
-      if (unchanged && sameNetwork && stillFresh) {
-        return;
-      }
-      _coverUriFailed.remove(path);
-    }
-
-    if (!_fetchUriInFlight.add(path)) {
-      return;
-    }
-
-    String? uri;
-    try {
-      uri = streamRelay.coverUrlSync(filePath: key);
-      if (uri == null) {
-        await streamRelay.warmUp();
-        uri = streamRelay.coverUrlSync(filePath: key);
-      }
-      uri ??= await _contentUriFor(key);
-    } catch (e) {
-      _mediaLog('cover URI failed for $path: $e');
-    } finally {
-      _fetchUriInFlight.remove(path);
-    }
-
-    // Nothing is applied (and a failure is not remembered for good) unless the
-    // broadcast that asked for this cover is still the current one: a late
-    // answer for the previous track would otherwise overwrite the new track's
-    // artwork, which a head unit renders as a cover that never comes back.
-    if (!_broadcast.isCurrent(generation)) {
-      _mediaLog('cover URI for ${song.id} arrived for an older broadcast');
-      return;
-    }
-
-    if (uri == null) {
-      final file = File(path);
-      _coverUriFailed[path] = (
-        mtime: file.existsSync()
-            ? file.statSync().modified
-            : DateTime.fromMillisecondsSinceEpoch(0),
-        generation: streamRelay.lanBaseUrlGeneration,
-        at: DateTime.now(),
-      );
-      _mediaLog('no fetchable cover URI for $path');
-      return;
-    }
-
-    _coverUriCache[path] = uri;
-    _mediaLog('cover URI${_sinceSwitch()}: $uri');
-    if (currentSongNotifier.value?.id == song.id) {
-      _pubFetchArtUri = uri;
-      // The artwork this snapshot carries changed (none -> a URI): publish it
-      // under a new id, or a consumer that cached the previous item never
-      // reads it.
-      _pubArtVersion = _nextArtVersion();
-      refreshServiceMediaItem();
-    }
-  }
-
-  /// A `content://` URI for [path], or null when the platform cannot expose it.
-  Future<String?> _contentUriFor(String path) async {
-    if (!Platform.isAndroid) {
-      return null;
-    }
-    try {
-      final uri = await _mediaChannel.invokeMethod<String>('getContentUri', {
-        'path': path,
-      });
-      if (uri != null && uri.isNotEmpty) {
-        return uri;
-      }
-    } catch (e) {
-      _mediaLog('content URI failed: $e');
-    }
-    return null;
-  }
-
-  /// Resolves a cover's content:// URI once and re-publishes when it arrives,
-  /// so the track that is playing now switches from file:// to content://.
-  Future<void> _cacheContentUri(
-    MyAudioMetadata song,
-    String path,
-    int generation,
-  ) async {
-    if (!_contentUriInFlight.add(path)) {
-      return;
-    }
-    final uri = await _contentUriFor(path);
-    _contentUriInFlight.remove(path);
-    if (uri == null || uri.isEmpty) {
-      return;
-    }
-    _contentUriCache[path] = uri;
-    // A content URI resolved for a track that has since been left behind is
-    // only worth the cache entry, not a publish.
-    if (_broadcast.isCurrent(generation) &&
-        currentSongNotifier.value?.id == song.id) {
-      refreshServiceMediaItem();
-    }
-  }
-
-  /// The artwork to announce for [song]: a local URI for the notification's
-  /// bitmap, plus one the head unit can fetch by itself.
-  ///
-  /// Both are remembered per song, so a publish that follows (the next lyric
-  /// line, say) carries the same artwork instead of dropping it - that dropping
-  /// is what made a cover appear and then disappear.
-  ({String? fileUri, String? coverPath, String? smallArtPath, String? fetchUri})
+  /// A phone gets the broadcast-sized JPEG in `artCacheFile` and nothing else:
+  /// audio_service decodes that file into the session's bitmap, so the head
+  /// unit receives the image inside the metadata instead of fetching a URL of
+  /// its own. On a Bluetooth link that is the difference between a tiny
+  /// thumbnail and a multi-megabyte cover, and it removes the whole
+  /// "publish, then re-publish when the URL resolves" sequence. Desktop keeps a
+  /// file URI, which is what its media integration reads.
+  ({String? fileUri, String? coverPath, String? smallArtPath})
   _artworkFor(MyAudioMetadata song) {
     if (_pubSongId != song.id) {
       _pubSongId = song.id;
       _pubFileArtUri = null;
       _pubCoverPath = null;
       _pubSmallArtPath = null;
-      _pubFetchArtUri = null;
-      _pubArtVersion = null;
       _songSwitchedAt = DateTime.now();
     }
-
-    // The generation this snapshot's artwork work belongs to. Anything it
-    // starts in the background carries it, and its result is dropped when the
-    // session has moved on to a later one.
-    final generation = _broadcast.generation;
 
     final path = song.picture.path;
     // Ask the file, not `picture.isExist`: that flag is only set once the
     // artwork has been loaded, and it stays false for a picture whose load
     // failed once even though the image is right there on disk.
     final onDisk = path.isNotEmpty && File(path).existsSync();
+
+    // A copy made for an earlier play is ready without any work - also for a
+    // streamed track whose large cover was never downloaded to the cache. The
+    // file is checked, not just the in-memory map: the OS may have cleared the
+    // cache directory since, and publishing a dead path leaves the unit without
+    // artwork until the next track.
+    if (path.isNotEmpty) {
+      final ready = mediaArt.readyPath(path);
+      if (ready != null && File(ready).existsSync()) {
+        _pubSmallArtPath ??= ready;
+      }
+      final published = _pubSmallArtPath;
+      if (published != null && !File(published).existsSync()) {
+        _pubSmallArtPath = null;
+      }
+    }
+
     if (onDisk) {
       _pubCoverPath = path;
-      // Android: a content:// URI rather than file://. audio_service hands a
-      // file:// artwork to the platform on an unsynchronised async path - it is
-      // the one branch of its mediaItem handler with no "is this still the
-      // current item?" check - so two quick track switches can land in the
-      // wrong order and the head unit keeps showing the previous track's
-      // title, artist and cover while the phone has already moved on. A
-      // content:// URI is sent synchronously, in order, every time - so on
-      // Android nothing is published as artUri until one is resolved; the
-      // bitmap in extras carries the artwork meanwhile, and a resolved
-      // content URI re-publishes on its own.
-      final contentUri = _contentUriCache[path];
-      if (contentUri != null) {
-        _pubFileArtUri = contentUri;
-      } else if (Platform.isAndroid) {
-        unawaited(_cacheContentUri(song, path, generation));
-      } else {
-        _pubFileArtUri = File(path).uri.toString();
-      }
-
-      // The broadcast-sized copy is what goes to the car; the original can be
-      // several megabytes and a head unit shows a thumbnail. Nothing else is
-      // ever published as the bitmap.
-      _pubSmallArtPath ??= mediaArt.readyPath(path);
-      if (_pubSmallArtPath == null && _smallArtInFlight.add(path)) {
-        if (!_broadcast.shouldAttemptCover(
-          path,
-          relayGeneration: streamRelay.lanBaseUrlGeneration,
-          generation: generation,
-        )) {
-          _smallArtInFlight.remove(path);
-        } else {
-          unawaited(_resolveSmallArt(song, generation));
-        }
+      if (!isMobile) {
+        _pubFileArtUri ??= File(path).uri.toString();
       }
     }
 
-    // A server that authenticates through the query string can hand the car a
-    // plain URL. That is known without any I/O, so it must not wait for the
-    // artwork to be downloaded here first.
-    final remote = streamClient?.getPictureUrl(song.picture.id);
-    if (remote != null && remote.isNotEmpty) {
-      _pubFetchArtUri ??= remote;
-    } else if (onDisk) {
-      // Everything else is served by the local relay, warm since startup, so
-      // this normally answers synchronously. A unit that reads a URI re-fetches
-      // it on every metadata update, so the broadcast-sized copy is what the
-      // relay serves whenever it exists; the original is only the fallback for
-      // a cover whose small copy could not be made.
-      final key = _pubSmallArtPath ?? path;
-      _pubFetchArtUri ??= _coverUriCache[path] ?? streamRelay.coverUrlSync(
-        filePath: key,
-      );
-      if (_pubFetchArtUri != null) {
-        _coverUriCache[path] = _pubFetchArtUri!;
-      } else {
-        unawaited(_resolveFetchArtUri(song, generation));
-      }
-    }
+    unawaited(_prepareSmallArt(song, _broadcast.generation, onDisk: onDisk));
 
-    // Not on disk yet - a cover still to be fetched from a server, or one that
-    // is only extracted from a local file the first time it plays: load it now,
-    // ahead of the list thumbnails.
+    // A cover the app has not loaded yet: load it for the UI and for the copy
+    // above. This never blocks the publish.
     if (!onDisk && !song.picture.isLoaded && _coverLoadInFlight.add(song.id)) {
       unawaited(_whenCoverReady(song));
     }
@@ -2015,8 +1850,59 @@ class MyAudioHandler extends BaseAudioHandler {
       fileUri: _pubFileArtUri,
       coverPath: _pubCoverPath,
       smallArtPath: _pubSmallArtPath,
-      fetchUri: _pubFetchArtUri,
     );
+  }
+
+  /// Starts making the broadcast-sized copy of [song]'s cover, once per
+  /// cover, and returns the work so a caller that wants to announce the track
+  /// *with* its artwork can wait for it.
+  ///
+  /// Announcing a track without artwork and adding it a moment later is what
+  /// makes a head unit show the previous cover (or none) for the first second
+  /// and, on some units, lose the artwork for the rest of the session. One item
+  /// with the artwork in it is the stable shape.
+  Future<void> _prepareSmallArt(
+    MyAudioMetadata song,
+    int generation, {
+    required bool onDisk,
+  }) {
+    if (_pubSmallArtPath != null) {
+      return Future.value();
+    }
+    final path = song.picture.path;
+    if (path.isEmpty) {
+      return Future.value();
+    }
+    // A copy from an earlier play - this run or a previous one - needs no
+    // request at all.
+    final cached = mediaArt.readyPath(path);
+    if (cached != null) {
+      _pubSmallArtPath ??= cached;
+      return Future.value();
+    }
+    final key = onDisk ? path : 'stream:${song.picture.id}';
+    final existing = _smallArtWork[key];
+    if (existing != null) {
+      return existing;
+    }
+    if (!_broadcast.shouldAttemptCover(
+      key,
+      relayGeneration: streamRelay.lanBaseUrlGeneration,
+      generation: generation,
+    )) {
+      return Future.value();
+    }
+
+    final work = _resolveSmallArt(song, generation, onDisk: onDisk);
+    _smallArtWork[key] = work;
+    unawaited(
+      work.whenComplete(() {
+        if (identical(_smallArtWork[key], work)) {
+          _smallArtWork.remove(key);
+        }
+      }),
+    );
+    return work;
   }
 
   /// Makes (or reuses) the downscaled copy of the current cover, then
@@ -2026,19 +1912,48 @@ class MyAudioHandler extends BaseAudioHandler {
   /// still the current one: a copy finishing after the user skipped on must
   /// not be written into the next track's snapshot (that is how a cover ended
   /// up belonging to the wrong song).
-  Future<void> _resolveSmallArt(MyAudioMetadata song, int generation) async {
+  Future<void> _resolveSmallArt(
+    MyAudioMetadata song,
+    int generation, {
+    required bool onDisk,
+  }) async {
     final path = song.picture.path;
+    final key = onDisk ? path : 'stream:${song.picture.id}';
     String? small;
     try {
-      small = await mediaArt.smallFor(path);
+      // Checked before the request, not after it: a thumbnail cached by an
+      // earlier run is what keeps a streamed cover from being fetched again on
+      // every launch.
+      small = mediaArt.readyPath(path);
+      if (small != null) {
+        // Reuse it below.
+      } else if (onDisk) {
+        small = await mediaArt.smallFor(path);
+      } else if (isStreamSource && song.picture.id.isNotEmpty) {
+        // The server renders a cover at the asked-for size, so the phone never
+        // downloads (and decodes) the original just to shrink it.
+        final bytes = await streamClient?.getPictureBytes(
+          song.picture.id,
+          size: MediaArt.broadcastSide,
+        );
+        if (bytes != null && bytes.isNotEmpty) {
+          small = await mediaArt.smallFromBytes(path, bytes);
+        }
+      } else if (!song.picture.isLoaded) {
+        // A local cover is extracted from the file on first play; do that
+        // first, then shrink it.
+        await loadPictureSafe(song.picture, priority: true);
+        if (song.picture.isExist && File(path).existsSync()) {
+          small = await mediaArt.smallFor(path);
+        }
+      }
     } catch (e) {
-      _mediaLog('art downscale failed for $path: $e');
-    } finally {
-      _smallArtInFlight.remove(path);
+      _mediaLog('art preparation failed for ${song.id}: $e');
     }
 
-    if (!_broadcast.isCurrent(generation)) {
-      _mediaLog('art downscale for ${song.id} arrived for an older broadcast');
+    if (!_broadcast.isCurrent(generation) ||
+        currentSongNotifier.value?.id != song.id) {
+      _mediaLog('art for ${song.id} arrived for an older broadcast');
       return;
     }
     // A copy that could not be made stays unpublished (and is retried by the
@@ -2046,21 +1961,19 @@ class MyAudioHandler extends BaseAudioHandler {
     // several megabytes, exactly what the broadcast is trying to avoid.
     if (small == null) {
       final verdict = _broadcast.handleCoverOutcome(
-        path,
+        key,
         CoverOutcome(generation: generation, artPath: null),
       );
       _mediaLog(
-        'art downscale produced nothing for $path (retry=${verdict.retryable})',
+        'art produced nothing for ${song.id} (retry=${verdict.retryable})',
       );
       return;
     }
     _broadcast.handleCoverOutcome(
-      path,
+      key,
       CoverOutcome(generation: generation, artPath: small),
     );
     _pubSmallArtPath = small;
-    // New artwork for this snapshot: it must be published under a new id.
-    _pubArtVersion = _nextArtVersion();
     _mediaLog('small art${_sinceSwitch()}: $small');
     refreshServiceMediaItem();
   }
@@ -2074,7 +1987,11 @@ class MyAudioHandler extends BaseAudioHandler {
   /// phone fetches artwork or lyrics. Anything not known yet is re-published as
   /// soon as it is (artwork when it lands on disk, the lyric line as playback
   /// passes it).
-  void updateServiceMediaItem(MyAudioMetadata currentSong, {String? lyric}) {
+  void updateServiceMediaItem(
+    MyAudioMetadata currentSong, {
+    String? lyric,
+    MediaUpdateKind kind = MediaUpdateKind.artwork,
+  }) {
     final art = _artworkFor(currentSong);
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
@@ -2082,40 +1999,36 @@ class MyAudioHandler extends BaseAudioHandler {
     final title = getTitle(currentSong);
     final artist = getArtist(currentSong);
     final album = getAlbum(currentSong);
-    final lyricInTitle = controlCenterLyricsNotifier.value;
+    final lyricsOn = controlCenterLyricsNotifier.value;
     // Versioned once there is artwork, so a cover that arrived late (or was
     // rebuilt after a failure) is published under an id a consumer has not
     // cached a bitmap for yet.
-    final id = serviceMediaItemId(currentSong.id, _currentArtVersion());
+    final id = currentSong.id;
     final key = Object.hashAll([
       title,
       artist,
       album,
       line,
-      lyricInTitle,
+      lyricsOn,
       art.fileUri,
       art.smallArtPath,
-      art.fetchUri,
     ]);
 
-    // Publication goes through the broadcast gate: a burst of switches is
-    // coalesced into the last one (the track a head unit can actually show),
-    // and an item identical to what the session already holds is not re-sent -
-    // a repeated metadata update makes AVRCP and Android Auto re-read the
-    // artwork, which is the expensive part of every track change. A track
-    // switch and a newly arrived cover are published at once; a lyric line is
-    // coalesced.
+    // Publication goes through the broadcast gate. It coalesces a burst into
+    // the last state, spaces updates the way the Bluetooth link needs, and
+    // drops an item identical to what the session already holds - a repeated
+    // metadata update makes AVRCP and Android Auto re-read the artwork, which
+    // is the expensive part of every track change.
     //
-    // Every publish is coalesced, a track switch included: an immediate one
-    // bypassed the debounce, so every press of "next" on a steering wheel
-    // reached the head unit as its own item and the queue walked through them
-    // one by one, long after the phone had moved on.
+    // A track switch is sent without the plain debounce: the head unit must
+    // hear about it at once. It still waits for the gate's minimum gap, which
+    // is what keeps a burst of next-presses from becoming a queue of items the
+    // unit walks through one by one, long after the phone has moved on.
     _broadcast.publish(
       MediaSnapshot(
         id: id,
         key: key,
-        hasArt:
-            art.fileUri != null || art.smallArtPath != null || art.fetchUri != null,
+        hasArt: art.fileUri != null || art.smallArtPath != null,
         deliver: (_) {
           mediaItem.add(
             buildServiceMediaItem(
@@ -2125,42 +2038,24 @@ class MyAudioHandler extends BaseAudioHandler {
               album: album,
               duration: currentSong.duration,
               lyric: line,
-              lyricInTitle: lyricInTitle,
+              lyricInTitle: lyricsOn,
               fileArtUri: art.fileUri,
               artCacheFile: art.smallArtPath,
-              fetchableArtUri: art.fetchUri,
             ),
           );
 
           _mediaLog(
-            'publish id=$id'
+            'publish id=$id kind=${kind.name}'
             ' art=${art.fileUri == null ? 'none' : 'file'}'
             ' bitmap=${art.smallArtPath == null ? 'none' : 'yes'}'
-            ' fetch=${art.fetchUri ?? 'none'}'
             ' lyric=${line == null ? '-' : '"$line"'}'
             '${_sinceSwitch()}',
           );
         },
       ),
+      kind: kind,
+      immediate: kind == MediaUpdateKind.track,
     );
-  }
-
-  /// A new artwork version for the current song. Every path that puts new
-  /// artwork into the snapshot (a small copy made, a fetch URI resolved, a
-  /// failed cover finally arriving) calls this, so the item id it publishes
-  /// under is one no consumer has cached a bitmap for.
-  String _nextArtVersion() => '${_pubSongId ?? _pubFileArtUri}-${++_artVersionCounter}';
-
-  /// The artwork version this snapshot carries, remembering it per song so the
-  /// item id stays stable across lyric-line updates (which must not make a
-  /// head unit re-fetch the cover).
-  String? _currentArtVersion() {
-    final hasArt =
-        _pubSmallArtPath != null || _pubFetchArtUri != null || _pubFileArtUri != null;
-    if (!hasArt) {
-      return null;
-    }
-    return _pubArtVersion ??= _nextArtVersion();
   }
 
   @override

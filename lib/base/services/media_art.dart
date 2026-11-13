@@ -88,6 +88,11 @@ class MediaArt {
 
   static const int quality = 80;
 
+  /// The most a broadcast cover may weigh. A head unit shows a thumbnail, and
+  /// the image travels over a Bluetooth link that is slow enough for a large
+  /// one to be the reason a cover arrives long after the title did.
+  static const int maxBroadcastBytes = 50 * 1024;
+
   /// Copies that are ready, keyed by `<source path>|<max side>`: the same cover
   /// downscaled to two sizes must never be confused for one another.
   final Map<String, String> _ready = {};
@@ -97,8 +102,27 @@ class MediaArt {
 
   /// Where the downscaled copy of [coverPath] lives, if it has already been
   /// made.
-  String? readyPath(String coverPath, {int maxSide = broadcastSide}) =>
-      _ready[_key(coverPath, maxSide)];
+  ///
+  /// The file is checked, not just the in-memory map: a copy made in an earlier
+  /// run (or by the cache page) is on disk and must not cost a request again.
+  /// A path whose file was cleared behind the map - the OS reclaims the cache
+  /// directory - is forgotten instead of being handed out.
+  String? readyPath(String coverPath, {int maxSide = broadcastSide}) {
+    final key = _key(coverPath, maxSide);
+    final ready = _ready[key];
+    if (ready != null) {
+      if (File(ready).existsSync()) {
+        return ready;
+      }
+      _ready.remove(key);
+    }
+    final target = _targetPath(coverPath, maxSide);
+    if (File(target).existsSync()) {
+      _ready[key] = target;
+      return target;
+    }
+    return null;
+  }
 
   /// The broadcast-sized copy of [coverPath], if it has already been made.
   /// The relay key and the session's bitmap both use it: the original is never
@@ -115,11 +139,11 @@ class MediaArt {
   /// artwork, so a later attempt can still succeed instead of pinning the
   /// failure.
   Future<String?> smallFor(String coverPath, {int maxSide = broadcastSide}) {
-    final key = _key(coverPath, maxSide);
-    final ready = _ready[key];
+    final ready = readyPath(coverPath, maxSide: maxSide);
     if (ready != null) {
       return Future.value(ready);
     }
+    final key = _key(coverPath, maxSide);
     return _pending.putIfAbsent(key, () => _make(coverPath, maxSide));
   }
 
@@ -149,16 +173,18 @@ class MediaArt {
           quality: quality,
         ),
       );
-      if (result.bytes == null) {
+      var encoded = result.bytes;
+      if (encoded == null) {
         return null;
       }
+      encoded = await _fitBudget(encoded, maxSide);
 
       await target.create(recursive: true);
-      await target.writeAsBytes(result.bytes!);
+      await target.writeAsBytes(encoded, flush: true);
       _ready[key] = target.path;
       logger.output(
         '[media] art ${result.width}x${result.height} '
-        '${await target.length()}B (side=$maxSide) for $coverPath',
+        '${encoded.length}B (side=$maxSide) for $coverPath',
       );
       return target.path;
     } catch (e) {
@@ -167,6 +193,83 @@ class MediaArt {
     } finally {
       _pending.remove(key);
     }
+  }
+
+  /// Writes a cover the server already rendered at the broadcast size (a
+  /// streamed track asks its server for exactly that, instead of downloading
+  /// and decoding the large original). Re-encoded only when the answer is
+  /// larger than the budget.
+  Future<String?> smallFromBytes(
+    String coverPath,
+    Uint8List bytes, {
+    int maxSide = broadcastSide,
+  }) async {
+    if (coverPath.isEmpty || bytes.isEmpty) {
+      return null;
+    }
+    // A thumbnail made in an earlier run is reused: this is what keeps a
+    // streamed cover from being requested again on every launch.
+    final ready = readyPath(coverPath, maxSide: maxSide);
+    if (ready != null) {
+      return ready;
+    }
+    final key = _key(coverPath, maxSide);
+    try {
+      // Always decode and re-encode: a server that ignores the requested size
+      // would otherwise hand the head unit a 600 px image, and the car only
+      // needs a 100 px thumbnail.
+      final result = await compute(
+        downscaleMediaArt,
+        MediaArtRequest(bytes: bytes, maxSide: maxSide, quality: quality),
+      );
+      var encoded = result.bytes ?? bytes;
+      if (encoded.length > maxBroadcastBytes || result.bytes == null) {
+        encoded = await _fitBudget(encoded, maxSide);
+      }
+      final target = File(_targetPath(coverPath, maxSide));
+      await target.create(recursive: true);
+      await target.writeAsBytes(encoded, flush: true);
+      _ready[key] = target.path;
+      logger.output(
+        '[media] art ${encoded.length}B (side=$maxSide) from server '
+        'for $coverPath',
+      );
+      return target.path;
+    } catch (e) {
+      logger.output('[media] art thumbnail failed for $coverPath: $e');
+      return null;
+    }
+  }
+
+  /// Re-encodes [bytes] with a lower quality (and, if that is not enough, a
+  /// smaller side) until it fits [maxBroadcastBytes].
+  Future<Uint8List> _fitBudget(Uint8List bytes, int maxSide) async {
+    var encoded = bytes;
+    for (final quality in const [70, 55, 40, 30]) {
+      if (encoded.length <= maxBroadcastBytes) {
+        return encoded;
+      }
+      final smaller = await compute(
+        downscaleMediaArt,
+        MediaArtRequest(bytes: encoded, maxSide: maxSide, quality: quality),
+      );
+      if (smaller.bytes == null) {
+        break;
+      }
+      encoded = smaller.bytes!;
+    }
+    if (encoded.length > maxBroadcastBytes) {
+      final tiny = await compute(
+        downscaleMediaArt,
+        MediaArtRequest(
+          bytes: encoded,
+          maxSide: maxSide ~/ 2,
+          quality: 40,
+        ),
+      );
+      encoded = tiny.bytes ?? encoded;
+    }
+    return encoded;
   }
 
   /// Kept beside the covers, under the cover's own file name, so clearing the

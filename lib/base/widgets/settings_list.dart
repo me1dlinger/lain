@@ -344,7 +344,7 @@ class _SettingsListState extends State<SettingsList> {
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
-          if (viewModeNotifier.value != .bigPicture)
+          if (isMobile && viewModeNotifier.value != .bigPicture)
             controlCenterLyricsListTile(l10n),
           commentSettingsListTile(context, l10n),
         ];
@@ -902,7 +902,11 @@ class _SettingsListState extends State<SettingsList> {
   Widget controlCenterLyricsListTile(AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(desktopLyricsImage, size: iconSize),
-      title: Text(l10n.controlCenterLyrics),
+      // The same stored flag as before (see `controlCenterLyricsNotifier`):
+      // on, the head unit's primary line carries the lyric and the secondary
+      // one carries "<< artist - title >>"; off, it gets plain track metadata
+      // and no lyric updates at all.
+      title: Text(l10n.broadcastLyrics),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(

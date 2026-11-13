@@ -99,18 +99,65 @@ void main() {
       expect(session.delivered, ['song-5']);
     });
 
-    test('switches that are minutes apart are each published', () async {
+    test('switches that are a moment apart are each published', () async {
       final session = FakeSession();
       final broadcaster = MediaBroadcaster(debounce: Duration.zero);
 
       broadcaster.nextGeneration();
-      broadcaster.publish(snapshot(session, 'a'));
-      await Future<void>.delayed(Duration.zero);
+      broadcaster.publish(snapshot(session, 'a'), kind: MediaUpdateKind.track);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
       broadcaster.nextGeneration();
-      broadcaster.publish(snapshot(session, 'b'));
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+      broadcaster.publish(snapshot(session, 'b'), kind: MediaUpdateKind.track);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
 
       expect(session.delivered, ['a', 'b']);
+    });
+
+    test('a burst of next-presses reaches the head unit once', () async {
+      final session = FakeSession();
+      final broadcaster = MediaBroadcaster();
+
+      for (var i = 0; i < 5; i++) {
+        broadcaster.nextGeneration();
+        broadcaster.publish(
+          snapshot(session, 'track-$i'),
+          kind: MediaUpdateKind.track,
+          immediate: true,
+        );
+      }
+
+      // The burst settles on the track the user stopped on, once.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(session.delivered, ['track-4']);
+
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(session.delivered, ['track-4']);
+    });
+
+    test('a lyric line waits for the track switch to settle', () async {
+      final session = FakeSession();
+      final broadcaster = MediaBroadcaster();
+
+      broadcaster.publish(
+        snapshot(session, 'song-1', key: 'song'),
+        kind: MediaUpdateKind.track,
+        immediate: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(session.delivered, ['song-1']);
+
+      broadcaster.publish(
+        snapshot(session, 'song-1', key: 'line-1'),
+        kind: MediaUpdateKind.lyric,
+        immediate: true,
+      );
+      // The unit is busy with the new item and its cover before this settles.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(session.delivered, ['song-1']);
+
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      expect(session.delivered.length, 2);
+      expect(broadcaster.publishCount, 2);
     });
 
     test('a track switch is published before the debounce elapses', () async {
@@ -129,16 +176,18 @@ void main() {
 
       broadcaster.publish(
         snapshot(session, 'song-1', key: 'title|artist|cover'),
+        kind: MediaUpdateKind.track,
         immediate: true,
       );
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // The same lyric line ticked again: nothing changed, so nothing is sent.
       broadcaster.publish(
         snapshot(session, 'song-1', key: 'title|artist|cover'),
+        kind: MediaUpdateKind.lyric,
         immediate: true,
       );
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 1600));
 
       expect(session.delivered, ['song-1']);
       expect(broadcaster.publishCount, 1);
@@ -149,11 +198,19 @@ void main() {
       final session = FakeSession();
       final broadcaster = MediaBroadcaster(debounce: Duration.zero);
 
-      broadcaster.publish(snapshot(session, 'song-1'), immediate: true);
-      await Future<void>.delayed(Duration.zero);
+      broadcaster.publish(
+        snapshot(session, 'song-1'),
+        kind: MediaUpdateKind.track,
+        immediate: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
       // The cover landed: same song, new artwork version.
-      broadcaster.publish(snapshot(session, 'song-1#art:1'), immediate: true);
-      await Future<void>.delayed(Duration.zero);
+      broadcaster.publish(
+        snapshot(session, 'song-1#art:1'),
+        kind: MediaUpdateKind.artwork,
+        immediate: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 400));
 
       expect(session.delivered, ['song-1', 'song-1#art:1']);
       expect(session.last, ['song-1#art:1']);

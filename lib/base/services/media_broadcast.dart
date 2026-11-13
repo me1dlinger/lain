@@ -117,6 +117,28 @@ class CoverVerdict {
   });
 }
 
+/// What a publish is about, which decides how long it must wait after the
+/// previous one.
+///
+/// A head unit is not a screen that can be repainted at any rate: every
+/// `MediaItem` change crosses the Bluetooth link as an AVRCP metadata update,
+/// and the unit reads the new item (and, when it wants one, a new cover) before
+/// it can process the next. Sending six of them in a second makes the unit walk
+/// through a queue long after the phone has moved on - the "jumping titles" a
+/// burst of next-presses produced. The kinds let the gate treat a track switch
+/// (worth an immediate send) differently from a lyric line (worth at most one
+/// send a second).
+enum MediaUpdateKind {
+  /// A different track is now playing.
+  track,
+
+  /// The same track, with artwork that was not available before.
+  artwork,
+
+  /// The same track, with a new lyric line.
+  lyric,
+}
+
 /// The broadcast gate: one generation per announced track, one coalesced
 /// publisher, and a failure memory that cannot outlive the broadcast.
 class MediaBroadcaster {
@@ -127,12 +149,33 @@ class MediaBroadcaster {
   /// a queue load, an automatic advance right after a command) publishes once.
   final Duration debounce;
 
+  /// The least time between two publishes of any kind. The Bluetooth link needs
+  /// it: a second item that is sent while the first is still being read arrives
+  /// when the unit is done with it, and looks like the unit is "one step behind"
+  /// for the rest of the song.
+  final Duration minGap;
+
+  /// The least time between two publishes of lyric lines. A lyric line changes
+  /// every few seconds, so this is never hit in normal playback; it is there for
+  /// karaoke-style lyrics and for a seek that lands in the middle of a line.
+  final Duration lyricGap;
+
+  /// How long after a track switch a lyric line must wait. The unit is busy
+  /// reading the new item (and its artwork); a lyric update landing on top of
+  /// that is exactly what made the cover appear and disappear.
+  final Duration trackSettle;
+
   /// How many times a cover that failed is retried for the same broadcast
   /// without waiting for the network to change. A cover that failed once on a
   /// slow link is worth another try; a format that cannot be decoded is not.
   static const int _maxImmediateRetries = 2;
 
-  MediaBroadcaster({this.debounce = const Duration(milliseconds: 120)});
+  MediaBroadcaster({
+    this.debounce = const Duration(milliseconds: 120),
+    this.minGap = const Duration(milliseconds: 300),
+    this.lyricGap = const Duration(seconds: 1),
+    this.trackSettle = const Duration(milliseconds: 1500),
+  });
 
   int _generation = 0;
 
@@ -147,10 +190,15 @@ class MediaBroadcaster {
 
   Timer? _timer;
   MediaSnapshot? _pending;
+  MediaUpdateKind _pendingKind = MediaUpdateKind.lyric;
 
   /// What the session currently has, to skip a publish that changes nothing.
   String? _deliveredId;
   int? _deliveredKey;
+
+  /// When the last publish reached the session, and what kind it was.
+  DateTime? _deliveredAt;
+  MediaUpdateKind? _deliveredKind;
 
   int _publishes = 0;
   int _skipped = 0;
@@ -164,23 +212,50 @@ class MediaBroadcaster {
   /// belongs to an older generation and must be dropped.
   int nextGeneration() => ++_generation;
 
-  /// Requests a publish of [snapshot]. When [immediate] the item is delivered
-  /// on the next microtask (a track switch must be visible at once); otherwise
-  /// it is coalesced for [debounce], so a burst of lyric lines or switches
-  /// produces one publish with the last state.
-  void publish(MediaSnapshot snapshot, {bool immediate = false}) {
+  /// Requests a publish of [snapshot].
+  ///
+  /// Every request replaces the pending one: only the state that is current
+  /// when the gate opens is published, never the items a burst skipped through.
+  /// [kind] sets how long the request waits after the previous publish, and
+  /// [immediate] skips the plain debounce (a track switch must not wait for it)
+  /// without ever skipping [minGap].
+  void publish(
+    MediaSnapshot snapshot, {
+    MediaUpdateKind kind = MediaUpdateKind.lyric,
+    bool immediate = false,
+  }) {
     _pending = snapshot;
-    if (immediate) {
-      // A stronger request must not be weakened by a queued one.
-      _timer?.cancel();
+    _pendingKind = kind;
+
+    var wait = immediate ? Duration.zero : debounce;
+
+    final last = _deliveredAt;
+    if (last != null) {
+      final since = DateTime.now().difference(last);
+      var gap = kind == MediaUpdateKind.lyric ? lyricGap : minGap;
+      if (_deliveredKind == MediaUpdateKind.track &&
+          kind == MediaUpdateKind.lyric) {
+        gap = trackSettle;
+      }
+      if (since < gap) {
+        final remaining = gap - since;
+        if (remaining > wait) {
+          wait = remaining;
+        }
+      }
+    }
+
+    _arm(wait);
+  }
+
+  void _arm(Duration wait) {
+    _timer?.cancel();
+    if (wait <= Duration.zero) {
       _timer = null;
       scheduleMicrotask(_flush);
       return;
     }
-    if (_timer != null) {
-      return;
-    }
-    _timer = Timer(debounce, () {
+    _timer = Timer(wait, () {
       _timer = null;
       _flush();
     });
@@ -202,6 +277,8 @@ class MediaBroadcaster {
     }
     _deliveredId = snapshot.id;
     _deliveredKey = key;
+    _deliveredAt = DateTime.now();
+    _deliveredKind = _pendingKind;
     _publishes++;
     snapshot.deliver(snapshot);
   }
@@ -300,6 +377,8 @@ class MediaBroadcaster {
     _failures.clear();
     _deliveredId = null;
     _deliveredKey = null;
+    _deliveredAt = null;
+    _deliveredKind = null;
     _generation = 0;
   }
 

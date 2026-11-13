@@ -13,32 +13,32 @@ const int mediaBroadcastThumbnailSide = 100;
 ///
 /// The mapping matters, because anything not set here never reaches the car:
 ///
-/// * [MediaItem.title] / `artist` / `album` become the track metadata.
-/// * [MediaItem.artUri] is what produces the notification's artwork bitmap;
-///   it may be a `file://` URI, which only this process can read.
+/// * [MediaItem.title] / `artist` / `album` become the track metadata. With
+///   broadcasting off, title is the song and artist is the performer; with it
+///   on, title is the current lyric line and artist is `<< artist - title >>`,
+///   so the unit always shows both the line and which song it belongs to.
 /// * `artCacheFile` in [MediaItem.extras] is a *local path* audio_service reads
 ///   itself and turns into the session's `ALBUM_ART` / `DISPLAY_ICON` bitmap -
-///   so the artwork travels to the car inside the session metadata, with no
-///   HTTP server, no LAN address and no content provider involved. This is the
-///   path to prefer: it works for a local file with Wi-Fi switched off.
-/// * `ALBUM_ART_URI` / `DISPLAY_ICON_URI` in [MediaItem.extras] are the URIs a
-///   *car* fetches itself, so they must point at something reachable from the
-///   head unit (the server's URL, or this phone on the LAN). Kept as a fallback
-///   for units that read a URI instead of the bitmap.
-/// * The current lyric line travels in extras (`android.media.metadata.LYRIC`)
-///   and in the subtitle, which is the line a head unit renders.
-/// * `loadThumbnailUri` in [MediaItem.extras] with a `THUMBNAIL_SIZE` makes
-///   audio_service (Android 10+) read the artwork through
-///   `ContentResolver.loadThumbnail` at that size instead of decoding the whole
-///   image - the artwork a head unit shows is a thumbnail, so this is the size
-///   the session should carry.
+///   the artwork travels to the car inside the session metadata, with no HTTP
+///   server, no LAN address and no content provider involved. It carries the
+///   broadcast-sized JPEG, so a cover update is a few kilobytes, not the
+///   original several megabytes. This is the path every phone uses.
+/// * [MediaItem.artUri] is only set on desktop, where the media integration
+///   reads the file itself.
+/// * The current lyric line also travels in extras
+///   (`android.media.metadata.LYRIC`), for units that render the lyric field.
+/// * `ALBUM_ART_URI` / `DISPLAY_ICON_URI` are deliberately not published when a
+///   local bitmap exists: two artwork sources make a unit re-fetch the image on
+///   every metadata update, and the bitmap is already in the session.
 ///
 /// Kept as a pure function with only strings in, so the mapping can be unit
 /// tested without a device, a car, or audio_service's platform channels.
 ///
-/// The [id] is what a consumer caches the item (and its artwork) by, so a
-/// published artwork must carry an id that changes when the artwork does:
-/// [serviceMediaItemId] versions it.
+/// The [id] is the track's own id and stays the same for every publish of that
+/// track, artwork included: an artwork that arrives after the first publish is
+/// a metadata change, not a new item. A changing media id means "another
+/// track" to a head unit, which costs a redraw and, on some units, another
+/// cover transfer for nothing.
 MediaItem buildServiceMediaItem({
   required String id,
   required String songTitle,
@@ -51,20 +51,26 @@ MediaItem buildServiceMediaItem({
   String? artCacheFile,
   String? fetchableArtUri,
 }) {
-  // A blank line is not a lyric; publishing one would wipe the car's line.
-  final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
+  // A blank line is not a lyric, and with broadcasting off the line is not
+  // published at all: the head unit gets the track's own metadata and nothing
+  // that would make it re-read the item on every lyric tick.
+  final line = (lyricInTitle && lyric != null && lyric.trim().isNotEmpty)
+      ? lyric
+      : null;
 
-  // "Control Center Lyrics" decides which line carries the lyric: on = the
-  // primary line (the iOS control centre and the notification's title), off =
-  // the secondary line, which is what a head unit renders as the artist and
-  // what the notification shows as its content text.
-  final useLyricInTitle = lyricInTitle && line != null;
-  final subtitle = useLyricInTitle ? artist : (line ?? artist);
+  // Broadcasting lyrics means the head unit's two text lines are used for what
+  // a driver can actually read at a glance: the current lyric line on the
+  // primary line, and the song identity - "artist - title" - on the secondary
+  // one. A track that has not reached its first lyric line yet keeps its title
+  // on the primary line, so the unit never shows a blank while it waits.
+  final lyricsOn = lyricInTitle;
+  final titleText = (lyricsOn && line != null) ? line : songTitle;
+  final artistText = lyricsOn ? '<< $artist - $songTitle >>' : artist;
 
   return MediaItem(
     id: id,
-    title: useLyricInTitle ? line : songTitle,
-    artist: subtitle,
+    title: titleText,
+    artist: artistText,
     album: album,
     // A content:// URI is what audio_service reads asynchronously (and, on
     // Android 10+, through `loadThumbnail` at [mediaBroadcastThumbnailSide]).
@@ -75,8 +81,8 @@ MediaItem buildServiceMediaItem({
         ? Uri.tryParse(fileArtUri)
         : null,
     duration: duration,
-    displayTitle: useLyricInTitle ? line : songTitle,
-    displaySubtitle: subtitle,
+    displayTitle: titleText,
+    displaySubtitle: artistText,
     displayDescription: album,
     extras: <String, dynamic>{
       // audio_service loads this file and puts the bitmap straight into the
@@ -105,18 +111,4 @@ MediaItem buildServiceMediaItem({
       },
     },
   );
-}
-
-/// The item id the session gets for [songId]'s [artworkVersion].
-///
-/// A head unit (and audio_service's own bitmap cache) keys artwork off the
-/// item, so the same song published with a *different* cover must not reuse the
-/// id: that is how a cover that arrived late - or one that was rebuilt after a
-/// failure - never reached the car. The version is folded in only once there is
-/// artwork, so the plain song id is kept for a track with none.
-String serviceMediaItemId(String songId, String? artworkVersion) {
-  if (artworkVersion == null || artworkVersion.isEmpty) {
-    return songId;
-  }
-  return '$songId#art:$artworkVersion';
 }

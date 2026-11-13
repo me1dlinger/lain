@@ -37,29 +37,38 @@ void main() {
     expect(result.extras?.containsKey('android.media.metadata.LYRICS'), isFalse);
   });
 
-  test('the lyric goes to the second line when the title keeps the song', () {
+  test('with broadcasting off a lyric is not published at all', () {
     final result = item(lyric: 'line one');
 
     expect(result.title, 'Title');
-    expect(result.artist, 'line one');
-    expect(result.displaySubtitle, 'line one');
-    expect(result.extras?['android.media.metadata.LYRIC'], 'line one');
-    expect(result.extras?['android.media.metadata.LYRICS'], 'line one');
+    expect(result.artist, 'Artist');
+    expect(result.displaySubtitle, 'Artist');
+    expect(result.extras?.containsKey('android.media.metadata.LYRIC'), isFalse);
+    expect(result.extras?.containsKey('android.media.metadata.LYRICS'), isFalse);
   });
 
-  test('Control Center Lyrics moves the lyric to the primary line', () {
+  test('with broadcasting on the lyric is the title and the identity the artist', () {
     final result = item(lyric: 'line one', lyricInTitle: true);
 
     expect(result.title, 'line one');
-    expect(result.artist, 'Artist');
+    expect(result.artist, '<< Artist - Title >>');
+    expect(result.displayTitle, 'line one');
+    expect(result.displaySubtitle, '<< Artist - Title >>');
     expect(result.extras?['android.media.metadata.LYRIC'], 'line one');
   });
 
-  test('a blank lyric is treated as no lyric', () {
-    final result = item(lyric: '   ');
+  test('a track without a lyric line keeps its own title', () {
+    final result = item(lyricInTitle: true);
 
     expect(result.title, 'Title');
-    expect(result.artist, 'Artist');
+    expect(result.artist, '<< Artist - Title >>');
+  });
+
+  test('a blank lyric is treated as no lyric', () {
+    final result = item(lyric: '   ', lyricInTitle: true);
+
+    expect(result.title, 'Title');
+    expect(result.artist, '<< Artist - Title >>');
     expect(result.extras?.containsKey('android.media.metadata.LYRIC'), isFalse);
   });
 
@@ -93,13 +102,17 @@ void main() {
   test('a lyric update keeps the artwork it was given', () {
     const art = 'http://192.168.1.5:41234/cover/token';
     final before = item(fetchableArtUri: art);
-    final after = item(lyric: 'line two', fetchableArtUri: art);
+    final after = item(
+      lyric: 'line two',
+      lyricInTitle: true,
+      fetchableArtUri: art,
+    );
 
     // This is the regression behind "the cover appears and then vanishes": a
     // lyric-line publish must carry the same artwork, not drop it.
     expect(after.extras?['android.media.metadata.ALBUM_ART_URI'], art);
     expect(after.extras?['android.media.metadata.LYRIC'], 'line two');
-    expect(after.artist, 'line two');
+    expect(after.title, 'line two');
     expect(before.artist, 'Artist');
   });
 
