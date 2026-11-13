@@ -16,6 +16,7 @@ import 'package:lain/landscape_view/title_bar.dart';
 import 'package:lain/landscape_view/volume_bar.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/widgets/seekbar.dart';
+import 'package:lain/portrait_view/pages/driving_mode_page.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
@@ -228,6 +229,25 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                           setting.save();
                         },
                         icon: Icon(Icons.text_decrease_rounded, size: 18),
+                      ),
+                      // The full screen driving page is reachable from the
+                      // landscape lyrics page too, not only from the portrait
+                      // menu.
+                      IconButton(
+                        color: lyricsPageForegroundColor.value,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => const DrivingModePage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.directions_car_rounded,
+                          size: 20,
+                        ),
                       ),
                     ];
                     return Offstage(
