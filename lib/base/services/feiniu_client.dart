@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:lain/base/data/stream_quality.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -518,6 +519,7 @@ class FeiniuClient extends StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
+    StreamQuality? quality,
   }) async {
     try {
       final response = await _openResource(

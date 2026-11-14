@@ -499,6 +499,7 @@ class EmbyClient extends StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
+    StreamQuality? quality,
   }) async {
     try {
       final response = await dio.download(

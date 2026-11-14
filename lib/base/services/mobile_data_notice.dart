@@ -48,6 +48,9 @@ class MobileDataNoticeService {
     showCenterMessage(AppLocalizations.of(context).mobileDataNotice);
   }
 
+  /// Whether the active connection is cellular, for the download queue.
+  Future<bool> isCellularNetwork() => _isCellular();
+
   Future<bool> _isCellular() async {
     // Desktops have no cellular radio. iOS has one, but the reminder is wired
     // to the Android connectivity manager; returning false there only means no

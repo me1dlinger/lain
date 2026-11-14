@@ -991,7 +991,24 @@ class NavidromeClient extends StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
+    StreamQuality? quality,
   }) async {
+    if (quality != null && !quality.transcodes) {
+      // "Original" downloads the stored file instead of a transcoded stream.
+      return downloadOriginal(songId, savePath, cancelToken: cancelToken);
+    }
+    if (quality != null) {
+      final query = <String, String>{
+        'id': songId,
+        'maxBitRate': '${quality.maxBitRate}',
+        'format': streamFormatNotifier.value.subsonicValue,
+      };
+      final url = Uri.parse(baseUrl)
+          .resolve('rest/stream.view')
+          .replace(queryParameters: params(query))
+          .toString();
+      return _download(url, savePath, cancelToken: cancelToken);
+    }
     return _download(getStreamUrl(songId), savePath, cancelToken: cancelToken);
   }
 

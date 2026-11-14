@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:lain/base/data/stream_quality.dart';
 
 /// When the app keeps a streamed song on disk without being asked.
 ///
@@ -21,6 +22,16 @@ final downloadDirNotifier = ValueNotifier<String>('');
 
 /// The cache limit in gigabytes; zero means no limit.
 final cacheLimitGbNotifier = ValueNotifier<int>(2);
+
+/// Whether a download may run over mobile data. Off means a task added on a
+/// cellular connection waits for Wi-Fi.
+final downloadOnMobileDataNotifier = ValueNotifier<bool>(false);
+
+/// The bitrate a manual download is fetched at; [StreamQuality.original] keeps
+/// the server's own file.
+final downloadQualityNotifier = ValueNotifier<StreamQuality>(
+  StreamQuality.original,
+);
 
 /// Labels for [cacheLimitGbNotifier]'s choices, in the order the dialog shows
 /// them. Kept here so the settings page and the enforcement agree on the set.

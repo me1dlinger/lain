@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 
 StreamClient? streamClient;
@@ -171,6 +172,7 @@ abstract class StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
+    StreamQuality? quality,
   });
 
   /// Fetches the song as the server stores it, for the user to keep - unlike

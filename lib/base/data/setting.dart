@@ -237,6 +237,11 @@ class Setting {
     cacheDirNotifier.value = json['cacheDir'] as String? ?? '';
     downloadDirNotifier.value = json['downloadDir'] as String? ?? '';
     cacheLimitGbNotifier.value = json['cacheLimitGb'] as int? ?? 2;
+    downloadQualityNotifier.value = StreamQuality.fromName(
+      json['downloadQuality'],
+    );
+    downloadOnMobileDataNotifier.value =
+        json['downloadOnMobileData'] as bool? ?? false;
 
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
@@ -360,6 +365,8 @@ class Setting {
         'cacheDir': cacheDirNotifier.value,
         'downloadDir': downloadDirNotifier.value,
         'cacheLimitGb': cacheLimitGbNotifier.value,
+        'downloadQuality': downloadQualityNotifier.value.name,
+        'downloadOnMobileData': downloadOnMobileDataNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

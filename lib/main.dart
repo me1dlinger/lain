@@ -27,6 +27,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'base/audio_handler.dart';
+import 'package:lain/base/services/download_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -311,6 +312,9 @@ Future<void> main() async {
   );
   logger.output('App start');
   await Loader.load();
+  // A failed download queue waiting for Wi-Fi continues as soon as the app is
+  // opened with one.
+  unawaited(downloadManager.resumeWaitingForWifi());
 }
 
 /// Logs a startup message before (or without) the log file being ready.
