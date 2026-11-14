@@ -735,14 +735,23 @@ class Library {
 
   Future<void> updatePlayCount(MyAudioMetadata song) async {
     final db = _metadataDB!;
-    await (db.update(
-      db.metadataItems,
-    )..where((t) => t.id.equals(song.id))).write(
-      MetadataItemsCompanion(
-        playCount: Value(song.playCount),
-        lastPlayed: Value(song.lastPlayed!.millisecondsSinceEpoch),
-      ),
-    );
+    final updated =
+        await (db.update(
+          db.metadataItems,
+        )..where((t) => t.id.equals(song.id))).write(
+          MetadataItemsCompanion(
+            playCount: Value(song.playCount),
+            lastPlayed: Value(song.lastPlayed!.millisecondsSinceEpoch),
+          ),
+        );
+    // The row can be missing - a library that was never saved, or a song played
+    // before its scan finished. Writing the whole row keeps the play count and
+    // the "last played" from being dropped on the floor.
+    if (updated == 0) {
+      await db
+          .into(db.metadataItems)
+          .insertOnConflictUpdate(song.toCompanion());
+    }
   }
 
   Future<void> updateLyricsTimeOffset(MyAudioMetadata song) async {
@@ -818,6 +827,7 @@ class Library {
       }
 
       if (tmp != null) {
+        final previous = library.id2Song[id];
         song = MyAudioMetadata(
           tmp,
           id: id,
@@ -825,6 +835,12 @@ class Library {
           modified: modified,
           created: created,
         );
+        // Re-reading the tags must not reset what the listener has already
+        // done with the song.
+        if (previous != null) {
+          song.playCount = previous.playCount;
+          song.lastPlayed = previous.lastPlayed;
+        }
       } else {
         song = null;
       }

@@ -25,11 +25,36 @@ class PlaylistManager {
   Map<String, Playlist> playlistMap = {};
   ValueNotifier<int> updateNotifier = ValueNotifier(0);
 
+  /// Which source the playlists in memory were built for. A playlist's song
+  /// file and its server identity belong to one source, so after a switch the
+  /// old objects must not be reused - that is how a stream home page ended up
+  /// showing local playlist names (and the other way round).
+  String? _builtForKey;
+
   PlaylistManager() {
     addPlaylist(Playlist(name: 'Favorite'));
   }
 
+  String get _sourceKey =>
+      '${sourceType.name}:${streamClient?.baseUrl ?? ''}';
+
+  /// Clears the in-memory list when the active source (or server) is not the
+  /// one the playlists were built for. Files are untouched: the new source's
+  /// own list is read right after this.
+  void _rebuildForSource() {
+    final key = _sourceKey;
+    if (_builtForKey == key) {
+      return;
+    }
+    _builtForKey = key;
+    playlists.clear();
+    playlistMap.clear();
+    addPlaylist(Playlist(name: 'Favorite'));
+    updateNotifier.value++;
+  }
+
   Future<void> _prepareForLoad() async {
+    _rebuildForSource();
     _playlistsFile = File(
       "${getPlaylistConfigPath(sourceType)}/lain_playlists.json",
     );
@@ -49,6 +74,7 @@ class PlaylistManager {
   }
 
   Future<void> _prepareForSync() async {
+    _rebuildForSource();
     _playlistsFile = File(
       "${getPlaylistConfigPath(sourceType)}/lain_playlists.json",
     );
@@ -65,12 +91,24 @@ class PlaylistManager {
         }
         playlistMap[playlist.name]!.id = playlist.id;
       }
+      // A playlist deleted on the server is gone from the list here too; the
+      // favourites list is built locally and always stays.
+      final keep = {for (final p in tmpPlaylist ?? <Playlist>[]) p.name};
+      final stale = [
+        for (final p in playlists)
+          if (!p.isFavorite && !keep.contains(p.name)) p,
+      ];
+      for (final p in stale) {
+        playlists.remove(p);
+        playlistMap.remove(p.name);
+      }
       update();
     } else {
       final contentList = await readJsonListFile(_playlistsFile);
       for (final content in contentList) {
-        final playlist = Playlist(name: content);
-        addPlaylist(playlist);
+        if (playlistMap[content] == null) {
+          addPlaylist(Playlist(name: content));
+        }
       }
 
       updateNotifier.value++;
@@ -230,6 +268,7 @@ class PlaylistManager {
   }
 
   void reset() {
+    _builtForKey = null;
     playlists.clear();
     playlistMap.clear();
     addPlaylist(Playlist(name: 'Favorite'));
