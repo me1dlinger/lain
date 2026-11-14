@@ -298,6 +298,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get repeat => '单曲循环';
 
   @override
+  String get holdForRepeatOne => '长按：单曲循环';
+
+  @override
   String get playAll => '播放全部';
 
   @override

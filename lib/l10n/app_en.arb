@@ -146,6 +146,7 @@
   "loop": "Loop",
   "shuffle": "Shuffle",
   "repeat": "Repeat",
+  "holdForRepeatOne": "Hold: repeat one",
   "playAll": "Play All",
   "move2Top": "Move to Top",
   "playNow": "Play Now",

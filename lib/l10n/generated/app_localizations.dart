@@ -644,6 +644,12 @@ abstract class AppLocalizations {
   /// **'Repeat'**
   String get repeat;
 
+  /// No description provided for @holdForRepeatOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold: repeat one'**
+  String get holdForRepeatOne;
+
   /// No description provided for @playAll.
   ///
   /// In en, this message translates to:

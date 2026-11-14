@@ -18,7 +18,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
     valueListenable: playModeNotifier,
     builder: (context, playMode, _) {
       final l10n = AppLocalizations.of(context);
-      Widget modeIcon = ImageIcon(
+      final modeIcon = ImageIcon(
         playMode == 0
             ? loopImage
             : playMode == 1
@@ -26,20 +26,33 @@ Widget playModeButton(double? size, {Color? iconColor}) {
             : repeatImage,
         size: size,
       );
-      return IconButton(
-        color: iconColor,
-        tooltip: switch (playMode) {
-          0 => l10n.loop,
-          1 => l10n.shuffle,
-          _ => l10n.repeat,
-        },
-        icon: modeIcon,
-        onPressed: () {
-          if (playQueue.isEmpty) {
-            return;
-          }
-          audioHandler.changePlayMode((playMode + 1) % 3);
-        },
+      final label = switch (playMode) {
+        0 => l10n.loop,
+        1 => l10n.shuffle,
+        _ => l10n.repeat,
+      };
+      return Tooltip(
+        message: '$label · ${l10n.holdForRepeatOne}',
+        child: GestureDetector(
+          // Long press puts the same queue into repeat one directly, from list
+          // loop or from shuffle; a tap only switches between the two.
+          onLongPress: () {
+            if (playQueue.isEmpty) {
+              return;
+            }
+            audioHandler.setRepeatOne();
+          },
+          child: IconButton(
+            color: iconColor,
+            icon: modeIcon,
+            onPressed: () {
+              if (playQueue.isEmpty) {
+                return;
+              }
+              audioHandler.toggleListAndShuffle();
+            },
+          ),
+        ),
       );
     },
   );

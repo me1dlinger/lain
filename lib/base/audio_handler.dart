@@ -895,6 +895,33 @@ class MyAudioHandler extends BaseAudioHandler {
     savePlayState();
   }
 
+  /// Short press on the play-mode button: list loop <-> shuffle only. From
+  /// repeat one it returns to the mode repeat one was entered from.
+  void toggleListAndShuffle() {
+    if (playQueue.isEmpty) {
+      return;
+    }
+    final current = playModeNotifier.value;
+    if (current == 2) {
+      changePlayMode(_tmpPlayMode == 2 ? 0 : _tmpPlayMode);
+      return;
+    }
+    changePlayMode(current == 0 ? 1 : 0);
+  }
+
+  /// Long press: repeat one, on the queue that is playing now - no detour
+  /// through shuffle and no new queue. Pressing it again leaves repeat one.
+  void setRepeatOne() {
+    if (playQueue.isEmpty) {
+      return;
+    }
+    if (playModeNotifier.value == 2) {
+      changePlayMode(_tmpPlayMode == 2 ? 0 : _tmpPlayMode);
+    } else {
+      changePlayMode(2);
+    }
+  }
+
   void _showPlayModeMessage(int mode) {
     final l10n = getAppLocalizations();
     showCenterMessage(
@@ -2141,6 +2168,23 @@ class MyAudioHandler extends BaseAudioHandler {
       kind: kind,
       immediate: kind == MediaUpdateKind.track,
     );
+  }
+
+  @override
+  Future<void> onTaskRemoved() async {
+    // The app was swiped out of the recents list. Playback must not keep going
+    // with no window to control it; pausing first keeps the saved position,
+    // stopping releases the foreground service and the notification.
+    _completionLog('task removed, stopping playback');
+    try {
+      await pause();
+      await stop();
+      // Reopening the app attaches to this same handler: the next play must
+      // open the track again instead of resuming a stopped player.
+      _needsReload = true;
+    } catch (e) {
+      _completionLog('stop on task removal failed: $e');
+    }
   }
 
   @override

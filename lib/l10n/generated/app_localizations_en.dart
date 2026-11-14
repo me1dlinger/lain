@@ -300,6 +300,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repeat => 'Repeat';
 
   @override
+  String get holdForRepeatOne => 'Hold: repeat one';
+
+  @override
   String get playAll => 'Play All';
 
   @override

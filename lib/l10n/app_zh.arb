@@ -90,6 +90,7 @@
   "loop": "列表循环",
   "shuffle": "随机播放",
   "repeat": "单曲循环",
+  "holdForRepeatOne": "长按：单曲循环",
   "playAll": "播放全部",
   "move2Top": "移至顶部",
   "playNow": "现在播放",
