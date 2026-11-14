@@ -186,17 +186,36 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                         title: ValueListenableBuilder(
                           valueListenable: currentSongNotifier,
                           builder: (_, currentSong, _) {
-                            return Text(
-                              getTitle(song),
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: song == currentSong
-                                    ? FontWeight.bold
-                                    : null,
-                                color: song == currentSong
-                                    ? specificHighlightText
-                                    : specificTextColor,
-                              ),
+                            final isCurrent = song == currentSong;
+                            // The song that repeat one will play again is
+                            // marked on its own row, in the row's icon colour.
+                            final repeatOne =
+                                isCurrent && playModeNotifier.value == 2;
+                            return Row(
+                              children: [
+                                if (repeatOne) ...[
+                                  ImageIcon(
+                                    repeatImage,
+                                    size: 14,
+                                    color: specificIconColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    getTitle(song),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: isCurrent
+                                          ? FontWeight.bold
+                                          : null,
+                                      color: isCurrent
+                                          ? specificHighlightText
+                                          : specificTextColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),

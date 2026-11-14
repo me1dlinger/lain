@@ -271,17 +271,35 @@ class PlayQueuePageState extends State<PlayQueuePage> {
               title: ValueListenableBuilder(
                 valueListenable: currentSongNotifier,
                 builder: (_, currentSong, _) {
-                  return Text(
-                    getTitle(song),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: song == currentSong
-                          ? specificHighlightText
-                          : specificTextColor,
-
-                      fontWeight: song == currentSong ? FontWeight.bold : null,
-                      fontSize: 15,
-                    ),
+                  final isCurrent = song == currentSong;
+                  // The song repeat one will play again carries its own mark,
+                  // in the same colour as the row's icons.
+                  final repeatOne =
+                      isCurrent && playModeNotifier.value == 2;
+                  return Row(
+                    children: [
+                      if (repeatOne) ...[
+                        ImageIcon(
+                          repeatImage,
+                          size: 14,
+                          color: colorManager.getSpecificIconColor(),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(
+                          getTitle(song),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isCurrent
+                                ? specificHighlightText
+                                : specificTextColor,
+                            fontWeight: isCurrent ? FontWeight.bold : null,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),

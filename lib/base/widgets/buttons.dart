@@ -26,39 +26,6 @@ Widget playModeButton(double? size, {Color? iconColor}) {
             : repeatImage,
         size: size,
       );
-      if (playMode == 2) {
-        // Repeat one is the only mode that changes what the next track is, so
-        // it carries a mark of its own: the repeat icon plus a "1", visible
-        // before the song ends and the queue does not move on.
-        modeIcon = Stack(
-          clipBehavior: Clip.none,
-          children: [
-            modeIcon,
-            Positioned(
-              right: -3,
-              top: -3,
-              child: Container(
-                width: 11,
-                height: 11,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF34C759),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '1',
-                  style: TextStyle(
-                    fontSize: 8,
-                    height: 1,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      }
       return IconButton(
         color: iconColor,
         tooltip: switch (playMode) {
