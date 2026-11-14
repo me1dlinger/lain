@@ -20,6 +20,51 @@ Currently supports:
 - Emby
 - Feiniu Music (special thanks to [huya688zdx](https://github.com/huya688zdx) for the contribution)
 
+## This Release
+
+### Car and media session
+- Bluetooth/head-unit metadata follows a track switch immediately; title, artist and duration no longer lag.
+- Artwork can be a server URL, the local relay, a content provider URI, or the bitmap only; the broadcast carries a compressed thumbnail.
+- Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title".
+- On the LAN the phone can serve the artwork to the head unit directly.
+
+### Playback
+- Play modes: tap cycles list loop and shuffle; a long press enters repeat one. The queue marks the repeating song.
+- Audio focus offers exclusive, smart ducking and mix: exclusive pauses and does not resume by itself; ducking restores the original volume when the interruption ends.
+- The queue supports drag reordering, play next, add to queue, reverse and a full queue page.
+- New full-screen driving mode with a cover-blurred background that follows the theme, in portrait and landscape; reachable from the landscape lyrics page too.
+
+### Library and browsing
+- Multiple servers, each with public and LAN addresses and its own certificate option, including Feiniu; addresses fail over and are masked by default.
+- New server status page: state, address and latency, speed-first selection, server information and library statistics.
+- Global search across songs, albums, artists and playlists.
+- Album and artist pages with sorting, albums first, track numbers and album descriptions; artist artwork is decided consistently from the server and the cache.
+- Song lists remember their sort order; recently added, play-count sorting and quality tags are available.
+- Playlists support import, export and rename while keeping their added order; a playlist cover follows the first song in the chosen order.
+- Comments: a song menu entry, a comment server, paging, hot/latest/time sorting, search, floor replies and display settings.
+- Rebranded as Lain, with local music and offline-mode controls.
+
+### Cache and downloads
+- Automatic caching can be controlled separately for songs, playlists and artists.
+- Cache and download folders are configurable; changing either asks whether to move the existing files.
+- The cache limit can be unlimited or 1/2/5/8 GB; the oldest cached songs are evicted first.
+- Cache tasks show waiting/downloading/paused/completed/failed per song, with pause, resume and delete per task and global stop or clear.
+- Caching uses the online quality and transcode format selected for the source, and the task page shows it.
+- Downloads can pick a bitrate; on mobile data they queue and continue automatically on Wi-Fi or when the app opens, with progress shown.
+- The download page holds the queue and completed records, with per-task and global continue, pause and delete; completed records show their cover.
+- New LAN direct switch: on the LAN the app streams from the server without transcoding and without reading the cache.
+
+### Home and statistics
+- The home page is the single entry point, with customisable buttons and shelf order, recently added, Navidrome statistic cards and global search.
+- Home-screen widgets in 2x2 and 4x2 layouts with cover and progress.
+- The listening report includes annual statistics, a monthly heatmap and top songs/albums/artists; two thirds of a track counts as a play.
+
+### Interface
+- Light, dark and vivid themes; song rows can show HR/SQ/HQ quality tags with a separate vivid palette.
+- Settings and home layout support long-press drag reordering; comment and lyric settings are grouped more clearly.
+- Server and metadata forms share the app's grouped-card style; the lyrics page has one font control.
+
+
 ## About this project
 
 Lain is a **derivative work** of [Sylvakru](https://github.com/AfalpHy/sylvakru) (formerly Particle Music),
