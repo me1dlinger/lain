@@ -740,6 +740,31 @@ class Library {
 
   Future<void> _saveMetadata() async {
     final db = _metadataDB!;
+
+    // A save rewrites every row from the in-memory songs. After a rescan those
+    // objects can be fresh ones, whose play count and last-played are zero -
+    // writing them as they are wiped the listening history on every scan.
+    // Carry the stored values over first.
+    final stored = await db.select(db.metadataItems).get();
+    final stats = {
+      for (final row in stored) row.id: (row.playCount, row.lastPlayed),
+    };
+    for (final song in songList) {
+      final saved = stats[song.id];
+      if (saved == null) {
+        continue;
+      }
+      if (song.playCount < saved.$1) {
+        song.playCount = saved.$1;
+      }
+      if (saved.$2 != null) {
+        final savedAt = DateTime.fromMillisecondsSinceEpoch(saved.$2!);
+        if (song.lastPlayed == null || savedAt.isAfter(song.lastPlayed!)) {
+          song.lastPlayed = savedAt;
+        }
+      }
+    }
+
     await db.transaction(() async {
       await db.delete(db.metadataItems).go();
 
