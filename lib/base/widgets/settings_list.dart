@@ -103,6 +103,7 @@ Future<void> showSettingsOrderDialog(BuildContext context) async {
                   const SizedBox(height: 8),
                   Expanded(
                     child: ReorderableListView.builder(
+                      onReorderStart: (_) => vibrateGestureFeedback(),
                       itemCount: order.length,
                       // The default proxy is an opaque Material, which shows
                       // up as a white box against this themed window.
@@ -131,7 +132,7 @@ Future<void> showSettingsOrderDialog(BuildContext context) async {
                           splashColor: Colors.transparent,
                           leading: Icon(settingsCategoryIcon(category)),
                           title: Text(settingsCategoryTitle(l10n, category)),
-                          trailing: ReorderableDragStartListener(
+                          trailing: ReorderableDelayedDragStartListener(
                             index: index,
                             child: const Icon(Icons.drag_handle_rounded),
                           ),
@@ -341,6 +342,7 @@ class _SettingsListState extends State<SettingsList> {
           languageListTile(context, l10n),
           if (viewModeNotifier.value != .bigPicture)
             fontListTile(context, l10n),
+          commentSettingsListTile(context, l10n),
           ListTile(
             leading: Icon(
               Icons.straighten_rounded,
@@ -1024,7 +1026,16 @@ class _SettingsListState extends State<SettingsList> {
         color: iconColor.value,
       ),
       title: Text(l10n.cacheLimit),
-      subtitle: Text(_cacheLimitLabel(l10n)),
+      subtitle: ValueListenableBuilder(
+        valueListenable: cacheLimitGbNotifier,
+        builder: (context, value, child) {
+          return Text(
+            value == 0
+                ? l10n.cacheLimitUnlimited
+                : l10n.cacheLimitGb(value),
+          );
+        },
+      ),
       onTap: () => _pickCacheLimit(context, l10n),
     );
   }

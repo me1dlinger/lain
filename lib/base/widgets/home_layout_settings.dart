@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 
@@ -138,6 +139,7 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
     required String Function(T item) label,
   }) {
     return ReorderableListView(
+      onReorderStart: (_) => vibrateGestureFeedback(),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
@@ -177,10 +179,10 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
 
     return Padding(
       key: key,
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 2),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Row(
         children: [
-          ReorderableDragStartListener(
+          ReorderableDelayedDragStartListener(
             index: index,
             child: MouseRegion(
               cursor: SystemMouseCursors.grab,
