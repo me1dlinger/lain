@@ -678,6 +678,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloaded => '已下载';
 
   @override
+  String get downloadAdded => '已添加到下载列表';
+
+  @override
+  String get allCached => '已全部缓存';
+
+  @override
   String get downloadFailed => '下载失败';
 
   @override
@@ -1135,6 +1141,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get coverBroadcast => '封面广播方式';
+
+  @override
+  String get songQualityBadge => '歌曲品质标识';
 
   @override
   String get coverBroadcastBitmap => '仅位图';

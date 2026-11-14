@@ -22,7 +22,7 @@ Future<void> showCacheDownloadDialog(
 
   final list = songs.where((song) => !song.cacheExist).toList();
   if (list.isEmpty) {
-    showCenterMessage(l10n.cacheEmpty);
+    showCenterMessage(l10n.allCached);
     return;
   }
   if (manager.isRunning) {

@@ -680,6 +680,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloaded => 'Downloaded';
 
   @override
+  String get downloadAdded => 'Added to downloads';
+
+  @override
+  String get allCached => 'Everything is cached';
+
+  @override
   String get downloadFailed => 'Download failed';
 
   @override
@@ -1150,6 +1156,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coverBroadcast => 'Cover broadcast';
+
+  @override
+  String get songQualityBadge => 'Song quality badge';
 
   @override
   String get coverBroadcastBitmap => 'Bitmap only';

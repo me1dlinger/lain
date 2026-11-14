@@ -966,6 +966,7 @@ extension _SongListPage on _SongListState {
                       : SizedBox();
                 },
               ),
+              QualityBadge(song: song),
               Expanded(
                 child: Text(
                   "${getArtist(song)} - ${getAlbum(song)}",

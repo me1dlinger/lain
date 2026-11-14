@@ -49,6 +49,7 @@ import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -340,6 +341,21 @@ class _SettingsListState extends State<SettingsList> {
           languageListTile(context, l10n),
           if (viewModeNotifier.value != .bigPicture)
             fontListTile(context, l10n),
+          ListTile(
+            leading: Icon(
+              Icons.straighten_rounded,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.songQualityBadge),
+            trailing: SizedBox(
+              width: 50,
+              child: MySwitch(
+                valueNotifier: songQualityBadgeNotifier,
+                onToggleCallBack: () => setting.save(),
+              ),
+            ),
+          ),
           if (Platform.isAndroid && !isTV) ...[
             immersiveWideLayoutListTile(l10n),
             wideSystemBarListTile(l10n, top: true),
@@ -1114,14 +1130,18 @@ class _SettingsListState extends State<SettingsList> {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final gb in cacheLimitChoices)
-                ListTile(
-                  title: Text(
-                    gb == 0 ? l10n.cacheLimitUnlimited : l10n.cacheLimitGb(gb),
+                Builder(
+                  builder: (dialogContext) => ListTile(
+                    title: Text(
+                      gb == 0
+                          ? l10n.cacheLimitUnlimited
+                          : l10n.cacheLimitGb(gb),
+                    ),
+                    trailing: cacheLimitGbNotifier.value == gb
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () => Navigator.pop(dialogContext, gb),
                   ),
-                  trailing: cacheLimitGbNotifier.value == gb
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () => Navigator.pop(context, gb),
                 ),
             ],
           ),

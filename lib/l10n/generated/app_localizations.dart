@@ -1400,6 +1400,18 @@ abstract class AppLocalizations {
   /// **'Downloaded'**
   String get downloaded;
 
+  /// No description provided for @downloadAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to downloads'**
+  String get downloadAdded;
+
+  /// No description provided for @allCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is cached'**
+  String get allCached;
+
   /// No description provided for @downloadFailed.
   ///
   /// In en, this message translates to:
@@ -2305,6 +2317,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cover broadcast'**
   String get coverBroadcast;
+
+  /// No description provided for @songQualityBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Song quality badge'**
+  String get songQualityBadge;
 
   /// No description provided for @coverBroadcastBitmap.
   ///

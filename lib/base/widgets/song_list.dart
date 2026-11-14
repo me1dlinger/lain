@@ -29,6 +29,7 @@ import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/edit_metadata.dart';
 import 'package:lain/base/widgets/cache_badge.dart';
+import 'package:lain/base/widgets/quality_badge.dart';
 import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/my_location.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';

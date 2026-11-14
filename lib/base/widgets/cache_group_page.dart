@@ -3,6 +3,8 @@ import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/services/cache_download_manager.dart';
+import 'package:lain/base/data/library.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/cache_download_dialog.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
@@ -66,7 +68,16 @@ class _CacheGroupPageState extends State<CacheGroupPage> {
               ),
             ),
             Expanded(
-              child: _tab == 0 ? _playlists(l10n, textColor) : _artists(l10n, textColor),
+              child: ListenableBuilder(
+                listenable: Listenable.merge([
+                  cacheEntriesNotifier,
+                  library.changeNotifier,
+                  cacheDownloadManager.notifier,
+                ]),
+                builder: (context, child) => _tab == 0
+                    ? _playlists(l10n, textColor)
+                    : _artists(l10n, textColor),
+              ),
             ),
           ],
         ),

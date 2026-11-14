@@ -276,6 +276,7 @@ class DownloadManager {
       return true;
     }
 
+    _message(getAppLocalizations().downloadAdded);
     unawaited(_runTask(task));
     return true;
   }

@@ -10,6 +10,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
@@ -243,6 +244,8 @@ class Setting {
     );
     downloadOnMobileDataNotifier.value =
         json['downloadOnMobileData'] as bool? ?? false;
+    songQualityBadgeNotifier.value =
+        json['songQualityBadge'] as bool? ?? false;
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
         CoverBroadcastMode.server;
@@ -372,6 +375,7 @@ class Setting {
         'downloadQuality': downloadQualityNotifier.value.name,
         'downloadOnMobileData': downloadOnMobileDataNotifier.value,
         'coverBroadcastMode': coverBroadcastModeNotifier.value.name,
+        'songQualityBadge': songQualityBadgeNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

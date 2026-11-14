@@ -6,6 +6,8 @@ import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/download_manager.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 
@@ -236,11 +238,17 @@ class _DownloadsPageState extends State<DownloadsPage> {
 
     return ListTile(
       leading: SizedBox(
-        width: 40,
+        width: 48,
         child: Center(
-          child: sourceType == null
-              ? Icon(Icons.cloud_outlined, size: 22, color: textColor)
-              : ImageIcon(getSourceTypeImage(sourceType), size: 26),
+          child: library.id2Song[item.songId]?.picture == null
+              ? (sourceType == null
+                    ? Icon(Icons.cloud_outlined, size: 22, color: textColor)
+                    : ImageIcon(getSourceTypeImage(sourceType), size: 26))
+              : CoverArtWidget(
+                  size: 46,
+                  borderRadius: 6,
+                  picture: library.id2Song[item.songId]!.picture,
+                ),
         ),
       ),
       title: Text(
