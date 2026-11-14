@@ -792,6 +792,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheSongs => 'Cached Songs';
 
   @override
+  String get autoCacheSongs => 'Auto-cache songs';
+
+  @override
+  String get autoCachePlaylists => 'Auto-cache playlists';
+
+  @override
+  String get autoCacheArtists => 'Auto-cache artists';
+
+  @override
+  String get cacheDirectory => 'Cache directory';
+
+  @override
+  String get downloadDirectory => 'Download directory';
+
+  @override
+  String get cacheLimit => 'Cache limit';
+
+  @override
+  String get cacheLimitUnlimited => 'Unlimited';
+
+  @override
+  String cacheLimitGb(int gb) {
+    return '$gb GB';
+  }
+
+  @override
+  String get moveCacheToNewDirectory =>
+      'Move the existing cache to the new folder?';
+
+  @override
+  String get moveDownloadsToNewDirectory =>
+      'Move the downloaded songs to the new folder?';
+
+  @override
+  String get cacheDirectoryChanged => 'Cache directory updated';
+
+  @override
+  String get storagePermissionDenied =>
+      'Storage permission is required for that folder';
+
+  @override
+  String get downloadDirectoryChanged => 'Download directory updated';
+
+  @override
   String get cacheCovers => 'Cached Covers';
 
   @override

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -46,6 +47,7 @@ import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/layer/premium_layer.dart';
@@ -227,12 +229,15 @@ class _SettingsListState extends State<SettingsList> {
             if (isLandscape || viewModeNotifier.value == .bigPicture)
               sliverBox(_settingsHeader(context, l10n)),
             for (final category in order)
-              sliverBox(
-                paddingIfNeed(
-                  isLandscape,
-                  _categoryListTile(context, l10n, category),
+              // A local library has no downloads, and its covers/lyrics are
+              // not something the cache page is needed for.
+              if (isStreamSource || category != SettingsCategory.cacheDownloads)
+                sliverBox(
+                  paddingIfNeed(
+                    isLandscape,
+                    _categoryListTile(context, l10n, category),
+                  ),
                 ),
-              ),
             if (!isLandscape) sliverBox(const SizedBox(height: 100)),
             if (viewModeNotifier.value == .bigPicture)
               sliverBox(const SizedBox(height: 75)),
@@ -357,8 +362,26 @@ class _SettingsListState extends State<SettingsList> {
         ];
       case SettingsCategory.cacheDownloads:
         return [
+          autoCacheListTile(
+            l10n.autoCacheSongs,
+            Icons.music_note_rounded,
+            autoCacheSongsNotifier,
+          ),
+          autoCacheListTile(
+            l10n.autoCachePlaylists,
+            Icons.queue_music_rounded,
+            autoCachePlaylistsNotifier,
+          ),
+          autoCacheListTile(
+            l10n.autoCacheArtists,
+            Icons.person_outline_rounded,
+            autoCacheArtistsNotifier,
+          ),
           cleanCacheListTile(context, l10n),
           downloadsListTile(context, l10n),
+          cacheDirListTile(context, l10n),
+          downloadDirListTile(context, l10n),
+          cacheLimitListTile(context, l10n),
         ];
       case SettingsCategory.listeningReport:
         return [listeningReportListTile(context, l10n)];
@@ -796,6 +819,258 @@ class _SettingsListState extends State<SettingsList> {
         );
       },
     );
+  }
+
+  Widget autoCacheListTile(
+    String title,
+    IconData icon,
+    ValueNotifier<bool> notifier,
+  ) {
+    return ListTile(
+      leading: Icon(icon, size: iconSize, color: iconColor.value),
+      title: Text(title),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: notifier,
+          onToggleCallBack: () => setting.save(),
+        ),
+      ),
+    );
+  }
+
+  String get _cacheDirLabel {
+    final configured = cacheDirNotifier.value.trim();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+    return '${appSupportDir.path}/${sourceType.name}';
+  }
+
+  String get _downloadDirLabel {
+    final configured = downloadDirNotifier.value.trim();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+    return Platform.isAndroid
+        ? '/storage/emulated/0/Download/$downloadFolderName'
+        : '${appDocsDir.path}/$downloadFolderName';
+  }
+
+  String _cacheLimitLabel(AppLocalizations l10n) {
+    final gb = cacheLimitGbNotifier.value;
+    return gb == 0 ? l10n.cacheLimitUnlimited : l10n.cacheLimitGb(gb);
+  }
+
+  Widget cacheDirListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.folder_outlined,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.cacheDirectory),
+      subtitle: Text(
+        _cacheDirLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: () => _changeCacheDirectory(context, l10n),
+    );
+  }
+
+  Widget downloadDirListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.folder_open_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.downloadDirectory),
+      subtitle: Text(
+        _downloadDirLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: () => _changeDownloadDirectory(context, l10n),
+    );
+  }
+
+  Widget cacheLimitListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.storage_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.cacheLimit),
+      subtitle: Text(_cacheLimitLabel(l10n)),
+      onTap: () => _pickCacheLimit(context, l10n),
+    );
+  }
+
+  Future<void> _changeCacheDirectory(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final picked = await FilePicker.getDirectoryPath();
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.request() == .denied) {
+        showCenterMessage(l10n.storagePermissionDenied, duration: 3000);
+        return;
+      }
+    }
+    final newRoot = _normalizePath(picked);
+    final oldRoot = cacheDirNotifier.value.trim().isEmpty
+        ? appSupportDir.path
+        : _normalizePath(cacheDirNotifier.value.trim());
+    if (newRoot == oldRoot) {
+      return;
+    }
+    final move = await showConfirmDialog(context, l10n.moveCacheToNewDirectory);
+    if (!context.mounted) {
+      return;
+    }
+    showCenterLoading();
+    try {
+      if (move) {
+        await _moveCacheTree(oldRoot, newRoot);
+      }
+      cacheDirNotifier.value = newRoot;
+      setting.save();
+      // Song objects capture their cache path when they are created, so the
+      // library has to be rebuilt for the new root to be used everywhere.
+      await Loader.reload();
+      if (context.mounted) {
+        showCenterMessage(l10n.cacheDirectoryChanged, duration: 3000);
+      }
+    } catch (e) {
+      logger.output('[settings] cache directory change failed: $e');
+      if (context.mounted) {
+        showCenterMessage('$e');
+      }
+    } finally {
+      removeCenterLoading();
+    }
+  }
+
+  Future<void> _changeDownloadDirectory(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final picked = await FilePicker.getDirectoryPath();
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.request() == .denied) {
+        showCenterMessage(l10n.storagePermissionDenied, duration: 3000);
+        return;
+      }
+    }
+    final newRoot = _normalizePath(picked);
+    final move = await showConfirmDialog(
+      context,
+      l10n.moveDownloadsToNewDirectory,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    try {
+      if (move) {
+        await downloadManager.moveToDirectory(newRoot);
+      }
+      downloadDirNotifier.value = newRoot;
+      setting.save();
+      if (context.mounted) {
+        showCenterMessage(l10n.downloadDirectoryChanged, duration: 3000);
+      }
+    } catch (e) {
+      logger.output('[settings] download directory change failed: $e');
+      if (context.mounted) {
+        showCenterMessage('$e');
+      }
+    }
+  }
+
+  Future<void> _pickCacheLimit(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final choice = await showAnimationDialog<int>(
+      context: context,
+      child: SizedBox(
+        width: 280,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final gb in cacheLimitChoices)
+                ListTile(
+                  title: Text(
+                    gb == 0 ? l10n.cacheLimitUnlimited : l10n.cacheLimitGb(gb),
+                  ),
+                  trailing: cacheLimitGbNotifier.value == gb
+                      ? const Icon(Icons.check_rounded)
+                      : null,
+                  onTap: () => Navigator.pop(context, gb),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null) {
+      return;
+    }
+    cacheLimitGbNotifier.value = choice;
+    setting.save();
+    unawaited(library.enforceCacheLimit());
+  }
+
+  static final String _backslash = String.fromCharCode(92);
+
+  String _normalizePath(String path) => path.replaceAll(_backslash, '/');
+
+  /// Moves the cached audio/covers/lyrics of every source from [oldRoot] under
+  /// [newRoot], keeping the per-source folder layout. A file that cannot be
+  /// moved is left where it is; an existing destination file wins.
+  Future<void> _moveCacheTree(String oldRoot, String newRoot) async {
+    for (final type in SourceType.values) {
+      for (final sub in const ['caches', 'pictures', 'lyrics']) {
+        final fromDir = Directory('$oldRoot/${type.name}/$sub');
+        if (!await fromDir.exists()) {
+          continue;
+        }
+        final toDir = Directory('$newRoot/${type.name}/$sub');
+        await toDir.create(recursive: true);
+        await for (final entity in fromDir.list(recursive: true)) {
+          if (entity is! File) {
+            continue;
+          }
+          final relative = entity.path.substring(fromDir.path.length + 1);
+          final dest = File('${toDir.path}/$relative');
+          if (await dest.exists()) {
+            continue;
+          }
+          await dest.parent.create(recursive: true);
+          try {
+            try {
+              await entity.rename(dest.path);
+            } catch (_) {
+              await entity.copy(dest.path);
+              await entity.delete();
+            }
+          } catch (e) {
+            logger.output('[settings] cache move failed for ${entity.path}: $e');
+          }
+        }
+      }
+    }
   }
 
   Widget listeningReportListTile(BuildContext context, AppLocalizations l10n) {

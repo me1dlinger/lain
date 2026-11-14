@@ -789,6 +789,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheSongs => '已缓存歌曲';
 
   @override
+  String get autoCacheSongs => '自动缓存歌曲';
+
+  @override
+  String get autoCachePlaylists => '自动缓存歌单';
+
+  @override
+  String get autoCacheArtists => '自动缓存艺术家';
+
+  @override
+  String get cacheDirectory => '缓存目录';
+
+  @override
+  String get downloadDirectory => '下载目录';
+
+  @override
+  String get cacheLimit => '缓存上限';
+
+  @override
+  String get cacheLimitUnlimited => '不限制';
+
+  @override
+  String cacheLimitGb(int gb) {
+    return '$gb GB';
+  }
+
+  @override
+  String get moveCacheToNewDirectory => '把已有缓存移动到新目录吗？';
+
+  @override
+  String get moveDownloadsToNewDirectory => '把已下载的歌曲移动到新目录吗？';
+
+  @override
+  String get cacheDirectoryChanged => '缓存目录已更新';
+
+  @override
+  String get storagePermissionDenied => '需要存储权限才能使用这个目录';
+
+  @override
+  String get downloadDirectoryChanged => '下载目录已更新';
+
+  @override
   String get cacheCovers => '已缓存封面';
 
   @override

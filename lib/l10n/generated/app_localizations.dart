@@ -1622,6 +1622,84 @@ abstract class AppLocalizations {
   /// **'Cached Songs'**
   String get cacheSongs;
 
+  /// No description provided for @autoCacheSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-cache songs'**
+  String get autoCacheSongs;
+
+  /// No description provided for @autoCachePlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-cache playlists'**
+  String get autoCachePlaylists;
+
+  /// No description provided for @autoCacheArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-cache artists'**
+  String get autoCacheArtists;
+
+  /// No description provided for @cacheDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache directory'**
+  String get cacheDirectory;
+
+  /// No description provided for @downloadDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Download directory'**
+  String get downloadDirectory;
+
+  /// No description provided for @cacheLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache limit'**
+  String get cacheLimit;
+
+  /// No description provided for @cacheLimitUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get cacheLimitUnlimited;
+
+  /// No description provided for @cacheLimitGb.
+  ///
+  /// In en, this message translates to:
+  /// **'{gb} GB'**
+  String cacheLimitGb(int gb);
+
+  /// No description provided for @moveCacheToNewDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the existing cache to the new folder?'**
+  String get moveCacheToNewDirectory;
+
+  /// No description provided for @moveDownloadsToNewDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the downloaded songs to the new folder?'**
+  String get moveDownloadsToNewDirectory;
+
+  /// No description provided for @cacheDirectoryChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache directory updated'**
+  String get cacheDirectoryChanged;
+
+  /// No description provided for @storagePermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage permission is required for that folder'**
+  String get storagePermissionDenied;
+
+  /// No description provided for @downloadDirectoryChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Download directory updated'**
+  String get downloadDirectoryChanged;
+
   /// No description provided for @cacheCovers.
   ///
   /// In en, this message translates to:
