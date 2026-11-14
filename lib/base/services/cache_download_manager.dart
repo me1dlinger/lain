@@ -57,6 +57,12 @@ class CacheDownloadManager {
   int _failedCount = 0;
   int _totalCount = 0;
 
+  /// The songs of the current run, kept for the task list even while the
+  /// pending queue drains.
+  final List<MyAudioMetadata> batch = [];
+  final Set<String> activeIds = {};
+  final Set<String> failedIds = {};
+
   bool get isRunning => _running;
 
   /// Starts [songs]; the returned future completes when the whole queue has
@@ -80,6 +86,7 @@ class CacheDownloadManager {
     _pending.addAll(fresh);
 
     if (_running) {
+      batch.addAll(fresh);
       _totalCount += fresh.length;
       _report();
       return _done!.future;
@@ -90,6 +97,11 @@ class CacheDownloadManager {
     _doneCount = 0;
     _failedCount = 0;
     _totalCount = fresh.length;
+    batch
+      ..clear()
+      ..addAll(fresh);
+    activeIds.clear();
+    failedIds.clear();
     _cancellations.clear();
     final completer = Completer<void>();
     _done = completer;
@@ -108,17 +120,21 @@ class CacheDownloadManager {
         final song = _pending.removeAt(0);
         final token = CancelToken();
         _cancellations.add(token);
+        activeIds.add(song.id);
         try {
           final cached = await library.tryAddCache(song, cancelToken: token);
           if (!cached && !_cancelRequested) {
             _failedCount++;
+            failedIds.add(song.id);
           }
         } catch (e) {
           if (!_cancelRequested) {
             _failedCount++;
+            failedIds.add(song.id);
             logger.output('[cache] download failed for ${song.id}: $e');
           }
         } finally {
+          activeIds.remove(song.id);
           _cancellations.remove(token);
           if (!_cancelRequested) {
             _doneCount++;
@@ -134,6 +150,7 @@ class CacheDownloadManager {
       _running = false;
       final canceled = _cancelRequested;
       _pending.clear();
+      activeIds.clear();
       _cancellations.clear();
       notifier.value = CacheTaskProgress(
         phase: canceled ? CacheTaskPhase.canceled : CacheTaskPhase.completed,
