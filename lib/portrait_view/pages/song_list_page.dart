@@ -943,6 +943,7 @@ extension _SongListPage on _SongListState {
 
           subtitle: Row(
             children: [
+              QualityBadge(song: song),
               // Streamed sources only, and faint: it says "this one is on the
               // phone", which the row otherwise gives no sign of. Kept beside
               // the favourite star instead of at the row's trailing edge, where
@@ -966,7 +967,6 @@ extension _SongListPage on _SongListState {
                       : SizedBox();
                 },
               ),
-              QualityBadge(song: song),
               Expanded(
                 child: Text(
                   "${getArtist(song)} - ${getAlbum(song)}",
