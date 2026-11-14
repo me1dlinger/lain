@@ -279,7 +279,7 @@ class Library {
     // session has artwork and lyrics ready without the user asking. Phones only:
     // it exists for what a head unit shows, and a desktop has nothing to feed.
     // Idempotent, so it costs nothing the second time round.
-    if (isMobile && autoCachePlaylistsNotifier.value) {
+    if (isMobile && isStreamSource && autoCachePlaylistsNotifier.value) {
       unawaited(precachePlaylists());
     }
   }
@@ -574,6 +574,11 @@ class Library {
   /// so repeating a run - or running it over a list that overlaps an earlier
   /// one - costs nothing.
   Future<void> precacheSongs(Iterable<MyAudioMetadata> songs) async {
+    // Only a streamed source has something to cache: local covers are read
+    // from the files themselves and there is no audio to keep offline.
+    if (!isStreamSource) {
+      return;
+    }
     final list = songs.toList();
     if (list.isEmpty) {
       return;

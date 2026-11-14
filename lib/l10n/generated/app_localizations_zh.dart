@@ -634,6 +634,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloads => '下载记录';
 
   @override
+  String get downloadWaitingForWifi => '已加入下载队列，连接 Wi-Fi 后自动开始';
+
+  @override
+  String downloadResumedOnWifi(int count) {
+    return '已连接 Wi-Fi，继续下载 $count 个任务';
+  }
+
+  @override
+  String get downloadOnMobileData => '移动网络下载';
+
+  @override
+  String get downloadQuality => '下载码率';
+
+  @override
+  String get downloadTasks => '下载任务';
+
+  @override
+  String get downloadStateWaitingWifi => '等待 Wi-Fi';
+
+  @override
+  String get downloadStateDownloading => '下载中';
+
+  @override
+  String get downloadStatePaused => '已暂停';
+
+  @override
+  String get downloadStateFailed => '失败';
+
+  @override
+  String get continueDownload => '继续下载';
+
+  @override
+  String get pauseDownload => '暂停下载';
+
+  @override
+  String get deleteAllDownloads => '全部删除';
+
+  @override
   String get downloading => '正在下载…';
 
   @override
@@ -787,6 +825,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cacheSongs => '已缓存歌曲';
+
+  @override
+  String get cacheGroup => '歌单与艺术家缓存';
 
   @override
   String get autoCacheSongs => '自动缓存歌曲';

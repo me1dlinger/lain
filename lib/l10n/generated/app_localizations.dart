@@ -1316,6 +1316,78 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// No description provided for @downloadWaitingForWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued; it will start on Wi-Fi'**
+  String get downloadWaitingForWifi;
+
+  /// No description provided for @downloadResumedOnWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'On Wi-Fi now, continuing {count} downloads'**
+  String downloadResumedOnWifi(int count);
+
+  /// No description provided for @downloadOnMobileData.
+  ///
+  /// In en, this message translates to:
+  /// **'Download over mobile data'**
+  String get downloadOnMobileData;
+
+  /// No description provided for @downloadQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Download quality'**
+  String get downloadQuality;
+
+  /// No description provided for @downloadTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Download queue'**
+  String get downloadTasks;
+
+  /// No description provided for @downloadStateWaitingWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for Wi-Fi'**
+  String get downloadStateWaitingWifi;
+
+  /// No description provided for @downloadStateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get downloadStateDownloading;
+
+  /// No description provided for @downloadStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get downloadStatePaused;
+
+  /// No description provided for @downloadStateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get downloadStateFailed;
+
+  /// No description provided for @continueDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue downloads'**
+  String get continueDownload;
+
+  /// No description provided for @pauseDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause downloads'**
+  String get pauseDownload;
+
+  /// No description provided for @deleteAllDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get deleteAllDownloads;
+
   /// No description provided for @downloading.
   ///
   /// In en, this message translates to:
@@ -1621,6 +1693,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cached Songs'**
   String get cacheSongs;
+
+  /// No description provided for @cacheGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist and artist cache'**
+  String get cacheGroup;
 
   /// No description provided for @autoCacheSongs.
   ///

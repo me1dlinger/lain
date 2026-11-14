@@ -37,6 +37,8 @@ import 'package:lain/base/services/download_manager.dart';
 import 'package:lain/base/services/cache_download_manager.dart';
 import 'package:lain/base/widgets/cache_download_dialog.dart';
 import 'package:lain/base/widgets/downloads_page.dart';
+import 'package:lain/base/widgets/song_cache_page.dart';
+import 'package:lain/base/widgets/cache_group_page.dart';
 import 'package:lain/base/widgets/home_layout_settings.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
@@ -377,8 +379,11 @@ class _SettingsListState extends State<SettingsList> {
             Icons.person_outline_rounded,
             autoCacheArtistsNotifier,
           ),
-          cleanCacheListTile(context, l10n),
+          songCacheListTile(context, l10n),
+          cacheGroupListTile(context, l10n),
           downloadsListTile(context, l10n),
+          downloadQualityListTile(context, l10n),
+          downloadMobileDataListTile(l10n),
           cacheDirListTile(context, l10n),
           downloadDirListTile(context, l10n),
           cacheLimitListTile(context, l10n),
@@ -818,6 +823,102 @@ class _SettingsListState extends State<SettingsList> {
           settingsPageRoute<void>(() => const DownloadsPage()),
         );
       },
+    );
+  }
+
+  Widget songCacheListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(cacheImage, size: iconSize),
+      title: Text(l10n.cacheSongs),
+      trailing: ValueListenableBuilder(
+        valueListenable: cacheSizeNotifier,
+        builder: (context, size, child) => Text('${size.toStringAsFixed(1)}MB  '),
+      ),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const SongCachePage()),
+        );
+      },
+    );
+  }
+
+  Widget cacheGroupListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(cacheImage, size: iconSize),
+      title: Text(l10n.cacheGroup),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const CacheGroupPage()),
+        );
+      },
+    );
+  }
+
+  Widget downloadQualityListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      leading: ImageIcon(equalizerImage, size: iconSize),
+      title: Text(l10n.downloadQuality),
+      trailing: ValueListenableBuilder(
+        valueListenable: downloadQualityNotifier,
+        builder: (context, value, child) {
+          return Text('${streamQualityLabel(l10n, value)}  ');
+        },
+      ),
+      onTap: () {
+        showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final quality in StreamQuality.values)
+                        ListTile(
+                          title: Text(streamQualityLabel(l10n, quality)),
+                          trailing: downloadQualityNotifier.value == quality
+                              ? const Icon(Icons.check)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            downloadQualityNotifier.value = quality;
+                            setting.save();
+                          },
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget downloadMobileDataListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.signal_cellular_alt_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.downloadOnMobileData),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: downloadOnMobileDataNotifier,
+          onToggleCallBack: () => setting.save(),
+        ),
+      ),
     );
   }
 

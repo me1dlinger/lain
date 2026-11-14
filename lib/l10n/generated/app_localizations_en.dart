@@ -636,6 +636,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get downloadWaitingForWifi => 'Queued; it will start on Wi-Fi';
+
+  @override
+  String downloadResumedOnWifi(int count) {
+    return 'On Wi-Fi now, continuing $count downloads';
+  }
+
+  @override
+  String get downloadOnMobileData => 'Download over mobile data';
+
+  @override
+  String get downloadQuality => 'Download quality';
+
+  @override
+  String get downloadTasks => 'Download queue';
+
+  @override
+  String get downloadStateWaitingWifi => 'Waiting for Wi-Fi';
+
+  @override
+  String get downloadStateDownloading => 'Downloading';
+
+  @override
+  String get downloadStatePaused => 'Paused';
+
+  @override
+  String get downloadStateFailed => 'Failed';
+
+  @override
+  String get continueDownload => 'Continue downloads';
+
+  @override
+  String get pauseDownload => 'Pause downloads';
+
+  @override
+  String get deleteAllDownloads => 'Delete all';
+
+  @override
   String get downloading => 'Downloading…';
 
   @override
@@ -790,6 +828,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cacheSongs => 'Cached Songs';
+
+  @override
+  String get cacheGroup => 'Playlist and artist cache';
 
   @override
   String get autoCacheSongs => 'Auto-cache songs';
