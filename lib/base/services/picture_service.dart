@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/picture_load_scheduler.dart';
 import 'package:lain/base/services/stream_client.dart';
@@ -104,6 +105,11 @@ class MyPicture {
     );
     picture.remoteResolver = () async {
       if (!isStreamSource) {
+        return null;
+      }
+      // Artist images are cached automatically by browsing; with that off,
+      // only images already on disk are used.
+      if (!autoCacheArtistsNotifier.value) {
         return null;
       }
       if (allowServerCover && artistId != null) {

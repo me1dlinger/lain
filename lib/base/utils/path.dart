@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/webdav_client.dart';
 
@@ -112,16 +113,30 @@ String getPlaylistConfigPath(SourceType sourceType) {
   return '${appSupportDir.path}/${sourceType.name}/playlist_config';
 }
 
+/// The per-source folder that holds cached audio, covers and lyrics.
+///
+/// [cacheDirNotifier] moves this tree to a folder the user chose; the default
+/// stays in the app's support directory. Every helper below goes through it,
+/// so clearing and accounting follow the setting without extra work.
+String getCacheRootPath(SourceType sourceType) {
+  final configured = cacheDirNotifier.value.trim();
+  if (configured.isEmpty) {
+    return '${appSupportDir.path}/${sourceType.name}';
+  }
+  final normalized = configured.replaceAll('\\', '/');
+  return '$normalized/${sourceType.name}';
+}
+
 String getCachesPath(SourceType sourceType) {
-  return '${appSupportDir.path}/${sourceType.name}/caches';
+  return '${getCacheRootPath(sourceType)}/caches';
 }
 
 String getPicturesPath(SourceType sourceType) {
-  return '${appSupportDir.path}/${sourceType.name}/pictures';
+  return '${getCacheRootPath(sourceType)}/pictures';
 }
 
 String getLrcPath(SourceType sourceType) {
-  return '${appSupportDir.path}/${sourceType.name}/lyrics';
+  return '${getCacheRootPath(sourceType)}/lyrics';
 }
 
 String getSyncedFilePath(SourceType sourceType) {

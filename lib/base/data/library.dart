@@ -9,6 +9,7 @@ import 'package:drift/drift.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/database.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/extensions/metadata_extension.dart';
 import 'package:lain/base/services/background_task_service.dart';
@@ -278,7 +279,7 @@ class Library {
     // session has artwork and lyrics ready without the user asking. Phones only:
     // it exists for what a head unit shows, and a desktop has nothing to feed.
     // Idempotent, so it costs nothing the second time round.
-    if (isMobile) {
+    if (isMobile && autoCachePlaylistsNotifier.value) {
       unawaited(precachePlaylists());
     }
   }
@@ -464,6 +465,37 @@ class Library {
     layersManager.updateBackground();
   }
 
+  /// Trims the cache back under [cacheLimitGbNotifier] by dropping the least
+  /// recently written cached songs first. The song that is playing now is kept
+  /// even if it is the oldest entry.
+  Future<void> enforceCacheLimit({String? protectedSongId}) async {
+    final limitGb = cacheLimitGbNotifier.value;
+    if (limitGb <= 0) {
+      return;
+    }
+    final limitMb = (limitGb * 1024).toDouble();
+    if (cacheSizeNotifier.value <= limitMb) {
+      return;
+    }
+    if (cacheEntriesNotifier.value.isEmpty) {
+      await _accumulateCache();
+    }
+    final candidates =
+        cacheEntriesNotifier.value
+            .where((entry) => entry.kind == CacheKind.song)
+            .toList()
+          ..sort((a, b) => a.modified.compareTo(b.modified));
+    for (final entry in candidates) {
+      if (cacheSizeNotifier.value <= limitMb) {
+        break;
+      }
+      if (protectedSongId != null && entry.song?.id == protectedSongId) {
+        continue;
+      }
+      await deleteCacheEntry(entry);
+    }
+  }
+
   Future<void> deleteCacheEntry(CacheEntry entry) async {
     final file = File(entry.path);
     if (await file.exists()) {
@@ -645,6 +677,7 @@ class Library {
           cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
           await tmp.rename(song.cachePath!);
           song.cacheExist = true;
+          unawaited(enforceCacheLimit(protectedSongId: song.id));
         }
       }
       return success;

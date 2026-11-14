@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lain/base/app.dart';
+import 'package:path/path.dart' as p;
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
@@ -122,8 +124,64 @@ class DownloadManager {
 
   bool isDownloaded(String songId) => _items.any((item) => item.songId == songId);
 
+  /// Moves every recorded download into [newRoot] and rewrites the records so
+  /// they keep pointing at the files. Returns how many files were moved.
+  ///
+  /// A move across filesystems is a copy and a delete; a file that cannot be
+  /// moved keeps its old record, so it is still playable where it is.
+  Future<int> moveToDirectory(String newRoot) async {
+    await ensureLoaded();
+    final target = Directory(newRoot);
+    await target.create(recursive: true);
+    final moved = <DownloadedSong>[];
+    var count = 0;
+    for (final item in downloadsNotifier.value) {
+      final source = File(item.path);
+      if (!await source.exists()) {
+        continue;
+      }
+      final name = p.basename(item.path);
+      var dest = File('${target.path}/$name');
+      var suffix = 1;
+      while (await dest.exists()) {
+        dest = File('${target.path}/${suffix}_$name');
+        suffix++;
+      }
+      try {
+        try {
+          await source.rename(dest.path);
+        } catch (_) {
+          await source.copy(dest.path);
+          await source.delete();
+        }
+        count++;
+        moved.add(
+          DownloadedSong(
+            songId: item.songId,
+            title: item.title,
+            artist: item.artist,
+            album: item.album,
+            source: item.source,
+            path: dest.path,
+            bytes: item.bytes,
+            time: item.time,
+          ),
+        );
+      } catch (e) {
+        logger.output('[downloads] could not move ${item.path}: $e');
+        moved.add(item);
+      }
+    }
+    downloadsNotifier.value = moved;
+    await _save();
+    return count;
+  }
+
   Future<Directory> directory() async {
-    final path = Platform.isAndroid
+    final configured = downloadDirNotifier.value.trim();
+    final path = configured.isNotEmpty
+        ? configured
+        : Platform.isAndroid
         ? '/storage/emulated/0/Download/$downloadFolderName'
         : '${appDocsDir.path}/$downloadFolderName';
 

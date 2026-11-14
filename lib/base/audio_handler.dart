@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
@@ -1180,6 +1181,10 @@ class MyAudioHandler extends BaseAudioHandler {
   /// the switch happens. Only the latest prefetch is kept: quick skipping
   /// cancels the one that no longer matters instead of piling up downloads.
   void _cacheNextSong() {
+    if (!autoCacheSongsNotifier.value) {
+      _cancelNextCacheIfNotCurrent();
+      return;
+    }
     if (isNotStreamSource || playQueue.isEmpty || currentIndex < 0) {
       _cancelNextCacheIfNotCurrent();
       return;
@@ -1383,6 +1388,9 @@ class MyAudioHandler extends BaseAudioHandler {
   /// that suffered. A track already on disk skips the first step, so the next
   /// one starts immediately.
   Future<void> _cacheCurrentThenNext(MyAudioMetadata song) async {
+    if (!autoCacheSongsNotifier.value) {
+      return;
+    }
     final generation = ++_cacheFlowGeneration;
     if (isNotStreamSource) {
       return;
@@ -1460,7 +1468,7 @@ class MyAudioHandler extends BaseAudioHandler {
         // pause does not count either.
         double times =
             _playedDuration.inSeconds / _player.state.duration.inSeconds;
-        if (times > 0.5) {
+        if (times > 0.5 && autoCacheSongsNotifier.value) {
           library.tryAddCache(currentSongNotifier.value!);
         }
         // Past two thirds of the track it is a finished listen: the play count,

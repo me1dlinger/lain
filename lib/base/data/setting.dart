@@ -10,6 +10,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/notice_setting.dart';
@@ -227,6 +228,15 @@ class Setting {
 
     preferFastestAddressNotifier.value =
         json['preferFastestAddress'] as bool? ?? true;
+    autoCacheSongsNotifier.value =
+        json['autoCacheSongs'] as bool? ?? true;
+    autoCachePlaylistsNotifier.value =
+        json['autoCachePlaylists'] as bool? ?? true;
+    autoCacheArtistsNotifier.value =
+        json['autoCacheArtists'] as bool? ?? true;
+    cacheDirNotifier.value = json['cacheDir'] as String? ?? '';
+    downloadDirNotifier.value = json['downloadDir'] as String? ?? '';
+    cacheLimitGbNotifier.value = json['cacheLimitGb'] as int? ?? 2;
 
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
@@ -343,6 +353,13 @@ class Setting {
         'controlCenterLyrics': controlCenterLyricsNotifier.value,
 
         'preferFastestAddress': preferFastestAddressNotifier.value,
+
+        'autoCacheSongs': autoCacheSongsNotifier.value,
+        'autoCachePlaylists': autoCachePlaylistsNotifier.value,
+        'autoCacheArtists': autoCacheArtistsNotifier.value,
+        'cacheDir': cacheDirNotifier.value,
+        'downloadDir': downloadDirNotifier.value,
+        'cacheLimitGb': cacheLimitGbNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

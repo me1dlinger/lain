@@ -121,6 +121,7 @@ class Loader {
       }
 
       await library.load();
+      unawaited(library.enforceCacheLimit());
 
       if (isNotStreamSource &&
           library.songList.isEmpty &&
