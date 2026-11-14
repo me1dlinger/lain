@@ -4,6 +4,8 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/base/widgets/cache_tasks_page.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 
 /// The songs whose audio is on disk, as a full page.
 class SongCachePage extends StatelessWidget {
@@ -41,7 +43,15 @@ class SongCachePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: Icon(Icons.list_alt_rounded, color: textColor),
+                    onPressed: () {
+                      pushSettingsPage<void>(
+                        context,
+                        settingsPageRoute<void>(() => const CacheTasksPage()),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

@@ -1706,6 +1706,18 @@ abstract class AppLocalizations {
   /// **'Cached Songs'**
   String get cacheSongs;
 
+  /// No description provided for @cacheTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache tasks'**
+  String get cacheTasks;
+
+  /// No description provided for @noCacheTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No cache tasks'**
+  String get noCacheTasks;
+
   /// No description provided for @cacheGroup.
   ///
   /// In en, this message translates to:

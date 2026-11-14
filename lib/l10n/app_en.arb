@@ -331,6 +331,8 @@
   "serverAddress": "Server Address",
   "cacheDetails": "Cache Details",
   "cacheSongs": "Cached Songs",
+  "cacheTasks": "Cache tasks",
+  "noCacheTasks": "No cache tasks",
   "cacheGroup": "Playlist and artist cache",
   "autoCacheSongs": "Auto-cache songs",
   "autoCachePlaylists": "Auto-cache playlists",

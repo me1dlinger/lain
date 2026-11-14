@@ -836,6 +836,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheSongs => 'Cached Songs';
 
   @override
+  String get cacheTasks => 'Cache tasks';
+
+  @override
+  String get noCacheTasks => 'No cache tasks';
+
+  @override
   String get cacheGroup => 'Playlist and artist cache';
 
   @override

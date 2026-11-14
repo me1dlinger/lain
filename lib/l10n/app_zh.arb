@@ -268,6 +268,8 @@
   "serverAddress": "服务器地址",
   "cacheDetails": "缓存详情",
   "cacheSongs": "已缓存歌曲",
+  "cacheTasks": "缓存任务",
+  "noCacheTasks": "暂无缓存任务",
   "cacheGroup": "歌单与艺术家缓存",
   "autoCacheSongs": "自动缓存歌曲",
   "autoCachePlaylists": "自动缓存歌单",

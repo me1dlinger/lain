@@ -833,6 +833,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheSongs => '已缓存歌曲';
 
   @override
+  String get cacheTasks => '缓存任务';
+
+  @override
+  String get noCacheTasks => '暂无缓存任务';
+
+  @override
   String get cacheGroup => '歌单与艺术家缓存';
 
   @override

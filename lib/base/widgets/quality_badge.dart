@@ -32,7 +32,7 @@ class QualityBadge extends StatelessWidget {
         return Container(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
             decoration: BoxDecoration(
-              color: info.$2,
+              color: colorManager.getSpecificTextColor().withAlpha(18),
               borderRadius: BorderRadius.circular(3),
             ),
             child: Text(
@@ -102,7 +102,7 @@ class SongBadges extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
               decoration: BoxDecoration(
-                color: quality.$2,
+                color: colorManager.getSpecificTextColor().withAlpha(18),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Text(
