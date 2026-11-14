@@ -69,7 +69,7 @@ final currentLyricsIndexNotifier = ValueNotifier(-1);
 /// over.
 ///
 /// On: the primary line is the current lyric line and the secondary one is
-/// `<< artist - title >>`. Off: plain track metadata, and no metadata update
+/// `artist - title`. Off: plain track metadata, and no metadata update
 /// per lyric line at all - each one is a full AVRCP/`MediaSession` read on the
 /// head unit.
 final controlCenterLyricsNotifier = ValueNotifier(false);

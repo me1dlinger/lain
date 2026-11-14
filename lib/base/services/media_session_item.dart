@@ -15,7 +15,7 @@ const int mediaBroadcastThumbnailSide = 100;
 ///
 /// * [MediaItem.title] / `artist` / `album` become the track metadata. With
 ///   broadcasting off, title is the song and artist is the performer; with it
-///   on, title is the current lyric line and artist is `<< artist - title >>`,
+///   on, title is the current lyric line and artist is `artist - title`,
 ///   so the unit always shows both the line and which song it belongs to.
 /// * `artCacheFile` in [MediaItem.extras] is a *local path* audio_service reads
 ///   itself and turns into the session's `ALBUM_ART` / `DISPLAY_ICON` bitmap -
@@ -65,7 +65,8 @@ MediaItem buildServiceMediaItem({
   // on the primary line, so the unit never shows a blank while it waits.
   final lyricsOn = lyricInTitle;
   final titleText = (lyricsOn && line != null) ? line : songTitle;
-  final artistText = lyricsOn ? '<< $artist - $songTitle >>' : artist;
+  // Just the identity, no decorative brackets: "artist - title".
+  final artistText = lyricsOn ? '$artist - $songTitle' : artist;
 
   return MediaItem(
     id: id,

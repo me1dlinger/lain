@@ -51,9 +51,9 @@ void main() {
     final result = item(lyric: 'line one', lyricInTitle: true);
 
     expect(result.title, 'line one');
-    expect(result.artist, '<< Artist - Title >>');
+    expect(result.artist, 'Artist - Title');
     expect(result.displayTitle, 'line one');
-    expect(result.displaySubtitle, '<< Artist - Title >>');
+    expect(result.displaySubtitle, 'Artist - Title');
     expect(result.extras?['android.media.metadata.LYRIC'], 'line one');
   });
 
@@ -61,14 +61,14 @@ void main() {
     final result = item(lyricInTitle: true);
 
     expect(result.title, 'Title');
-    expect(result.artist, '<< Artist - Title >>');
+    expect(result.artist, 'Artist - Title');
   });
 
   test('a blank lyric is treated as no lyric', () {
     final result = item(lyric: '   ', lyricInTitle: true);
 
     expect(result.title, 'Title');
-    expect(result.artist, '<< Artist - Title >>');
+    expect(result.artist, 'Artist - Title');
     expect(result.extras?.containsKey('android.media.metadata.LYRIC'), isFalse);
   });
 
