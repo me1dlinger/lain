@@ -516,7 +516,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songInfo => 'Song Info';
 
   @override
-  String get cached => 'Cached on this phone';
+  String get cached => 'Cached';
 
   @override
   String get format => 'Format';
@@ -839,6 +839,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cacheTasks => 'Cache tasks';
 
   @override
+  String get cacheWaiting => 'Waiting';
+
+  @override
   String get noCacheTasks => 'No cache tasks';
 
   @override
@@ -950,6 +953,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearCache => 'Clear Cache';
+
+  @override
+  String get clearCacheConfirm => 'Clear all cached songs?';
+
+  @override
+  String get clearCacheConfirmAgain =>
+      'Confirm again: cleared songs cannot be restored';
 
   @override
   String get tapAgain => 'Tap Again to Exit';

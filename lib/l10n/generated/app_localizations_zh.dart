@@ -514,7 +514,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get songInfo => '歌曲信息';
 
   @override
-  String get cached => '已缓存到本机';
+  String get cached => '已缓存';
 
   @override
   String get format => '格式';
@@ -836,6 +836,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheTasks => '缓存任务';
 
   @override
+  String get cacheWaiting => '等待缓存';
+
+  @override
   String get noCacheTasks => '暂无缓存任务';
 
   @override
@@ -944,6 +947,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get clearCache => '清除缓存';
+
+  @override
+  String get clearCacheConfirm => '清空全部缓存歌曲？';
+
+  @override
+  String get clearCacheConfirmAgain => '再次确认：清空后无法恢复';
 
   @override
   String get tapAgain => '再按一次退出';

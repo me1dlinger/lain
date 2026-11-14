@@ -65,11 +65,11 @@ class QualityBadge extends StatelessWidget {
       final hires =
           (song.samplerate ?? 0) > 48000 || (kbps != null && kbps > 1000);
       return hires
-          ? ('HR', const Color(0xFFFFF3C4), const Color(0xFF8A6D1A))
-          : ('SQ', const Color(0xFFE3F0FF), const Color(0xFF2F6FED));
+          ? ('HR', const Color(0xFFFFF3C4), const Color(0xFFD9AE3C))
+          : ('SQ', const Color(0xFFE3F0FF), const Color(0xFF6FA8C6));
     }
     if (format.isNotEmpty || kbps != null) {
-      return ('HQ', const Color(0xFFF3E6DA), const Color(0xFF8B5E3C));
+      return ('HQ', const Color(0xFFF3E6DA), const Color(0xFF8E6745));
     }
     return null;
   }

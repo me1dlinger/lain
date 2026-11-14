@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
@@ -50,6 +51,29 @@ class SongCachePage extends StatelessWidget {
                         context,
                         settingsPageRoute<void>(() => const CacheTasksPage()),
                       );
+                    },
+                  ),
+                  IconButton(
+                    tooltip: l10n.clearCache,
+                    icon: Icon(Icons.delete_outline, color: textColor),
+                    onPressed: () async {
+                      // Two steps: clearing the audio cache is not reversible.
+                      if (!await showConfirmDialog(
+                        context,
+                        l10n.clearCacheConfirm,
+                      )) {
+                        return;
+                      }
+                      if (!context.mounted) {
+                        return;
+                      }
+                      if (!await showConfirmDialog(
+                        context,
+                        l10n.clearCacheConfirmAgain,
+                      )) {
+                        return;
+                      }
+                      await library.clearCache();
                     },
                   ),
                 ],

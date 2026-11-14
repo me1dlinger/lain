@@ -1079,7 +1079,7 @@ abstract class AppLocalizations {
   /// No description provided for @cached.
   ///
   /// In en, this message translates to:
-  /// **'Cached on this phone'**
+  /// **'Cached'**
   String get cached;
 
   /// No description provided for @format.
@@ -1712,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Cache tasks'**
   String get cacheTasks;
 
+  /// No description provided for @cacheWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get cacheWaiting;
+
   /// No description provided for @noCacheTasks.
   ///
   /// In en, this message translates to:
@@ -1927,6 +1933,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear Cache'**
   String get clearCache;
+
+  /// No description provided for @clearCacheConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all cached songs?'**
+  String get clearCacheConfirm;
+
+  /// No description provided for @clearCacheConfirmAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm again: cleared songs cannot be restored'**
+  String get clearCacheConfirmAgain;
 
   /// No description provided for @tapAgain.
   ///
