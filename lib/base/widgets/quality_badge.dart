@@ -1,6 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/data/library.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// HR / SQ / HQ, in the row's metadata line. Hidden when the source does not
 /// say enough about the file to classify it, or when the setting is off.
@@ -21,13 +25,11 @@ class QualityBadge extends StatelessWidget {
         if (!enabled) {
           return const SizedBox.shrink();
         }
-        final info = _classify();
+        final info = QualityBadge.classify(song);
         if (info == null) {
           return const SizedBox.shrink();
         }
-        return Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: Container(
+        return Container(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
             decoration: BoxDecoration(
               color: info.$2,
@@ -42,14 +44,13 @@ class QualityBadge extends StatelessWidget {
                 color: info.$3,
               ),
             ),
-          ),
         );
       },
     );
   }
 
   /// (label, background, foreground), or null when the file cannot be read.
-  (String, Color, Color)? _classify() {
+  static (String, Color, Color)? classify(MyAudioMetadata song) {
     final format = (song.format ?? '').toLowerCase();
     final rawBitrate = song.bitrate;
     final kbps = rawBitrate == null
@@ -71,5 +72,84 @@ class QualityBadge extends StatelessWidget {
       return ('HQ', const Color(0xFFF3E6DA), const Color(0xFF8B5E3C));
     }
     return null;
+  }
+}
+
+/// The row's meta badges as one unit: quality, cached, favourite, each shown
+/// only when it applies and separated by exactly the same 4 px. The old row
+/// put the star in a 20 px box for a 15 px icon, which reserved blank space on
+/// both sides even before anything was drawn.
+class SongBadges extends StatelessWidget {
+  final MyAudioMetadata song;
+
+  const SongBadges({super.key, required this.song});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        songQualityBadgeNotifier,
+        library.changeNotifier,
+        song.isFavoriteNotifier,
+      ]),
+      builder: (context, child) {
+        final items = <Widget>[];
+        final quality = songQualityBadgeNotifier.value
+            ? QualityBadge.classify(song)
+            : null;
+        if (quality != null) {
+          items.add(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              decoration: BoxDecoration(
+                color: quality.$2,
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                quality.$1,
+                style: TextStyle(
+                  fontSize: 9,
+                  height: 1.1,
+                  fontWeight: FontWeight.bold,
+                  color: quality.$3,
+                ),
+              ),
+            ),
+          );
+        }
+        if (isStreamSource && song.cacheExist) {
+          items.add(
+            Tooltip(
+              message: AppLocalizations.of(context).cached,
+              child: Icon(
+                Icons.offline_pin_rounded,
+                size: 12,
+                color: colorManager.getSpecificTextColor().withAlpha(110),
+              ),
+            ),
+          );
+        }
+        if (song.isFavoriteNotifier.value) {
+          items.add(
+            const Icon(Icons.star_rounded, color: Colors.red, size: 15),
+          );
+        }
+        if (items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(width: 4),
+                items[i],
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 }

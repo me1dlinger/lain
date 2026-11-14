@@ -943,27 +943,7 @@ extension _SongListPage on _SongListState {
 
           subtitle: Row(
             children: [
-              QualityBadge(song: song),
-              // Streamed sources only, and faint: it says "this one is on the
-              // phone", which the row otherwise gives no sign of. Kept beside
-              // the favourite star instead of at the row's trailing edge, where
-              // it crowded the play and menu buttons.
-              CachedBadge(song: song),
-              ValueListenableBuilder(
-                valueListenable: song.isFavoriteNotifier,
-                builder: (_, value, _) {
-                  return value
-                      ? SizedBox(
-                          width: 20,
-                          child: Icon(
-                            Icons.star_rounded,
-                            color: Colors.red,
-                            size: 15,
-                          ),
-                        )
-                      : SizedBox();
-                },
-              ),
+              SongBadges(song: song),
               Expanded(
                 child: Text(
                   "${getArtist(song)} - ${getAlbum(song)}",
