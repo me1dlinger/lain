@@ -112,44 +112,41 @@ bool pausesOnInterruption(AudioPlaybackMode mode) =>
 
 /// Plays the "another app took over the speakers" handling for [mode]:
 ///
-/// - exclusive: [pause] on begin, [resume] on end.
+/// - exclusive: [pause] on begin and nothing on end - an interruption only
+///   ever pauses this app; playback does not start again behind the user's
+///   back when the other app goes quiet.
 /// - duck: [duck] (lower the volume, no pause) on begin, [unduck] on end. A
 ///   [duckFallbackDuration] timer calls [unduck] if no end event arrives.
 /// - mix: nothing at all.
 ///
-/// [isPlaying] gates the exclusive resume, so an interruption that ends while
-/// the user was already paused does not start playback behind their back.
+/// Exclusive never resumes by itself; a play command is the user's to give.
 class InterruptionController {
   InterruptionController({
     required this.modeOf,
     required this.pause,
-    required this.resume,
     required this.duck,
     required this.unduck,
-    required this.isPlaying,
   });
 
   final AudioPlaybackMode Function() modeOf;
   final void Function() pause;
-  final void Function() resume;
   final void Function() duck;
   final void Function() unduck;
-  final bool Function() isPlaying;
 
   Timer? _restoreTimer;
-  bool _playingWhenInterrupted = false;
 
   void handle(bool begin) {
     final mode = modeOf();
     if (begin) {
       switch (mode) {
         case AudioPlaybackMode.exclusive:
-          _playingWhenInterrupted = isPlaying();
           pause();
         case AudioPlaybackMode.duck:
-          _playingWhenInterrupted = isPlaying();
-          _restoreTimer?.cancel();
-          _restoreTimer = Timer(duckFallbackDuration, _onDuckTimeout);
+          // Keep the deadline of the first duck: some platforms report the
+          // interrupting app again and again while it holds focus, and
+          // restarting the timer each time is how the volume stayed ducked
+          // forever after the other app went quiet.
+          _restoreTimer ??= Timer(duckFallbackDuration, _onDuckTimeout);
           duck();
         case AudioPlaybackMode.mix:
           break;
@@ -164,15 +161,14 @@ class InterruptionController {
 
     switch (mode) {
       case AudioPlaybackMode.exclusive:
-        if (_playingWhenInterrupted) {
-          resume();
-        }
+        // The user paused it (by the interruption); ending the interruption is
+        // not a request to start playing again.
+        break;
       case AudioPlaybackMode.duck:
         unduck();
       case AudioPlaybackMode.mix:
         break;
     }
-    _playingWhenInterrupted = false;
   }
 
   void _onDuckTimeout() {

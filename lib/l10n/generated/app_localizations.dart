@@ -2357,13 +2357,13 @@ abstract class AppLocalizations {
   /// No description provided for @playbackModeExclusiveDesc.
   ///
   /// In en, this message translates to:
-  /// **'Lain takes the audio output; other apps go silent.'**
+  /// **'Lain takes the audio output and pauses when another app plays; it does not resume on its own afterwards.'**
   String get playbackModeExclusiveDesc;
 
   /// No description provided for @playbackModeDuckDesc.
   ///
   /// In en, this message translates to:
-  /// **'Lain lowers its volume automatically while other apps play audio.'**
+  /// **'Lain lowers its volume while other apps play audio and restores it when they stop.'**
   String get playbackModeDuckDesc;
 
   /// No description provided for @playbackModeMixDesc.

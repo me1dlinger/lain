@@ -1114,10 +1114,8 @@ class MyAudioHandler extends BaseAudioHandler {
     _interruptions = InterruptionController(
       modeOf: () => playbackModeNotifier.value,
       pause: () => unawaited(pause()),
-      resume: () => unawaited(play()),
       duck: _duckVolume,
       unduck: _unduckVolume,
-      isPlaying: () => isPlayingNotifier.value,
     );
     session.interruptionEventStream.listen((event) {
       _interruptions?.handle(event.begin);

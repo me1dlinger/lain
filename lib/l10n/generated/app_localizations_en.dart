@@ -1171,11 +1171,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playbackModeExclusiveDesc =>
-      'Lain takes the audio output; other apps go silent.';
+      'Lain takes the audio output and pauses when another app plays; it does not resume on its own afterwards.';
 
   @override
   String get playbackModeDuckDesc =>
-      'Lain lowers its volume automatically while other apps play audio.';
+      'Lain lowers its volume while other apps play audio and restores it when they stop.';
 
   @override
   String get playbackModeMixDesc =>

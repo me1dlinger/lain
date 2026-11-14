@@ -1157,10 +1157,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playbackModeMix => '混合播放';
 
   @override
-  String get playbackModeExclusiveDesc => '临音独占音频输出，其他应用没有声音。';
+  String get playbackModeExclusiveDesc =>
+      '临音独占音频输出；其他应用播放时临音自动暂停，其他应用结束后不会自动继续播放。';
 
   @override
-  String get playbackModeDuckDesc => '其他应用播放音频时，自动降低临音的音量。';
+  String get playbackModeDuckDesc => '其他应用播放音频时，自动降低临音的音量；其他应用结束后恢复原音量。';
 
   @override
   String get playbackModeMixDesc => '临音与其他应用的音频混合输出。';
