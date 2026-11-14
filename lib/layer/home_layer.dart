@@ -68,6 +68,13 @@ class HomeLayerState extends State<HomeLayer> {
 
   Timer? searchTimer;
 
+  /// Last counts computed from the loaded library, with the version they were
+  /// computed at, so rebuilding the home page does not walk the whole library.
+  _LocalLibraryStats? _localStatsCache;
+  Library? _localStatsLibrary;
+  int _localStatsLibraryVersion = -1;
+  int _localStatsFolderVersion = -1;
+
   String get searchValue => textController.text;
 
   @override
@@ -576,126 +583,213 @@ class HomeLayerState extends State<HomeLayer> {
           SizedBox(height: 15),
         ];
       case HomeShelf.stats:
-        // A Navidrome-only card; nothing is drawn for any other source, so
-        // the shelf takes no space there.
-        if (sourceType != SourceType.navidrome ||
-            streamClient is! NavidromeClient) {
-          return [];
-        }
+        // Navidrome reports its whole library in one snapshot; every other
+        // source - the local library included - is counted from what is loaded
+        // here, so the card shows the same six tiles either way.
         return [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
-            child: _statsShelf(context, streamClient as NavidromeClient),
+            child:
+                sourceType == SourceType.navidrome &&
+                    streamClient is NavidromeClient
+                ? _statsShelf(context, streamClient as NavidromeClient)
+                : _localStatsShelf(context),
           ),
           SizedBox(height: 15),
         ];
     }
   }
 
-  /// The library statistics card: a 2x3 grid of value + label tiles, without
-  /// a heading. Its values are the client's cached snapshot, so the card does
-  /// not hammer the server every time the home page is rebuilt.
+  /// The library statistics card as Navidrome reports it: its values are the
+  /// client's cached snapshot, so the card does not hammer the server every
+  /// time the home page is rebuilt.
   Widget _statsShelf(BuildContext context, NavidromeClient client) {
-    final l10n = AppLocalizations.of(context);
     return FutureBuilder<NavidromeLibraryStats?>(
       future: client.libraryStats(),
       builder: (context, snapshot) {
         final stats = snapshot.data;
-        final cells = <(String, String)>[
-          (
-            l10n.statsSongs,
-            _groupNumber(stats?.songCount),
-          ),
-          (l10n.albums, _groupNumber(stats?.albumCount)),
-          (l10n.artists, _groupNumber(stats?.artistCount)),
-          (l10n.folders, _groupNumber(stats?.folderCount)),
-          (
-            l10n.totalSize,
-            stats?.totalSize == null
-                ? '—'
-                : formatLibrarySize(stats!.totalSize!),
-          ),
-          (
-            l10n.totalDuration,
-            stats?.totalDuration == null
-                ? '—'
-                : l10n.libraryDurationHours(
-                    formatLibraryDuration(
-                      stats!.totalDuration!,
-                      inDays: stats.totalDuration! >= 100 * 3600,
-                    ),
-                    stats.totalDuration! >= 100 * 3600
-                        ? l10n.daysUnit
-                        : l10n.hoursUnit,
-                  ),
-          ),
-        ];
+        return _statsCard(
+          context,
+          songCount: stats?.songCount,
+          albumCount: stats?.albumCount,
+          artistCount: stats?.artistCount,
+          folderCount: stats?.folderCount,
+          totalSize: stats?.totalSize,
+          totalDuration: stats?.totalDuration,
+        );
+      },
+    );
+  }
 
-        // The colour depends on the theme and on whether the playing page is
-        // up, and the home page is not rebuilt when such a page is dismissed,
-        // so the card watches the palette itself.
-        return ListenableBuilder(
-          listenable: Listenable.merge([
-            displayLyricsPageNotifier,
-            textColor.valueNotifier,
-            lyricsPageForegroundColor.valueNotifier,
-            viewModeNotifier,
-          ]),
-          builder: (context, child) {
-            final textColor = colorManager.getSpecificTextColor();
-            return GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.5,
-              children: [
-                for (final (label, value) in cells)
-                  Container(
-                    decoration: ShapeDecoration(
-                      color: textColor.withAlpha(20),
-                      shape: SmoothRectangleBorder(
-                        smoothness: 1,
-                        borderRadius: BorderRadius.circular(12),
+  /// The same card, counted from the library in memory - what the local
+  /// library shows, and what any source without a stats endpoint uses.
+  Widget _localStatsShelf(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        library.changeNotifier,
+        library.folderListChangeNotifier,
+      ]),
+      builder: (context, child) {
+        final stats = _localLibraryStats();
+        return _statsCard(
+          context,
+          songCount: stats.songCount,
+          albumCount: stats.albumCount,
+          artistCount: stats.artistCount,
+          folderCount: stats.folderCount,
+          totalSize: stats.totalSize,
+          totalDuration: stats.totalDuration,
+        );
+      },
+    );
+  }
+
+  /// Counts and totals of the loaded library. Albums and artists are the
+  /// distinct values of the songs, grouped exactly as the artist and album
+  /// lists group them, so the card agrees with those pages. A total is null
+  /// when no song reports it, so the card shows a dash rather than a false 0.
+  ///
+  /// Cached per library and notifier version: a page rebuild must not walk a
+  /// library of tens of thousands of songs.
+  _LocalLibraryStats _localLibraryStats() {
+    final cache = _localStatsCache;
+    if (cache != null &&
+        _localStatsLibrary == library &&
+        _localStatsLibraryVersion == library.changeNotifier.value &&
+        _localStatsFolderVersion == library.folderListChangeNotifier.value) {
+      return cache;
+    }
+
+    var totalSize = 0;
+    var hasSize = false;
+    var totalDuration = Duration.zero;
+    var hasDuration = false;
+    final albumKeys = <String>{};
+    final artistNames = <String>{};
+
+    for (final song in library.songList) {
+      final size = song.size;
+      if (size != null) {
+        totalSize += size;
+        hasSize = true;
+      }
+      final duration = song.duration;
+      if (duration != null) {
+        totalDuration += duration;
+        hasDuration = true;
+      }
+      albumKeys.add(albumKeyOf(song));
+      artistNames.addAll(getArtists(getArtist(song)));
+    }
+
+    final stats = _LocalLibraryStats(
+      songCount: library.songList.length,
+      albumCount: albumKeys.length,
+      artistCount: artistNames.length,
+      folderCount: library.folderList.length,
+      totalSize: hasSize ? totalSize : null,
+      totalDuration: hasDuration ? totalDuration.inSeconds : null,
+    );
+    _localStatsCache = stats;
+    _localStatsLibrary = library;
+    _localStatsLibraryVersion = library.changeNotifier.value;
+    _localStatsFolderVersion = library.folderListChangeNotifier.value;
+    return stats;
+  }
+
+  /// The 2x3 grid of value + label tiles, without a heading. Both the server
+  /// snapshot and the library's own counts are drawn through this.
+  Widget _statsCard(
+    BuildContext context, {
+    required int? songCount,
+    required int? albumCount,
+    required int? artistCount,
+    required int? folderCount,
+    required int? totalSize,
+    required int? totalDuration,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final inDays = totalDuration != null && totalDuration >= 100 * 3600;
+    final cells = <(String, String)>[
+      (l10n.statsSongs, _groupNumber(songCount)),
+      (l10n.albums, _groupNumber(albumCount)),
+      (l10n.artists, _groupNumber(artistCount)),
+      (l10n.folders, _groupNumber(folderCount)),
+      (l10n.totalSize, totalSize == null ? '—' : formatLibrarySize(totalSize)),
+      (
+        l10n.totalDuration,
+        totalDuration == null
+            ? '—'
+            : l10n.libraryDurationHours(
+                formatLibraryDuration(totalDuration, inDays: inDays),
+                inDays ? l10n.daysUnit : l10n.hoursUnit,
+              ),
+      ),
+    ];
+
+    // The colour depends on the theme and on whether the playing page is
+    // up, and the home page is not rebuilt when such a page is dismissed,
+    // so the card watches the palette itself.
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        displayLyricsPageNotifier,
+        textColor.valueNotifier,
+        lyricsPageForegroundColor.valueNotifier,
+        viewModeNotifier,
+      ]),
+      builder: (context, child) {
+        final textColor = colorManager.getSpecificTextColor();
+        return GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.5,
+          children: [
+            for (final (label, value) in cells)
+              Container(
+                decoration: ShapeDecoration(
+                  color: textColor.withAlpha(20),
+                  shape: SmoothRectangleBorder(
+                    smoothness: 1,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
                       ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            value,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withAlpha(160),
                         ),
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textColor.withAlpha(160),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-              ],
-            );
-          },
+                  ],
+                ),
+              ),
+          ],
         );
       },
     );
@@ -959,8 +1053,7 @@ class HomeLayerState extends State<HomeLayer> {
 }
 
 /// Icon + label tile used by the home hub row.
-Widget homeNavButton(String label, IconData icon, String layer) {
-  return homeNavAction(
+Widget homeNavButton(String label, IconData icon, String layer) {  return homeNavAction(
     label,
     icon,
     () => layersManager.switchRootLayer(layer),
@@ -1006,4 +1099,24 @@ Widget homeNavAction(String label, IconData icon, void Function() onTap) {
       );
     },
   );
+}
+
+/// What the home page's stats card shows for a library that has no stats
+/// endpoint. A total is null when nothing in the library reports it.
+class _LocalLibraryStats {
+  final int songCount;
+  final int albumCount;
+  final int artistCount;
+  final int folderCount;
+  final int? totalSize;
+  final int? totalDuration;
+
+  const _LocalLibraryStats({
+    required this.songCount,
+    required this.albumCount,
+    required this.artistCount,
+    required this.folderCount,
+    required this.totalSize,
+    required this.totalDuration,
+  });
 }

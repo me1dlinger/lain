@@ -10,8 +10,9 @@ enum HomeButton { artists, albums, songs, playlists, favorites, listeningReport 
 
 /// The shelves below it.
 ///
-/// [HomeShelf.stats] is the Navidrome-only statistics card; on any other
-/// source the home page simply skips it.
+/// [HomeShelf.stats] is the library statistics card. Navidrome fills it from
+/// its server snapshot; every other source - the local library included -
+/// counts it from the songs already loaded.
 enum HomeShelf {
   albums,
   frequently,
