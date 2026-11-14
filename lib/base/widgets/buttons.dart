@@ -40,6 +40,9 @@ Widget playModeButton(double? size, {Color? iconColor}) {
             if (playQueue.isEmpty) {
               return;
             }
+            // A long press is not visible on the button itself, so the hand
+            // has to confirm that the gesture was recognised.
+            vibrateGestureFeedback();
             audioHandler.setRepeatOne();
           },
           child: IconButton(
@@ -49,6 +52,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
               if (playQueue.isEmpty) {
                 return;
               }
+              tryVibrate();
               audioHandler.toggleListAndShuffle();
             },
           ),
