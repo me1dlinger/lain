@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/quality_badge_setting.dart';
+import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/app.dart';
@@ -32,7 +33,9 @@ class QualityBadge extends StatelessWidget {
         return Container(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
             decoration: BoxDecoration(
-              color: colorManager.getSpecificTextColor().withAlpha(18),
+              color: colorManager.getSpecificTextColor().withAlpha(
+                  mainPageThemeNotifier.value == .vivid ? 40 : 18,
+                ),
               borderRadius: BorderRadius.circular(3),
             ),
             child: Text(
@@ -51,6 +54,16 @@ class QualityBadge extends StatelessWidget {
 
   /// (label, background, foreground), or null when the file cannot be read.
   static (String, Color, Color)? classify(MyAudioMetadata song) {
+    final vivid = mainPageThemeNotifier.value == .vivid;
+    final hrColor = vivid
+        ? const Color(0xFF7A5A00)
+        : const Color(0xFFD9AE3C);
+    final sqColor = vivid
+        ? const Color(0xFF1E5C7A)
+        : const Color(0xFF6FA8C6);
+    final hqColor = vivid
+        ? const Color(0xFF6B4A2F)
+        : const Color(0xFF8E6745);
     final format = (song.format ?? '').toLowerCase();
     final rawBitrate = song.bitrate;
     final kbps = rawBitrate == null
@@ -69,7 +82,7 @@ class QualityBadge extends StatelessWidget {
           : ('SQ', const Color(0xFFE3F0FF), const Color(0xFF6FA8C6));
     }
     if (format.isNotEmpty || kbps != null) {
-      return ('HQ', const Color(0xFFF3E6DA), const Color(0xFF8E6745));
+      return ('HQ', hqColor, hqColor);
     }
     return null;
   }
@@ -102,7 +115,9 @@ class SongBadges extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
               decoration: BoxDecoration(
-                color: colorManager.getSpecificTextColor().withAlpha(18),
+                color: colorManager.getSpecificTextColor().withAlpha(
+                  mainPageThemeNotifier.value == .vivid ? 40 : 18,
+                ),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Text(
