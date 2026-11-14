@@ -23,7 +23,9 @@ class SongCachePage extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 48, 4),
+              // Both sides carry the same width (one 48px button vs two), so
+              // the title is centred against the screen padding.
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               child: Row(
                 children: [
                   IconButton(
@@ -33,6 +35,8 @@ class SongCachePage extends StatelessWidget {
                     ),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
+                  // Balances the second button on the right-hand group.
+                  const SizedBox(width: 48),
                   Expanded(
                     child: Text(
                       l10n.cacheSongs,

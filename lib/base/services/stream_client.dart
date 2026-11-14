@@ -168,11 +168,15 @@ abstract class StreamClient {
 
   Future<String> getLyricsById(String songId);
 
+  /// Fetches the song to [savePath]. [onProgress] receives bytes received and
+  /// the expected total (zero when the server sends no length); sources that
+  /// cannot report a transfer must leave it uncalled rather than guess.
   Future<bool> downloadSong(
     String songId,
     String savePath, {
     CancelToken? cancelToken,
     StreamQuality? quality,
+    void Function(int received, int total)? onProgress,
   });
 
   /// Fetches the song as the server stores it, for the user to keep - unlike
@@ -183,7 +187,13 @@ abstract class StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
-  }) => downloadSong(songId, savePath, cancelToken: cancelToken);
+    void Function(int received, int total)? onProgress,
+  }) => downloadSong(
+    songId,
+    savePath,
+    cancelToken: cancelToken,
+    onProgress: onProgress,
+  );
 
   Future<bool> scrobble(String songId);
 

@@ -15,6 +15,7 @@ import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
+import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/playback_mode.dart';
@@ -136,6 +137,9 @@ class Setting {
 
     offlineModeNotifier.value =
         json['offlineMode'] as bool? ?? offlineModeNotifier.value;
+
+    lanDirectNotifier.value =
+        json['lanDirect'] as bool? ?? lanDirectNotifier.value;
 
     final subdirectories = json['folderScanSubdirectories'];
     if (subdirectories is Map) {
@@ -337,6 +341,7 @@ class Setting {
         'vibrationOn': vibrationOnNoitifier.value,
         'mobileDataWarning': mobileDataWarningNotifier.value,
         'offlineMode': offlineModeNotifier.value,
+        'lanDirect': lanDirectNotifier.value,
         'folderScanSubdirectories': folderScanSubdirectories,
         'blockedFolders': blockedFoldersNotifier.value,
         'skipShortAudio': skipShortAudioNotifier.value,

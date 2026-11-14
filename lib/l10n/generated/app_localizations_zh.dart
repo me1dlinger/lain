@@ -152,6 +152,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get offlineModeBlocked => '离线模式已开启，在线音乐源已锁定';
 
   @override
+  String get lanDirect => '局域网直连';
+
+  @override
+  String get lanDirectDescription => '局域网内直连服务器，不转码、不读缓存';
+
+  @override
   String get reload => '重新加载';
 
   @override

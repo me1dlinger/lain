@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
+import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
@@ -1193,6 +1194,12 @@ class MyAudioHandler extends BaseAudioHandler {
       _cancelNextCacheIfNotCurrent();
       return;
     }
+    // LAN direct plays from the server and leaves the cache alone, so no
+    // prefetch is started (and none already running is kept).
+    if (lanDirectActive) {
+      _cancelNextCacheIfNotCurrent();
+      return;
+    }
     if (isNotStreamSource || playQueue.isEmpty || currentIndex < 0) {
       _cancelNextCacheIfNotCurrent();
       return;
@@ -1399,6 +1406,10 @@ class MyAudioHandler extends BaseAudioHandler {
     if (!autoCacheSongsNotifier.value) {
       return;
     }
+    // LAN direct neither reads nor fills the cache.
+    if (lanDirectActive) {
+      return;
+    }
     final generation = ++_cacheFlowGeneration;
     if (isNotStreamSource) {
       return;
@@ -1408,6 +1419,10 @@ class MyAudioHandler extends BaseAudioHandler {
       await Future.delayed(const Duration(seconds: 3));
       if (generation != _cacheFlowGeneration ||
           currentSongNotifier.value != song) {
+        return;
+      }
+      // The switch can be turned on during the delay.
+      if (lanDirectActive) {
         return;
       }
       try {
@@ -1476,7 +1491,9 @@ class MyAudioHandler extends BaseAudioHandler {
         // pause does not count either.
         double times =
             _playedDuration.inSeconds / _player.state.duration.inSeconds;
-        if (times > 0.5 && autoCacheSongsNotifier.value) {
+        if (times > 0.5 &&
+            autoCacheSongsNotifier.value &&
+            !lanDirectActive) {
           library.tryAddCache(currentSongNotifier.value!);
         }
         // Past two thirds of the track it is a finished listen: the play count,
@@ -1600,7 +1617,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
 
     try {
-      if (currentSong.cacheExist) {
+      if (currentSong.cacheExist && !lanDirectActive) {
         await _player.open(
           Media(currentSong.cachePath!, start: start),
           play: isPlayingNotifier.value,

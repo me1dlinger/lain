@@ -46,6 +46,8 @@
   "offlineMode": "离线模式",
   "offlineModeDescription": "只使用本地音乐，在线音源入口将被锁定",
   "offlineModeBlocked": "离线模式已开启，在线音乐源已锁定",
+  "lanDirect": "局域网直连",
+  "lanDirectDescription": "局域网内直连服务器，不转码、不读缓存",
   "reload": "重新加载",
   "manageMusicFolder": "管理音乐文件夹",
   "about": "关于",

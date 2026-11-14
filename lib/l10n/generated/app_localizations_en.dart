@@ -154,6 +154,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Offline mode is on; online music sources are locked';
 
   @override
+  String get lanDirect => 'LAN direct';
+
+  @override
+  String get lanDirectDescription =>
+      'Direct to the server on the LAN: no transcode, no cache';
+
+  @override
   String get reload => 'Reload';
 
   @override

@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/notice_setting.dart';
+import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
@@ -329,6 +330,7 @@ class _SettingsListState extends State<SettingsList> {
           if (sourceType == .webdav) selectMusicFoldersListTile(context, l10n),
           syncListTile(context, l10n),
           if (isStreamSource) ...[
+            lanDirectListTile(l10n),
             streamQualityListTile(context, l10n),
             streamFormatListTile(context, l10n),
           ],
@@ -570,6 +572,27 @@ class _SettingsListState extends State<SettingsList> {
               unawaited(_enterOfflineMode());
             }
           },
+        ),
+      ),
+    );
+  }
+
+  /// Stream straight from the server while it is reachable on the LAN: the next
+  /// track re-resolves its source, so the current one is never interrupted.
+  Widget lanDirectListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.lan_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.lanDirect),
+      subtitle: Text(l10n.lanDirectDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: lanDirectNotifier,
+          onToggleCallBack: () => setting.save(),
         ),
       ),
     );

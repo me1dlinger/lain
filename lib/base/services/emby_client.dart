@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -452,7 +453,11 @@ class EmbyClient extends StreamClient {
 
   @override
   String getStreamUrl(String id) {
-    final maxBitRate = streamQualityNotifier.value.maxBitRate;
+    // LAN direct asks for the untouched file: `static=true` with no bitrate cap
+    // and no codec, exactly like the original quality choice.
+    final maxBitRate = lanDirectActive
+        ? null
+        : streamQualityNotifier.value.maxBitRate;
     // `static=true` asks Emby for the untouched file; when a quality is chosen
     // the server has to transcode instead, so request a bitrate cap and codec.
     final query = <String, String>{
@@ -500,6 +505,7 @@ class EmbyClient extends StreamClient {
     String savePath, {
     CancelToken? cancelToken,
     StreamQuality? quality,
+    void Function(int received, int total)? onProgress,
   }) async {
     try {
       final response = await dio.download(
@@ -507,6 +513,8 @@ class EmbyClient extends StreamClient {
         savePath,
         queryParameters: {'api_key': accessToken},
         cancelToken: cancelToken,
+        onReceiveProgress: (received, total) =>
+            onProgress?.call(received, total),
       );
       return response.statusCode == 200;
     } on DioException catch (e) {

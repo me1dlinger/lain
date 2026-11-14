@@ -380,6 +380,18 @@ abstract class AppLocalizations {
   /// **'Offline mode is on; online music sources are locked'**
   String get offlineModeBlocked;
 
+  /// No description provided for @lanDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'LAN direct'**
+  String get lanDirect;
+
+  /// No description provided for @lanDirectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct to the server on the LAN: no transcode, no cache'**
+  String get lanDirectDescription;
+
   /// No description provided for @reload.
   ///
   /// In en, this message translates to:

@@ -53,6 +53,8 @@
   "offlineMode": "Offline Mode",
   "offlineModeDescription": "Local music only; online sources are locked",
   "offlineModeBlocked": "Offline mode is on; online music sources are locked",
+  "lanDirect": "LAN direct",
+  "lanDirectDescription": "Direct to the server on the LAN: no transcode, no cache",
   "reload": "Reload",
   "manageMusicFolder": "Manage Music Folders",
   "about": "About",

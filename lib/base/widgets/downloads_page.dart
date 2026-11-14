@@ -182,6 +182,13 @@ class _DownloadsPageState extends State<DownloadsPage> {
 
   Widget _taskRow(DownloadTask task, Color textColor, AppLocalizations l10n) {
     final downloading = task.state == DownloadTaskState.downloading;
+    final progress = task.progress;
+    final stateText = progress == null
+        ? _stateLabel(l10n, task.state)
+        : '${_stateLabel(l10n, task.state)} ${(progress * 100).round()}%';
+    final subtitle = task.artist.isEmpty
+        ? stateText
+        : '${task.artist} · $stateText';
     return ListTile(
       leading: Icon(Icons.download_rounded, size: 22, color: textColor),
       title: Text(
@@ -191,9 +198,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
         style: TextStyle(fontSize: 15, color: textColor),
       ),
       subtitle: Text(
-        task.artist.isEmpty
-            ? _stateLabel(l10n, task.state)
-            : '${task.artist} · ${_stateLabel(l10n, task.state)}',
+        subtitle,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 11, color: textColor.withAlpha(160)),

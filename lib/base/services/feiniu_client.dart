@@ -520,6 +520,7 @@ class FeiniuClient extends StreamClient {
     String savePath, {
     CancelToken? cancelToken,
     StreamQuality? quality,
+    void Function(int received, int total)? onProgress,
   }) async {
     try {
       final response = await _openResource(
@@ -531,6 +532,9 @@ class FeiniuClient extends StreamClient {
       final file = File(savePath);
       await file.parent.create(recursive: true);
       final output = file.openWrite();
+      final expectedLength = int.tryParse(
+        response.headers.value('content-length') ?? '',
+      );
       var received = 0;
       try {
         var checkedContent = false;
@@ -548,6 +552,7 @@ class FeiniuClient extends StreamClient {
               }
               checkedContent = true;
             }
+            onProgress?.call(received, expectedLength ?? 0);
             return chunk;
           }),
         );
@@ -555,9 +560,6 @@ class FeiniuClient extends StreamClient {
       } finally {
         await output.close();
       }
-      final expectedLength = int.tryParse(
-        response.headers.value('content-length') ?? '',
-      );
       return received > 0 &&
           (expectedLength == null || received == expectedLength);
     } on DioException catch (e) {

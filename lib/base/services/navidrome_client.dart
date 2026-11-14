@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/stream_quality.dart';
@@ -698,7 +699,12 @@ class NavidromeClient extends StreamClient {
     // Strings only: `Uri.replace` refuses an int in queryParameters, and this
     // URL is built by hand rather than handed to Dio.
     final query = <String, String>{'id': id};
-    final maxBitRate = streamQualityNotifier.value.maxBitRate;
+    // LAN direct hands the stored file over untouched; asking for a transcode
+    // would defeat the point of staying on the local network. Without
+    // maxBitRate Subsonic serves the original.
+    final maxBitRate = lanDirectActive
+        ? null
+        : streamQualityNotifier.value.maxBitRate;
     if (maxBitRate != null) {
       // Subsonic transcodes on request: cap the bitrate and pick the container.
       query['maxBitRate'] = '$maxBitRate';
@@ -992,10 +998,16 @@ class NavidromeClient extends StreamClient {
     String savePath, {
     CancelToken? cancelToken,
     StreamQuality? quality,
+    void Function(int received, int total)? onProgress,
   }) async {
     if (quality != null && !quality.transcodes) {
       // "Original" downloads the stored file instead of a transcoded stream.
-      return downloadOriginal(songId, savePath, cancelToken: cancelToken);
+      return downloadOriginal(
+        songId,
+        savePath,
+        cancelToken: cancelToken,
+        onProgress: onProgress,
+      );
     }
     if (quality != null) {
       final query = <String, String>{
@@ -1007,9 +1019,19 @@ class NavidromeClient extends StreamClient {
           .resolve('rest/stream.view')
           .replace(queryParameters: params(query))
           .toString();
-      return _download(url, savePath, cancelToken: cancelToken);
+      return _download(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+        onProgress: onProgress,
+      );
     }
-    return _download(getStreamUrl(songId), savePath, cancelToken: cancelToken);
+    return _download(
+      getStreamUrl(songId),
+      savePath,
+      cancelToken: cancelToken,
+      onProgress: onProgress,
+    );
   }
 
   /// `/rest/download` with `format=raw&bitrate=0` hands over the file itself,
@@ -1020,6 +1042,7 @@ class NavidromeClient extends StreamClient {
     String songId,
     String savePath, {
     CancelToken? cancelToken,
+    void Function(int received, int total)? onProgress,
   }) async {
     final url = Uri.parse(baseUrl)
         .resolve('rest/download.view')
@@ -1031,19 +1054,27 @@ class NavidromeClient extends StreamClient {
           }),
         )
         .toString();
-    return _download(url, savePath, cancelToken: cancelToken);
+    return _download(
+      url,
+      savePath,
+      cancelToken: cancelToken,
+      onProgress: onProgress,
+    );
   }
 
   Future<bool> _download(
     String url,
     String savePath, {
     CancelToken? cancelToken,
+    void Function(int received, int total)? onProgress,
   }) async {
     try {
       final response = await dio.download(
         url,
         savePath,
         cancelToken: cancelToken,
+        onReceiveProgress: (received, total) =>
+            onProgress?.call(received, total),
       );
       return response.statusCode == 200;
     } on DioException catch (e) {

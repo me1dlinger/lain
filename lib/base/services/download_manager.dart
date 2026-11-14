@@ -105,6 +105,10 @@ class DownloadTask {
   final String album;
   DownloadTaskState state;
 
+  /// Fraction of the transfer completed, or null while the source cannot
+  /// report it. Transient: not persisted and only shown while running.
+  double? progress;
+
   DownloadTask({
     required this.songId,
     required this.title,
@@ -308,6 +312,25 @@ class DownloadManager {
     _tokens[task.songId] = token;
     _inFlight.add(task.songId);
     task.state = DownloadTaskState.downloading;
+    task.progress = null;
+
+    // The transfer can report every few hundred bytes; the queue only needs a
+    // fresh value a few times a second.
+    var lastProgressPublish = 0;
+    void reportProgress(int received, int total) {
+      // A cancelled transfer can still deliver one last chunk.
+      if (task.state != DownloadTaskState.downloading) {
+        return;
+      }
+      task.progress = total > 0 ? (received / total).clamp(0.0, 1.0) : null;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastProgressPublish < 200) {
+        return;
+      }
+      lastProgressPublish = now;
+      _publishTasks();
+    }
+
     _publishTasks();
     await _saveQueue();
 
@@ -319,21 +342,29 @@ class DownloadManager {
 
       final quality = downloadQualityNotifier.value;
       final ok = quality == StreamQuality.original
-          ? await client.downloadOriginal(song.id, path, cancelToken: token)
+          ? await client.downloadOriginal(
+              song.id,
+              path,
+              cancelToken: token,
+              onProgress: reportProgress,
+            )
           : await client.downloadSong(
               song.id,
               path,
               cancelToken: token,
               quality: quality,
+              onProgress: reportProgress,
             );
 
       if (token.isCancelled) {
         task.state = DownloadTaskState.paused;
+        task.progress = null;
         await _deleteFile(path);
         return;
       }
       if (!ok) {
         task.state = DownloadTaskState.failed;
+        task.progress = null;
         await _deleteFile(path);
         _message(l10n.downloadFailed);
         return;
@@ -364,6 +395,7 @@ class DownloadManager {
         await _deleteFile(path);
       }
       task.state = DownloadTaskState.failed;
+      task.progress = null;
       _message(l10n.downloadFailed);
     } finally {
       _tokens.remove(task.songId);
@@ -383,6 +415,7 @@ class DownloadManager {
       await _deleteFile(path);
     }
     task.state = DownloadTaskState.paused;
+    task.progress = null;
     _publishTasks();
     await _saveQueue();
   }
