@@ -49,6 +49,7 @@ import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/loader.dart';
@@ -353,6 +354,8 @@ class _SettingsListState extends State<SettingsList> {
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             controlCenterLyricsListTile(l10n),
+          if (isMobile && viewModeNotifier.value != .bigPicture)
+            coverBroadcastListTile(l10n),
           commentSettingsListTile(context, l10n),
         ];
       case SettingsCategory.notifications:
@@ -1343,6 +1346,56 @@ class _SettingsListState extends State<SettingsList> {
           return Icon(Icons.lock);
         },
       ),
+    );
+  }
+
+  Widget coverBroadcastListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.album_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.coverBroadcast),
+      trailing: ValueListenableBuilder(
+        valueListenable: coverBroadcastModeNotifier,
+        builder: (context, mode, child) {
+          return Text('${coverModeLabel(l10n, mode)}  ');
+        },
+      ),
+      onTap: () {
+        showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final mode in CoverBroadcastMode.values)
+                        ListTile(
+                          title: Text(coverModeLabel(l10n, mode)),
+                          trailing: coverBroadcastModeNotifier.value == mode
+                              ? const Icon(Icons.check)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            coverBroadcastModeNotifier.value = mode;
+                            setting.save();
+                            audioHandler.refreshServiceMediaItem();
+                          },
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2355,4 +2408,13 @@ Future<void> showCachedSongDialog(
       ),
     ),
   );
+}
+
+String coverModeLabel(AppLocalizations l10n, CoverBroadcastMode mode) {
+  return switch (mode) {
+    CoverBroadcastMode.bitmap => l10n.coverBroadcastBitmap,
+    CoverBroadcastMode.server => l10n.coverBroadcastServer,
+    CoverBroadcastMode.relay => l10n.coverBroadcastRelay,
+    CoverBroadcastMode.content => l10n.coverBroadcastContent,
+  };
 }

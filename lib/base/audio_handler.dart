@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
@@ -173,6 +174,13 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _pubFileArtUri;
   String? _pubCoverPath;
   String? _pubSmallArtPath;
+
+  /// A URI a head unit can fetch itself, when the selected mode asks for one.
+  String? _pubFetchArtUri;
+
+  static const _mediaChannel = MethodChannel('com.meidlinger.lain.media');
+  final Map<String, String> _contentUriCache = {};
+  final Set<String> _contentUriInFlight = {};
 
   // The broadcast gate for the system media session: one generation per
   // announced track (an async cover result from an older one is dropped
@@ -1905,6 +1913,7 @@ class MyAudioHandler extends BaseAudioHandler {
   /// A different server address is in use now. The artwork files themselves are
   /// local, so the snapshot only has to be re-published.
   void _onServerAddressChanged() {
+    _coverUriCache.clear();
     refreshServiceMediaItem();
   }
 
@@ -1917,13 +1926,14 @@ class MyAudioHandler extends BaseAudioHandler {
   /// thumbnail and a multi-megabyte cover, and it removes the whole
   /// "publish, then re-publish when the URL resolves" sequence. Desktop keeps a
   /// file URI, which is what its media integration reads.
-  ({String? fileUri, String? coverPath, String? smallArtPath})
+  ({String? fileUri, String? coverPath, String? smallArtPath, String? fetchUri})
   _artworkFor(MyAudioMetadata song) {
     if (_pubSongId != song.id) {
       _pubSongId = song.id;
       _pubFileArtUri = null;
       _pubCoverPath = null;
       _pubSmallArtPath = null;
+      _pubFetchArtUri = null;
       _songSwitchedAt = DateTime.now();
     }
 
@@ -1964,12 +1974,94 @@ class MyAudioHandler extends BaseAudioHandler {
       unawaited(_whenCoverReady(song));
     }
 
+    _announceCover(song, onDisk);
+
     return (
       fileUri: _pubFileArtUri,
       coverPath: _pubCoverPath,
       smallArtPath: _pubSmallArtPath,
+      fetchUri: _pubFetchArtUri,
     );
   }
+
+  /// Decides which URI (if any) the head unit may fetch itself, according to
+  /// [coverBroadcastModeNotifier]. The bitmap is always published as well.
+  void _announceCover(MyAudioMetadata song, bool onDisk) {
+    final mode = coverBroadcastModeNotifier.value;
+    if (mode == CoverBroadcastMode.bitmap) {
+      _pubFetchArtUri = null;
+      _pubFileArtUri = isMobile ? null : _pubFileArtUri;
+      return;
+    }
+    if (mode == CoverBroadcastMode.server) {
+      final remote = streamClient?.getPictureUrl(song.picture.id);
+      _pubFetchArtUri = (remote == null || remote.isEmpty)
+          ? null
+          : _coverUrlWithSize(remote, MediaArt.broadcastSide);
+      return;
+    }
+    if (mode == CoverBroadcastMode.relay) {
+      final key = _pubSmallArtPath ?? (onDisk ? song.picture.path : null);
+      _pubFetchArtUri = key == null
+          ? null
+          : streamRelay.coverUrlSync(filePath: key);
+      return;
+    }
+
+    // content:// URI served by the app's provider.
+    _pubFetchArtUri = null;
+    final small = _pubSmallArtPath;
+    if (small == null) {
+      return;
+    }
+    final cached = _contentUriCache[small];
+    if (cached != null) {
+      _pubFileArtUri = cached;
+      return;
+    }
+    unawaited(_resolveContentUri(small, song));
+  }
+
+  Future<void> _resolveContentUri(String path, MyAudioMetadata song) async {
+    if (!_contentUriInFlight.add(path)) {
+      return;
+    }
+    String? uri;
+    try {
+      uri = await _mediaChannel.invokeMethod<String>('getContentUri', {
+        'path': path,
+      });
+    } catch (e) {
+      _mediaLog('content URI failed: $e');
+    } finally {
+      _contentUriInFlight.remove(path);
+    }
+    if (uri == null || uri.isEmpty) {
+      return;
+    }
+    _contentUriCache[path] = uri;
+    if (coverBroadcastModeNotifier.value == CoverBroadcastMode.content &&
+        currentSongNotifier.value?.id == song.id) {
+      _pubFileArtUri = uri;
+      refreshServiceMediaItem();
+    }
+  }
+
+  /// A server cover sized for a head unit instead of the full original.
+  String _coverUrlWithSize(String url, int size) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.queryParameters.containsKey('size')) {
+      return url;
+    }
+    return uri
+        .replace(
+          queryParameters: {...uri.queryParameters, 'size': '$size'},
+        )
+        .toString();
+  }
+
+  /// Drops URIs that were resolved for a network that is no longer in use.
+  final Map<String, String> _coverUriCache = {};
 
   /// Starts making the broadcast-sized copy of [song]'s cover, once per
   /// cover, and returns the work so a caller that wants to announce the track
@@ -2130,6 +2222,7 @@ class MyAudioHandler extends BaseAudioHandler {
       lyricsOn,
       art.fileUri,
       art.smallArtPath,
+      art.fetchUri,
     ]);
 
     // Publication goes through the broadcast gate. It coalesces a burst into
@@ -2159,6 +2252,7 @@ class MyAudioHandler extends BaseAudioHandler {
               lyricInTitle: lyricsOn,
               fileArtUri: art.fileUri,
               artCacheFile: art.smallArtPath,
+              fetchableArtUri: art.fetchUri,
             ),
           );
 

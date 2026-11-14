@@ -2300,6 +2300,36 @@ abstract class AppLocalizations {
   /// **'Control Center Lyrics'**
   String get controlCenterLyrics;
 
+  /// No description provided for @coverBroadcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover broadcast'**
+  String get coverBroadcast;
+
+  /// No description provided for @coverBroadcastBitmap.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitmap only'**
+  String get coverBroadcastBitmap;
+
+  /// No description provided for @coverBroadcastServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Server cover URL'**
+  String get coverBroadcastServer;
+
+  /// No description provided for @coverBroadcastRelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Local relay URL'**
+  String get coverBroadcastRelay;
+
+  /// No description provided for @coverBroadcastContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content provider URI'**
+  String get coverBroadcastContent;
+
   /// No description provided for @broadcastLyrics.
   ///
   /// In en, this message translates to:

@@ -1134,6 +1134,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get controlCenterLyrics => '控制中心歌词';
 
   @override
+  String get coverBroadcast => '封面广播方式';
+
+  @override
+  String get coverBroadcastBitmap => '仅位图';
+
+  @override
+  String get coverBroadcastServer => '服务器封面地址';
+
+  @override
+  String get coverBroadcastRelay => '本机中继地址';
+
+  @override
+  String get coverBroadcastContent => '内容提供器 URI';
+
+  @override
   String get broadcastLyrics => '广播歌词';
 
   @override

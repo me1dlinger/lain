@@ -1149,6 +1149,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controlCenterLyrics => 'Control Center Lyrics';
 
   @override
+  String get coverBroadcast => 'Cover broadcast';
+
+  @override
+  String get coverBroadcastBitmap => 'Bitmap only';
+
+  @override
+  String get coverBroadcastServer => 'Server cover URL';
+
+  @override
+  String get coverBroadcastRelay => 'Local relay URL';
+
+  @override
+  String get coverBroadcastContent => 'Content provider URI';
+
+  @override
   String get broadcastLyrics => 'Broadcast lyrics';
 
   @override
