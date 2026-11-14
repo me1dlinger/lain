@@ -948,10 +948,7 @@ extension _SongListPage on _SongListState {
               // phone", which the row otherwise gives no sign of. Kept beside
               // the favourite star instead of at the row's trailing edge, where
               // it crowded the play and menu buttons.
-              Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: CachedBadge(song: song),
-              ),
+              CachedBadge(song: song),
               ValueListenableBuilder(
                 valueListenable: song.isFavoriteNotifier,
                 builder: (_, value, _) {

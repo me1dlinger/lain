@@ -14,7 +14,7 @@
 | 显示版本 versionName | `1.0.0-beta1` |
 | 发布 ABI | 只发 **arm64-v8a** |
 | Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
-| 最近一次规范构建的 versionCode | **946127**（对应 `--build-number 944127`） |
+| 最近一次规范构建的 versionCode | **946128**（对应 `--build-number 944128`） |
 | 下一次打包的 build number | **944128**（预期 versionCode **946128**） |
 
 **当前状态（2026-11-13）**

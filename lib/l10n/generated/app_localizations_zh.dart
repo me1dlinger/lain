@@ -1143,7 +1143,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coverBroadcast => '封面广播方式';
 
   @override
-  String get songQualityBadge => '歌曲品质标识';
+  String get songQualityBadge => '歌曲品质';
 
   @override
   String get coverBroadcastBitmap => '仅位图';

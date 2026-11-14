@@ -2321,7 +2321,7 @@ abstract class AppLocalizations {
   /// No description provided for @songQualityBadge.
   ///
   /// In en, this message translates to:
-  /// **'Song quality badge'**
+  /// **'Song quality'**
   String get songQualityBadge;
 
   /// No description provided for @coverBroadcastBitmap.

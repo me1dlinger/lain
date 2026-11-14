@@ -134,6 +134,9 @@ class HomeLayerState extends State<HomeLayer> {
       ]),
       builder: (context, child) {
         return ListView(
+          // Clear the bottom play bar so the last shelf can be scrolled into
+          // view instead of sitting under it.
+          padding: const EdgeInsets.only(bottom: 130),
           children: [
             if (visibleHomeButtons.isNotEmpty) hubRow(context),
 

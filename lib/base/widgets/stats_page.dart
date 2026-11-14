@@ -132,7 +132,7 @@ class _StatsPageState extends State<StatsPage> {
     final todayKey = _dayKey(DateTime.now());
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 30),
+      padding: const EdgeInsets.only(bottom: 130),
       children: [
         if (years.length > 1) _yearPicker(years, year),
         _sectionTitle(l10n.yearlyActivity),
@@ -420,13 +420,17 @@ class _StatsPageState extends State<StatsPage> {
       [l10n.albumsTotal, '${data.albums.length}'],
     ];
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        for (final tile in tiles)
-          Container(
-            width: 100,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellWidth = (constraints.maxWidth - 20) / 3;
+        return Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final tile in tiles)
+              Container(
+                width: cellWidth,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               color: _textColor.withAlpha(38),
@@ -456,8 +460,10 @@ class _StatsPageState extends State<StatsPage> {
                 ),
               ],
             ),
-          ),
-      ],
+              ),
+          ],
+        );
+      },
     );
   }
 

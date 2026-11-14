@@ -1158,7 +1158,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coverBroadcast => 'Cover broadcast';
 
   @override
-  String get songQualityBadge => 'Song quality badge';
+  String get songQualityBadge => 'Song quality';
 
   @override
   String get coverBroadcastBitmap => 'Bitmap only';

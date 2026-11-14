@@ -441,7 +441,7 @@
   "savedSuccessfully": "Saved successfully",
   "controlCenterLyrics": "Control Center Lyrics",
   "coverBroadcast": "Cover broadcast",
-  "songQualityBadge": "Song quality badge",
+  "songQualityBadge": "Song quality",
   "coverBroadcastBitmap": "Bitmap only",
   "coverBroadcastServer": "Server cover URL",
   "coverBroadcastRelay": "Local relay URL",

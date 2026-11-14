@@ -34,14 +34,17 @@ class CachedBadge extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final l10n = AppLocalizations.of(context);
-        return Tooltip(
-          message: l10n.cached,
-          child: Icon(
-            Icons.offline_pin_rounded,
-            size: size,
-            // Deliberately faint: on a streamed library this marks most rows,
-            // and it must not compete with the title.
-            color: colorManager.getSpecificTextColor().withAlpha(110),
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Tooltip(
+            message: l10n.cached,
+            child: Icon(
+              Icons.offline_pin_rounded,
+              size: size,
+              // Deliberately faint: on a streamed library this marks most rows,
+              // and it must not compete with the title.
+              color: colorManager.getSpecificTextColor().withAlpha(110),
+            ),
           ),
         );
       },
