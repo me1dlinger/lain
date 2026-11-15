@@ -40,6 +40,7 @@ import 'package:lain/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:lain/big_picture_view/panels/big_single_artist_panel.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
+import 'package:path/path.dart' as p;
 import 'package:smooth_corner/smooth_corner.dart';
 
 DateTime? _lastShowTime;
@@ -900,6 +901,123 @@ void playSongNext(MyAudioMetadata song, [String? message]) {
   }
 }
 
+/// The values offered by the song options' copy button.
+List<(String, String)> _songCopyEntries(
+  MyAudioMetadata song,
+  AppLocalizations l10n,
+) {
+  final entries = <(String, String)>[
+    (l10n.title, getTitle(song)),
+    (l10n.fileName, _songFileName(song)),
+    (l10n.artist, getArtist(song)),
+    (l10n.album, getAlbum(song)),
+  ];
+  if (isLocalLibrary) {
+    final path = song.path;
+    if (path != null && path.isNotEmpty) {
+      entries.add((l10n.filePath, path));
+    }
+  }
+  // A streamed song has no local path; its id or stream URL is not a value a
+  // listener copies, so only the tag-derived values are offered.
+  return entries;
+}
+
+/// `artist - title.ext`, using the real extension of a local file and the
+/// format the server reports when there is no path.
+String _songFileName(MyAudioMetadata song) {
+  var ext = '';
+  final path = song.path;
+  if (isLocalLibrary && path != null) {
+    ext = p.extension(path);
+  }
+  if (ext.isEmpty) {
+    final format = song.format?.trim().toLowerCase() ?? '';
+    if (format.isNotEmpty && !format.contains('/')) {
+      ext = format.startsWith('.') ? format : '.$format';
+    }
+  }
+  return '${getArtist(song)} - ${getTitle(song)}$ext';
+}
+
+/// The quick-copy sheet opened from the song options' copy button.
+void showSongCopySheet(BuildContext context, MyAudioMetadata song) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useRootNavigator: true,
+    builder: (context) {
+      final l10n = AppLocalizations.of(context);
+      final textColor = colorManager.getSpecificTextColor();
+      final entries = _songCopyEntries(song, l10n);
+      return MySheet(
+        height: 420,
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.copyText,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, color: iconColor.value),
+                    tooltip: l10n.close,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            MyDivider(color: dividerColor, thickness: 0.5, height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 20),
+                children: [
+                  for (final entry in entries)
+                    ListTile(
+                      title: Text(
+                        entry.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 15, color: textColor),
+                      ),
+                      subtitle: Text(
+                        entry.$1,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withAlpha(150),
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: iconColor.value,
+                      ),
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: entry.$2));
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          showCenterMessage(l10n.copied);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 void showSongOptions({
   required BuildContext context,
   required MyAudioMetadata song,
@@ -933,6 +1051,18 @@ void showSongOptions({
             subtitle: Text(
               "${getArtist(song)} - ${getAlbum(song)}",
               overflow: TextOverflow.ellipsis,
+            ),
+            trailing: IconButton(
+              icon: Icon(Icons.copy_all_outlined, color: iconColor.value),
+              tooltip: l10n.copyText,
+              onPressed: () {
+                final pageContext = Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).context;
+                Navigator.pop(context);
+                showSongCopySheet(pageContext, song);
+              },
             ),
           ),
 

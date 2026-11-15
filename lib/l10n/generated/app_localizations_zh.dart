@@ -1840,7 +1840,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncingWait => '正在同步，稍后再试';
 
   @override
-  String get lyricTimeline => '歌词时间轴';
+  String get lyricTimeline => '编辑歌词';
 
   @override
   String get lyricTimelineHint => '逐行调整 LRC 时间戳';
@@ -1894,7 +1894,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sidecarUpdateFailed => '标签已保存，侧车更新失败';
 
   @override
-  String get editLyricTimeline => '编辑歌词时间轴';
+  String get editLyricTimeline => '编辑歌词';
 
   @override
   String get albumTimeline => '专辑时间轴';
@@ -1992,4 +1992,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String resultsCount(int count) {
     return '$count 个结果';
   }
+
+  @override
+  String get searchLyrics => '搜索歌词';
+
+  @override
+  String get restoreLyrics => '还原歌词';
+
+  @override
+  String get lyricsPreview => '歌词预览';
+
+  @override
+  String get copyText => '复制文本';
+
+  @override
+  String get fileName => '文件名';
+
+  @override
+  String get copied => '已复制';
 }

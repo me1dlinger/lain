@@ -822,7 +822,7 @@
   },
   "nextCandidate": "Another",
   "syncingWait": "Syncing; please try again shortly",
-  "lyricTimeline": "Lyric Timeline",
+  "lyricTimeline": "Edit Lyrics",
   "lyricTimelineHint": "Adjust LRC timestamps line by line",
   "progress": "Progress",
   "stamp": "Stamp",
@@ -840,7 +840,7 @@
   "saveSuccessfully": "Saved",
   "saveFailed": "Save failed",
   "sidecarUpdateFailed": "Tags saved; the sidecar could not be updated",
-  "editLyricTimeline": "Edit Lyric Timeline",
+  "editLyricTimeline": "Edit Lyrics",
   "albumTimeline": "Album Timeline",
   "albumTimelineHint": "Browse albums by added time",
   "lastMonth": "Last Month",
@@ -907,5 +907,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "searchLyrics": "Search Lyrics",
+  "restoreLyrics": "Restore Lyrics",
+  "lyricsPreview": "Lyrics Preview",
+  "copyText": "Copy Text",
+  "fileName": "File Name",
+  "copied": "Copied"
 }

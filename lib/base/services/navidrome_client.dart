@@ -428,74 +428,12 @@ class NavidromeClient extends StreamClient {
         .map((e) => MyAudioMetadata.fromMap(e, .navidrome))
         .toList();
 
-    // The Subsonic answer is the playlist's own order; what "added time"
-    // should mean here is when each song joined *the playlist*. Navidrome
-    // numbers its playlist rows in the order they were added, so its native
-    // tracks endpoint - sorted by that row id, descending - is the playlist's
-    // added order, newest first.
-    final order = await _playlistAddedOrder(playlistId);
-    if (order.isNotEmpty) {
-      final position = {
-        for (var index = 0; index < order.length; index++) order[index]: index,
-      };
-      songs.sort((a, b) {
-        final positionA = position[a.id];
-        final positionB = position[b.id];
-        if (positionA == null || positionB == null) {
-          return 0;
-        }
-        return positionA.compareTo(positionB);
-      });
-    }
+    // The Subsonic answer is the playlist's own order, which is what "added
+    // time" means here (a song's place in the playlist, not its file date).
+    // The native track endpoint's row ids are playlist positions, so filtering
+    // them by id only repeated this order - and its DESC form is the reverse
+    // of it, which is what inverted the sort.
     return songs;
-  }
-
-  /// Ids of the playlist's songs, newest added first. Navidrome's own
-  /// playlist-tracks endpoint reports the rows it keeps per playlist; sorting
-  /// them by `id`, descending, walks them backwards through the order they
-  /// were added in. Empty when the native API is unavailable - the Subsonic
-  /// order is then kept as before.
-  Future<List<String>> _playlistAddedOrder(String playlistId) async {
-    final token = await _nativeTokenIfAvailable();
-    if (token == null) {
-      return const [];
-    }
-    final headers = {'x-nd-authorization': 'Bearer $token'};
-    final ids = <String>[];
-    const pageSize = 500;
-    try {
-      for (var start = 0; ; start += pageSize) {
-        final response = await _nativeDio.get(
-          '$_nativeRoot/api/playlist/$playlistId/tracks',
-          queryParameters: {
-            '_start': start,
-            '_end': start + pageSize,
-            '_sort': 'id',
-            '_order': 'DESC',
-          },
-          options: Options(headers: headers),
-        );
-        final page = response.data;
-        if (page is! List || page.isEmpty) {
-          break;
-        }
-        for (final raw in page) {
-          if (raw is! Map) {
-            continue;
-          }
-          final id = raw['mediaFileId']?.toString();
-          if (id != null && id.isNotEmpty) {
-            ids.add(id);
-          }
-        }
-        if (page.length < pageSize) {
-          break;
-        }
-      }
-    } catch (e) {
-      logger.output('[Navidrome] playlist order $playlistId: $e');
-    }
-    return ids;
   }
 
   @override

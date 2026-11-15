@@ -752,7 +752,7 @@
   },
   "nextCandidate": "换一个",
   "syncingWait": "正在同步，稍后再试",
-  "lyricTimeline": "歌词时间轴",
+  "lyricTimeline": "编辑歌词",
   "lyricTimelineHint": "逐行调整 LRC 时间戳",
   "progress": "进度",
   "stamp": "打轴",
@@ -770,7 +770,7 @@
   "saveSuccessfully": "保存成功",
   "saveFailed": "保存失败",
   "sidecarUpdateFailed": "标签已保存，侧车更新失败",
-  "editLyricTimeline": "编辑歌词时间轴",
+  "editLyricTimeline": "编辑歌词",
   "albumTimeline": "专辑时间轴",
   "albumTimelineHint": "按添加时间浏览专辑",
   "lastMonth": "一个月内",
@@ -837,5 +837,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "searchLyrics": "搜索歌词",
+  "restoreLyrics": "还原歌词",
+  "lyricsPreview": "歌词预览",
+  "copyText": "复制文本",
+  "fileName": "文件名",
+  "copied": "已复制"
 }

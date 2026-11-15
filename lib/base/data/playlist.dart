@@ -360,12 +360,11 @@ class Playlist {
   }
 
   /// The playlist's own order of addition, oldest first, for the lists that
-  /// have one: a local playlist keeps its newest song first, and the Navidrome
-  /// client fetches a server playlist newest-first too (see
-  /// [NavidromeClient.getPlaylistSongs]). Inside such a list "added time"
-  /// means when the song joined *it* - not when its file was created. Other
-  /// sources report no per-entry order, so they answer null and sorting falls
-  /// back to each song's own added time.
+  /// have one: both a local playlist and a Navidrome one keep their newest song
+  /// first, so the added order is the reverse of the stored list. Inside such a
+  /// list "added time" means when the song joined *it* - not when its file was
+  /// created. Other sources report no per-entry order, so they answer null and
+  /// sorting falls back to each song's own added time.
   List<MyAudioMetadata>? get addedOrder {
     if (isFavorite) {
       return null;

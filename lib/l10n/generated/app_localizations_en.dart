@@ -1875,7 +1875,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncingWait => 'Syncing; please try again shortly';
 
   @override
-  String get lyricTimeline => 'Lyric Timeline';
+  String get lyricTimeline => 'Edit Lyrics';
 
   @override
   String get lyricTimelineHint => 'Adjust LRC timestamps line by line';
@@ -1931,7 +1931,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tags saved; the sidecar could not be updated';
 
   @override
-  String get editLyricTimeline => 'Edit Lyric Timeline';
+  String get editLyricTimeline => 'Edit Lyrics';
 
   @override
   String get albumTimeline => 'Album Timeline';
@@ -2029,4 +2029,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String resultsCount(int count) {
     return '$count results';
   }
+
+  @override
+  String get searchLyrics => 'Search Lyrics';
+
+  @override
+  String get restoreLyrics => 'Restore Lyrics';
+
+  @override
+  String get lyricsPreview => 'Lyrics Preview';
+
+  @override
+  String get copyText => 'Copy Text';
+
+  @override
+  String get fileName => 'File Name';
+
+  @override
+  String get copied => 'Copied';
 }

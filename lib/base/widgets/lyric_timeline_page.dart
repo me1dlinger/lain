@@ -16,8 +16,11 @@ import 'package:lain/base/services/metadata_write.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/lyric_search_dialog.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /// Edits the line-level timestamps of one song's lyrics against its own audio.
 ///
@@ -45,7 +48,7 @@ class LyricTimelinePage extends StatefulWidget {
 class _LyricTimelinePageState extends State<LyricTimelinePage> {
   late final MyAudioMetadata song = widget.song;
 
-  final _scrollController = ScrollController();
+  final _itemScrollController = ItemScrollController();
 
   /// The player state to put back when this page closes.
   LyricPreviewBookmark? _bookmark;
@@ -64,7 +67,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
   final Map<String, TextEditingController> _stampControllers = {};
   final Map<String, TextEditingController> _primaryControllers = {};
   final Map<String, TextEditingController> _secondaryControllers = {};
-  final Map<String, GlobalKey> _rowKeys = {};
 
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
@@ -95,8 +97,17 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     }
     _document = LrcDocument.parse(text);
     _buildControllers();
-    _activeIndex = _document!.groups.isEmpty ? null : 0;
+    _activeIndex = _document!.groups.isEmpty
+        ? null
+        : _indexForPosition(
+            _document!.groups,
+            _position + Duration(milliseconds: song.lyricsTimeOffset),
+          );
     setState(() {});
+    final active = _activeIndex;
+    if (active != null) {
+      _reveal(active);
+    }
   }
 
   Future<void> _startPreview() async {
@@ -104,19 +115,26 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     if (path == null || !File(path).existsSync()) {
       return;
     }
+    // The page opens paused on the current playhead: if this song is already
+    // the one loaded, that is its position, otherwise the start of the file.
+    final current = currentSongNotifier.value;
+    final startAt = current?.id == song.id
+        ? audioHandler.getPosition()
+        : Duration.zero;
     try {
-      _bookmark = await audioHandler.startLyricPreview(song);
+      _bookmark = await audioHandler.startLyricPreview(
+        song,
+        autoPlay: false,
+        start: startAt,
+      );
     } catch (e) {
       logger.output('[lyric timeline] preview start failed: $e');
       return;
     }
     _playing = isPlayingNotifier.value;
     isPlayingNotifier.addListener(_onPlayingChanged);
-    _positionSub = audioHandler.getPositionStream().listen((position) {
-      if (mounted) {
-        setState(() => _position = position);
-      }
-    });
+    _positionSub = audioHandler.getPositionStream().listen(_onPosition);
+    _position = audioHandler.getPosition();
     _durationSub = audioHandler.getDurationStream().listen((duration) {
       if (mounted) {
         setState(() => _duration = duration);
@@ -132,6 +150,51 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     if (mounted) {
       setState(() => _playing = isPlayingNotifier.value);
     }
+  }
+
+  /// Follows playback: the line under the playhead becomes active and is
+  /// centred. While paused only a tap/seek changes the active line.
+  void _onPosition(Duration position) {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _position = position);
+    if (!isPlayingNotifier.value) {
+      return;
+    }
+    final groups = _document?.groups;
+    if (groups == null || groups.isEmpty) {
+      return;
+    }
+    final index = _indexForPosition(
+      groups,
+      position + Duration(milliseconds: song.lyricsTimeOffset),
+    );
+    if (index == null || index == _activeIndex) {
+      return;
+    }
+    setState(() => _activeIndex = index);
+    _reveal(index, alignment: 0.5);
+  }
+
+  /// The line being sung at [position]: the latest line whose timestamp has
+  /// been reached, or the first timed line before it.
+  int? _indexForPosition(List<LrcLineGroup> groups, Duration position) {
+    int? best;
+    Duration? bestStart;
+    int? firstTimed;
+    for (var i = 0; i < groups.length; i++) {
+      final start = groups[i].start;
+      if (start == null) {
+        continue;
+      }
+      firstTimed ??= i;
+      if (start <= position && (bestStart == null || start >= bestStart)) {
+        best = i;
+        bestStart = start;
+      }
+    }
+    return best ?? firstTimed;
   }
 
   /// Hands the player back to what it was playing before this page opened.
@@ -185,7 +248,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
       _secondaryControllers[group.localId] = TextEditingController(
         text: group.secondary ?? '',
       );
-      _rowKeys[group.localId] = GlobalKey();
     }
   }
 
@@ -200,7 +262,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     _stampControllers.clear();
     _primaryControllers.clear();
     _secondaryControllers.clear();
-    _rowKeys.clear();
   }
 
   @override
@@ -209,7 +270,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     _positionSub?.cancel();
     _durationSub?.cancel();
     unawaited(_restorePlayback());
-    _scrollController.dispose();
     _disposeControllers();
     super.dispose();
   }
@@ -232,11 +292,18 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
 
   // ---- actions -------------------------------------------------------------
 
-  void _select(int index) {
-    if (_activeIndex == index) {
+  /// Focuses a line and seeks playback to its timestamp. Works for any line
+  /// the user can reach, not only the one the playhead is on.
+  void _select(int index, {bool seek = true}) {
+    final groups = _document?.groups;
+    if (groups == null || index < 0 || index >= groups.length) {
       return;
     }
     setState(() => _activeIndex = index);
+    final start = groups[index].start;
+    if (seek && start != null) {
+      unawaited(audioHandler.seek(start));
+    }
     _reveal(index);
   }
 
@@ -249,21 +316,20 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     _select(next);
   }
 
-  void _reveal(int index) {
+  void _reveal(int index, {double alignment = 0.35}) {
     final groups = _document?.groups;
     if (groups == null || index < 0 || index >= groups.length) {
       return;
     }
-    final key = _rowKeys[groups[index].localId];
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = key?.currentContext;
-      if (context != null) {
-        Scrollable.ensureVisible(
-          context,
-          duration: const Duration(milliseconds: 200),
-          alignment: 0.3,
-        );
+      if (!_itemScrollController.isAttached) {
+        return;
       }
+      _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 220),
+        alignment: alignment,
+      );
     });
   }
 
@@ -344,7 +410,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     );
     _primaryControllers[group.localId] = TextEditingController();
     _secondaryControllers[group.localId] = TextEditingController();
-    _rowKeys[group.localId] = GlobalKey();
     _markDirty();
     final newIndex = above == null ? 0 : index + 1;
     setState(() => _activeIndex = newIndex);
@@ -385,7 +450,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     _stampControllers.remove(localId)?.dispose();
     _primaryControllers.remove(localId)?.dispose();
     _secondaryControllers.remove(localId)?.dispose();
-    _rowKeys.remove(localId);
   }
 
   void _stripWordTimestamps() {
@@ -433,6 +497,30 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
     });
     _buildControllers();
     setState(() {});
+  }
+
+  Future<void> _searchLyrics() async {
+    final text = await showAnimationDialog<String>(
+      context: context,
+      child: LyricSearchDialog(song: song),
+    );
+    if (text == null || !mounted) {
+      return;
+    }
+    _disposeControllers();
+    final document = LrcDocument.parse(text);
+    setState(() {
+      _document = document;
+      _ttml = looksLikeTtml(text);
+      _dirty = true;
+      _activeIndex = document.groups.isEmpty ? null : 0;
+    });
+    _buildControllers();
+    setState(() {});
+    final active = _activeIndex;
+    if (active != null) {
+      _reveal(active);
+    }
   }
 
   Future<void> _save() async {
@@ -517,7 +605,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
         best = i;
       }
     }
-    _select(best);
+    _select(best, seek: false);
   }
 
   // ---- build ---------------------------------------------------------------
@@ -567,9 +655,16 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
           title: l10n.lyricTimeline,
           actions: [
             TextButton(
+              onPressed: _searchLyrics,
+              child: Text(
+                l10n.searchLyrics,
+                style: TextStyle(fontSize: 15, color: textColor),
+              ),
+            ),
+            TextButton(
               onPressed: _reset,
               child: Text(
-                l10n.reset,
+                l10n.restoreLyrics,
                 style: TextStyle(fontSize: 15, color: textColor),
               ),
             ),
@@ -599,21 +694,41 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
   Widget _songHeader(BuildContext context) {
     final textColor = colorManager.getSpecificTextColor();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+      child: Row(
         children: [
-          Text(
-            song.title ?? p.basenameWithoutExtension(song.path ?? ''),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 15, color: textColor),
+          CoverArtWidget(
+            picture: song.picture,
+            size: 104,
+            borderRadius: 10,
           ),
-          Text(
-            '${song.artist ?? ''} - ${song.album ?? ''}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  song.title ?? p.basenameWithoutExtension(song.path ?? ''),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${song.artist ?? ''} - ${song.album ?? ''}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: textColor.withAlpha(150),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -785,8 +900,8 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
         ),
       );
     }
-    return ListView.builder(
-      controller: _scrollController,
+    return ScrollablePositionedList.builder(
+      itemScrollController: _itemScrollController,
       padding: const EdgeInsets.only(bottom: 100, top: 6),
       itemCount: groups.length,
       itemBuilder: (context, index) => _row(context, groups[index], index),
@@ -800,7 +915,6 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
       behavior: HitTestBehavior.opaque,
       onTap: () => _select(index),
       child: Container(
-        key: _rowKeys[group.localId],
         color: selected ? textColor.withAlpha(38) : Colors.transparent,
         padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
         child: Row(
@@ -810,6 +924,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
               width: 86,
               child: TextField(
                 controller: _stampControllers[group.localId],
+                onTap: () => _select(index),
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   fontSize: 13,
@@ -834,6 +949,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
                 children: [
                   TextField(
                     controller: _primaryControllers[group.localId],
+                    onTap: () => _select(index),
                     style: TextStyle(fontSize: 15, color: textColor),
                     cursorColor: textColor,
                     decoration: const InputDecoration(
@@ -849,6 +965,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
                   if (group.secondary != null)
                     TextField(
                       controller: _secondaryControllers[group.localId],
+                      onTap: () => _select(index),
                       style: TextStyle(
                         fontSize: 13,
                         color: textColor.withAlpha(170),
@@ -878,7 +995,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
               icon: const Icon(Icons.schedule_rounded),
               color: textColor,
               onPressed: () {
-                _select(index);
+                _select(index, seek: false);
                 _stamp();
               },
             ),
@@ -886,7 +1003,7 @@ class _LyricTimelinePageState extends State<LyricTimelinePage> {
               color: colorManager.getSpecificOpaqueBgColor(),
               icon: Icon(Icons.more_vert_rounded, color: textColor),
               onSelected: (value) {
-                _select(index);
+                _select(index, seek: false);
                 switch (value) {
                   case 'secondary':
                     _addSecondary();

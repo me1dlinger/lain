@@ -3635,7 +3635,7 @@ abstract class AppLocalizations {
   /// No description provided for @lyricTimeline.
   ///
   /// In en, this message translates to:
-  /// **'Lyric Timeline'**
+  /// **'Edit Lyrics'**
   String get lyricTimeline;
 
   /// No description provided for @lyricTimelineHint.
@@ -3743,7 +3743,7 @@ abstract class AppLocalizations {
   /// No description provided for @editLyricTimeline.
   ///
   /// In en, this message translates to:
-  /// **'Edit Lyric Timeline'**
+  /// **'Edit Lyrics'**
   String get editLyricTimeline;
 
   /// No description provided for @albumTimeline.
@@ -3919,6 +3919,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} results'**
   String resultsCount(int count);
+
+  /// No description provided for @searchLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Lyrics'**
+  String get searchLyrics;
+
+  /// No description provided for @restoreLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Lyrics'**
+  String get restoreLyrics;
+
+  /// No description provided for @lyricsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics Preview'**
+  String get lyricsPreview;
+
+  /// No description provided for @copyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Text'**
+  String get copyText;
+
+  /// No description provided for @fileName.
+  ///
+  /// In en, this message translates to:
+  /// **'File Name'**
+  String get fileName;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
 }
 
 class _AppLocalizationsDelegate

@@ -2329,7 +2329,11 @@ class MyAudioHandler extends BaseAudioHandler {
   /// app, so it borrows the main player instead of opening a second one. The
   /// queue, song, position and playing state are remembered, and
   /// [stopLyricPreview] puts the listener back exactly where they were.
-  Future<LyricPreviewBookmark> startLyricPreview(MyAudioMetadata song) async {
+  Future<LyricPreviewBookmark> startLyricPreview(
+    MyAudioMetadata song, {
+    bool autoPlay = true,
+    Duration start = Duration.zero,
+  }) async {
     final bookmark = LyricPreviewBookmark(
       queue: List<MyAudioMetadata>.of(playQueue),
       queueTmp: List<MyAudioMetadata>.of(_playQueueTmp),
@@ -2342,8 +2346,10 @@ class MyAudioHandler extends BaseAudioHandler {
     _playQueueTmp = [song];
     playQueue = [song];
     currentIndex = 0;
-    await load(start: Duration.zero);
-    await play();
+    await load(start: start);
+    if (autoPlay) {
+      await play();
+    }
     // The temporary queue is not written to disk: a launch after the app was
     // killed inside the editor must restore the listener's real queue, not the
     // single song the editor was previewing.
