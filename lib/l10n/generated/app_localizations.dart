@@ -3133,6 +3133,792 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{hours} {unit}'**
   String libraryDurationHours(String hours, String unit);
+
+  /// No description provided for @localLibraryTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Library Tools'**
+  String get localLibraryTools;
+
+  /// No description provided for @localLibraryToolsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, organize and complete tags'**
+  String get localLibraryToolsHint;
+
+  /// No description provided for @organizeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize'**
+  String get organizeSection;
+
+  /// No description provided for @browseSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse'**
+  String get browseSection;
+
+  /// No description provided for @namingFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Naming Format'**
+  String get namingFormat;
+
+  /// No description provided for @directorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get directorySection;
+
+  /// No description provided for @filenameSection.
+  ///
+  /// In en, this message translates to:
+  /// **'File Name'**
+  String get filenameSection;
+
+  /// No description provided for @previewSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get previewSection;
+
+  /// No description provided for @directoryTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder Template'**
+  String get directoryTemplate;
+
+  /// No description provided for @filenameTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'File Name Template'**
+  String get filenameTemplate;
+
+  /// No description provided for @keepFeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep feat. Credit'**
+  String get keepFeat;
+
+  /// No description provided for @namingPlaceholders.
+  ///
+  /// In en, this message translates to:
+  /// **'Available placeholders: {placeholders}'**
+  String namingPlaceholders(String placeholders);
+
+  /// No description provided for @namingSlashHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'A / in the template creates a folder level; a / inside a tag value is replaced with an underscore. The file name template must contain the title placeholder.'**
+  String get namingSlashHelp;
+
+  /// No description provided for @templateEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The template cannot be empty'**
+  String get templateEmpty;
+
+  /// No description provided for @templateNeedsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The file name template must contain the title placeholder'**
+  String get templateNeedsTitle;
+
+  /// No description provided for @templateAbsolute.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolute paths are not allowed'**
+  String get templateAbsolute;
+
+  /// No description provided for @templateParentSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'A \'..\' path segment is not allowed'**
+  String get templateParentSegment;
+
+  /// No description provided for @templateUnknownPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'The template contains an unknown placeholder'**
+  String get templateUnknownPlaceholder;
+
+  /// No description provided for @invalidTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid template'**
+  String get invalidTemplate;
+
+  /// No description provided for @restoreDefaultFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Defaults'**
+  String get restoreDefaultFormat;
+
+  /// No description provided for @exampleSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Example song'**
+  String get exampleSong;
+
+  /// No description provided for @currentPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get currentPath;
+
+  /// No description provided for @organizedPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Organized'**
+  String get organizedPath;
+
+  /// No description provided for @organizeFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize Files'**
+  String get organizeFiles;
+
+  /// No description provided for @organizeFilesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview, then move files'**
+  String get organizeFilesHint;
+
+  /// No description provided for @organizeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize File'**
+  String get organizeFile;
+
+  /// No description provided for @organizeSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize Selected'**
+  String get organizeSelected;
+
+  /// No description provided for @startOrganizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Organizing'**
+  String get startOrganizing;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @directoryPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder Preview'**
+  String get directoryPreview;
+
+  /// No description provided for @changeList.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes'**
+  String get changeList;
+
+  /// No description provided for @organizeNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get organizeNormal;
+
+  /// No description provided for @organizeSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get organizeSkip;
+
+  /// No description provided for @organizeConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Conflict'**
+  String get organizeConflict;
+
+  /// No description provided for @organizeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Allowed'**
+  String get organizeBlocked;
+
+  /// No description provided for @organizeReasonUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Already correct'**
+  String get organizeReasonUnchanged;
+
+  /// No description provided for @organizeReasonTargetExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Target exists'**
+  String get organizeReasonTargetExists;
+
+  /// No description provided for @organizeReasonMissingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File missing'**
+  String get organizeReasonMissingFile;
+
+  /// No description provided for @organizeReasonMissingPath.
+  ///
+  /// In en, this message translates to:
+  /// **'No path'**
+  String get organizeReasonMissingPath;
+
+  /// No description provided for @organizeReasonOutsideLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside the configured folders'**
+  String get organizeReasonOutsideLibrary;
+
+  /// No description provided for @organizeReasonFileProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'File-provider paths cannot be moved'**
+  String get organizeReasonFileProvider;
+
+  /// No description provided for @organizeReasonPathTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Path too long'**
+  String get organizeReasonPathTooLong;
+
+  /// No description provided for @organizeReasonTargetIsFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Target is a folder'**
+  String get organizeReasonTargetIsFolder;
+
+  /// No description provided for @organizeReasonInvalidTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid naming template'**
+  String get organizeReasonInvalidTemplate;
+
+  /// No description provided for @organizeResultMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved {moved}, skipped {skipped}, failed {failed}'**
+  String organizeResultMessage(int moved, int skipped, int failed);
+
+  /// No description provided for @organizeStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after {moved} files'**
+  String organizeStopped(int moved);
+
+  /// No description provided for @organizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Organizing'**
+  String get organizing;
+
+  /// No description provided for @undoOrganize.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo This Organize'**
+  String get undoOrganize;
+
+  /// No description provided for @undoSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Undone'**
+  String get undoSuccessfully;
+
+  /// No description provided for @undoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo'**
+  String get undoFailed;
+
+  /// No description provided for @metadataCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata Completion'**
+  String get metadataCompletion;
+
+  /// No description provided for @songsMissingTags.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs are missing tags'**
+  String songsMissingTags(int count);
+
+  /// No description provided for @batchSearchSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Selected'**
+  String get batchSearchSelected;
+
+  /// No description provided for @batchSearchTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Tags in Batch'**
+  String get batchSearchTags;
+
+  /// No description provided for @batchSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching {done} / {total}'**
+  String batchSearching(int done, int total);
+
+  /// No description provided for @filterMissingTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing Tags'**
+  String get filterMissingTags;
+
+  /// No description provided for @filterMissingTagsOrCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags or Cover'**
+  String get filterMissingTagsOrCover;
+
+  /// No description provided for @filterAllIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'All Incomplete'**
+  String get filterAllIncomplete;
+
+  /// No description provided for @allMetadataComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Every song\'s metadata is complete'**
+  String get allMetadataComplete;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @missingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No title'**
+  String get missingTitle;
+
+  /// No description provided for @missingArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'No artist'**
+  String get missingArtist;
+
+  /// No description provided for @missingAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'No album'**
+  String get missingAlbum;
+
+  /// No description provided for @missingCover.
+  ///
+  /// In en, this message translates to:
+  /// **'No cover'**
+  String get missingCover;
+
+  /// No description provided for @missingLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'No lyrics'**
+  String get missingLyrics;
+
+  /// No description provided for @searchTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Tags'**
+  String get searchTags;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @scrapeFillEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill Empty Only'**
+  String get scrapeFillEmpty;
+
+  /// No description provided for @overwriteTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite Existing Tags'**
+  String get overwriteTags;
+
+  /// No description provided for @writeCoverToo.
+  ///
+  /// In en, this message translates to:
+  /// **'Write Cover Too'**
+  String get writeCoverToo;
+
+  /// No description provided for @writeLyricsToo.
+  ///
+  /// In en, this message translates to:
+  /// **'Write Lyrics Too'**
+  String get writeLyricsToo;
+
+  /// No description provided for @nextBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Batch'**
+  String get nextBatch;
+
+  /// No description provided for @noMoreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No more results from this source'**
+  String get noMoreResults;
+
+  /// No description provided for @noSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get noSearchResults;
+
+  /// No description provided for @coverSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'The cover format is not supported and was skipped'**
+  String get coverSkipped;
+
+  /// No description provided for @matchScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Match'**
+  String get matchScore;
+
+  /// No description provided for @changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes'**
+  String get changes;
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @applySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Selected'**
+  String get applySelected;
+
+  /// No description provided for @batchReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch Results'**
+  String get batchReview;
+
+  /// No description provided for @batchApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied to {count} songs'**
+  String batchApplied(int count);
+
+  /// No description provided for @nextCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Another'**
+  String get nextCandidate;
+
+  /// No description provided for @syncingWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing; please try again shortly'**
+  String get syncingWait;
+
+  /// No description provided for @lyricTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyric Timeline'**
+  String get lyricTimeline;
+
+  /// No description provided for @lyricTimelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust LRC timestamps line by line'**
+  String get lyricTimelineHint;
+
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// No description provided for @stamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Stamp'**
+  String get stamp;
+
+  /// No description provided for @playbackOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback Offset'**
+  String get playbackOffset;
+
+  /// No description provided for @bakeOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Offset and Reset'**
+  String get bakeOffset;
+
+  /// No description provided for @wordTimestamps.
+  ///
+  /// In en, this message translates to:
+  /// **'Word Timestamps'**
+  String get wordTimestamps;
+
+  /// No description provided for @stripWordTimestamps.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Word Timestamps'**
+  String get stripWordTimestamps;
+
+  /// No description provided for @ttmlNotEditable.
+  ///
+  /// In en, this message translates to:
+  /// **'This lyric is TTML; line-level timeline editing is not supported'**
+  String get ttmlNotEditable;
+
+  /// No description provided for @noLyricLines.
+  ///
+  /// In en, this message translates to:
+  /// **'No lyric lines yet'**
+  String get noLyricLines;
+
+  /// No description provided for @addLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Line'**
+  String get addLine;
+
+  /// No description provided for @addSecondaryLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Secondary Line'**
+  String get addSecondaryLine;
+
+  /// No description provided for @addLineBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Line Below'**
+  String get addLineBelow;
+
+  /// No description provided for @discardChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes'**
+  String get discardChanges;
+
+  /// No description provided for @invalidTimeFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid time format'**
+  String get invalidTimeFormat;
+
+  /// No description provided for @saveSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get saveSuccessfully;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get saveFailed;
+
+  /// No description provided for @sidecarUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags saved; the sidecar could not be updated'**
+  String get sidecarUpdateFailed;
+
+  /// No description provided for @editLyricTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Lyric Timeline'**
+  String get editLyricTimeline;
+
+  /// No description provided for @albumTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Album Timeline'**
+  String get albumTimeline;
+
+  /// No description provided for @albumTimelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse albums by added time'**
+  String get albumTimelineHint;
+
+  /// No description provided for @lastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Month'**
+  String get lastMonth;
+
+  /// No description provided for @lastQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 3 Months'**
+  String get lastQuarter;
+
+  /// No description provided for @allTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allTime;
+
+  /// No description provided for @noAlbumsInRange.
+  ///
+  /// In en, this message translates to:
+  /// **'No albums added in this period'**
+  String get noAlbumsInRange;
+
+  /// No description provided for @albumsMissingCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} albums have no added time'**
+  String albumsMissingCreated(int count);
+
+  /// No description provided for @albumTimelineAddedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} songs'**
+  String albumTimelineAddedCount(int count);
+
+  /// No description provided for @albumTimelineSongCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs'**
+  String albumTimelineSongCount(int count);
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get viewAll;
+
+  /// No description provided for @stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stop;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get actions;
+
+  /// No description provided for @organizeFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize Folder'**
+  String get organizeFolder;
+
+  /// No description provided for @organizeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Organized'**
+  String get organizeDone;
+
+  /// No description provided for @organizeComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get organizeComplete;
+
+  /// No description provided for @organizePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Not processed'**
+  String get organizePending;
+
+  /// No description provided for @undoApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo This Apply'**
+  String get undoApply;
+
+  /// No description provided for @previousCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previousCard;
+
+  /// No description provided for @nextCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextCard;
+
+  /// No description provided for @scrapeLongPressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press a card to apply it directly'**
+  String get scrapeLongPressHint;
+
+  /// No description provided for @organizeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get organizeFailed;
+
+  /// No description provided for @applyCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply This'**
+  String get applyCurrent;
+
+  /// No description provided for @applyAllBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply All Best'**
+  String get applyAllBest;
+
+  /// No description provided for @songPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Song {index} of {total}'**
+  String songPosition(int index, int total);
+
+  /// No description provided for @jumpToSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Song'**
+  String get jumpToSong;
+
+  /// No description provided for @previousSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous Song'**
+  String get previousSong;
+
+  /// No description provided for @nextSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Song'**
+  String get nextSong;
+
+  /// No description provided for @resultsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results'**
+  String resultsCount(int count);
 }
 
 class _AppLocalizationsDelegate

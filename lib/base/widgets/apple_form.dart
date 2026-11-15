@@ -122,16 +122,20 @@ Widget appleTextField(
   bool obscure = false,
   int maxLines = 1,
   String? placeholder,
+  TextAlign? textAlign,
+  ValueChanged<String>? onSubmitted,
 }) {
   final textColor = colorManager.getSpecificTextColor();
 
   return TextField(
     controller: controller,
+    onSubmitted: onSubmitted,
     keyboardType: number ? TextInputType.number : null,
     obscureText: obscure,
     maxLines: maxLines,
     minLines: maxLines > 1 ? 3 : 1,
-    textAlign: maxLines > 1 ? TextAlign.start : TextAlign.right,
+    textAlign:
+        textAlign ?? (maxLines > 1 ? TextAlign.start : TextAlign.right),
     style: TextStyle(fontSize: 15, color: textColor),
     cursorColor: textColor,
     decoration: InputDecoration(
@@ -151,6 +155,8 @@ Widget appleTextFieldRow(
   bool number = false,
   bool obscure = false,
   String? placeholder,
+  TextAlign? textAlign,
+  ValueChanged<String>? onSubmitted,
 }) {
   return appleFormRow(
     label,
@@ -159,6 +165,8 @@ Widget appleTextFieldRow(
       number: number,
       obscure: obscure,
       placeholder: placeholder,
+      textAlign: textAlign,
+      onSubmitted: onSubmitted,
     ),
   );
 }

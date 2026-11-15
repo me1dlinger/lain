@@ -16,6 +16,7 @@ import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
+import 'package:lain/base/data/library_naming.dart';
 import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/playback_mode.dart';
@@ -291,6 +292,11 @@ class Setting {
             .asNameMap()[json['playbackMode']?.toString()] ??
         defaultPlaybackMode();
 
+    final naming = LibraryNamingFormat.fromJson(json['libraryNaming']);
+    libraryDirTemplateNotifier.value = naming.dirTemplate;
+    libraryFileTemplateNotifier.value = naming.fileTemplate;
+    libraryKeepFeatNotifier.value = naming.keepFeat;
+
     commentSwitchNotifier.value =
         json['commentSwitch'] as bool? ?? commentSwitchNotifier.value;
 
@@ -402,6 +408,8 @@ class Setting {
         },
 
         'playbackMode': playbackModeNotifier.value.name,
+
+        'libraryNaming': LibraryNamingFormat.current.toJson(),
 
         'commentSwitch': commentSwitchNotifier.value,
         'commentServers': [for (final server in commentServers) server.toJson()],

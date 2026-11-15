@@ -109,6 +109,29 @@ extension _SongListPage on _SongListState {
               );
             },
           ),
+          // A local artist's albums can be organized as a whole from here;
+          // the entry only exists for the on-device source.
+          if (artist != null && isLocalLibrary)
+            ListTile(
+              leading: Icon(Icons.drive_file_move_rounded),
+              title: Text(
+                l10n.organizeFolder,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+              onTap: () {
+                final target = artist!;
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  settingsPageRoute<void>(
+                    () => LibraryOrganizePage(
+                      songs: target.songList,
+                      title: l10n.organizeFolder,
+                    ),
+                  ),
+                );
+              },
+            ),
           // A local playlist can be written out as a list of file paths, the
           // shape it can be imported from again.
           if (playlist != null && isNotStreamSource)
@@ -991,7 +1014,10 @@ extension _SongListPage on _SongListState {
           includeGoToArtist: artist == null || artist!.name != song.artist,
           excludedArtist: artist?.name,
           includeGoToAlbum: album == null,
-          includeEdit: sourceType == .local && artist == null && album == null,
+          // Editing is available for every local song list, not only the
+          // "all songs" one: the artist, album, folder and playlist pages are
+          // local libraries too, and the scraper works from any of them.
+          includeEdit: sourceType == .local,
           includeCacheInfo: isStreamSource,
           playlist: playlist,
           useDialog: false,

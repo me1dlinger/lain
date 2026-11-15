@@ -3,7 +3,10 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/library_organize_page.dart';
+import 'package:lain/base/widgets/metadata_batch_deck_page.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/data/folder.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/selectable_song_list_tile.dart';
@@ -100,6 +103,25 @@ class SelectableSongListPage extends StatelessWidget {
                   ),
                   Text(l10n.selectAll, style: TextStyle(fontSize: 16)),
                   Spacer(),
+                  // Local-library actions sit next to "complete", and only
+                  // exist when there is something selected.
+                  if (isLocalLibrary)
+                    ValueListenableBuilder(
+                      valueListenable: selectedNumNotifier,
+                      builder: (context, value, child) {
+                        if (value <= 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return GestureDetector(
+                          onTap: () => _showLocalActions(context),
+                          child: Text(
+                            l10n.actions,
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        );
+                      },
+                    ),
+                  if (isLocalLibrary) const SizedBox(width: 16),
                   Transform.translate(
                     offset: Offset(0, -2),
                     child: GestureDetector(
@@ -169,6 +191,58 @@ class SelectableSongListPage extends StatelessWidget {
           ),
         ),
         bottomNavigationBar: bottomButtons(l10n),
+      ),
+    );
+  }
+
+  void _showLocalActions(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final selected = getSelectedSongList();
+    if (selected.isEmpty) {
+      return;
+    }
+    showAnimationDialog<void>(
+      context: context,
+      child: SizedBox(
+        width: 300,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.drive_file_move_rounded,
+                color: iconColor.value,
+              ),
+              title: Text(l10n.organizeSelected),
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.of(context).push(
+                  settingsPageRoute<void>(
+                    () => LibraryOrganizePage(songs: selected),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.search_rounded, color: iconColor.value),
+              title: Text(l10n.batchSearchTags),
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.of(context).push(
+                  settingsPageRoute<void>(
+                    () => MetadataBatchDeckPage(songs: selected),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(l10n.cancel, textAlign: TextAlign.center),
+              onTap: () {
+                Navigator.of(context, rootNavigator: true).pop();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -298,6 +372,37 @@ class SelectableSongListPage extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isLocalLibrary)
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          if (valid) {
+                            tryVibrate();
+                            Navigator.of(context).push(
+                              settingsPageRoute<void>(
+                                () => MetadataBatchDeckPage(
+                                  songs: getSelectedSongList(),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.search_rounded),
+                        color: color,
+                      ),
+                      Transform.translate(
+                        offset: Offset(0, -10),
+                        child: Text(
+                          l10n.batchSearchTags,
+                          style: TextStyle(color: color, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (playlist != null)
                 Expanded(
                   child: Column(

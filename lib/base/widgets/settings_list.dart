@@ -41,6 +41,7 @@ import 'package:lain/base/widgets/downloads_page.dart';
 import 'package:lain/base/widgets/song_cache_page.dart';
 import 'package:lain/base/widgets/cache_group_page.dart';
 import 'package:lain/base/widgets/home_layout_settings.dart';
+import 'package:lain/base/widgets/local_library_tools_page.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
 import 'package:lain/base/widgets/settings_page_route.dart';
@@ -324,6 +325,9 @@ class _SettingsListState extends State<SettingsList> {
           // The local library sits behind the servers so a stray tap does not
           // switch sources on the way to something else.
           localSourceListTile(context, l10n),
+          // The tools only exist for the on-device library: for a server or a
+          // WebDAV source this tile is not built at all.
+          if (isLocalLibrary) localLibraryToolsListTile(context, l10n),
           offlineModeListTile(l10n),
           // WebDAV still uses the generic folder manager; the local library
           // has its own second-level page.
@@ -493,6 +497,31 @@ class _SettingsListState extends State<SettingsList> {
               settingsPageRoute<void>(() => const CommentSettingsPage()),
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget localLibraryToolsListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      leading: Icon(
+        Icons.handyman_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.localLibraryTools),
+      subtitle: Text(
+        l10n.localLibraryToolsHint,
+        style: const TextStyle(fontSize: 12),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const LocalLibraryToolsPage()),
         );
       },
     );

@@ -1605,4 +1605,428 @@ class AppLocalizationsEn extends AppLocalizations {
   String libraryDurationHours(String hours, String unit) {
     return '$hours $unit';
   }
+
+  @override
+  String get localLibraryTools => 'Local Library Tools';
+
+  @override
+  String get localLibraryToolsHint => 'Name, organize and complete tags';
+
+  @override
+  String get organizeSection => 'Organize';
+
+  @override
+  String get browseSection => 'Browse';
+
+  @override
+  String get namingFormat => 'Naming Format';
+
+  @override
+  String get directorySection => 'Folder';
+
+  @override
+  String get filenameSection => 'File Name';
+
+  @override
+  String get previewSection => 'Preview';
+
+  @override
+  String get directoryTemplate => 'Folder Template';
+
+  @override
+  String get filenameTemplate => 'File Name Template';
+
+  @override
+  String get keepFeat => 'Keep feat. Credit';
+
+  @override
+  String namingPlaceholders(String placeholders) {
+    return 'Available placeholders: $placeholders';
+  }
+
+  @override
+  String get namingSlashHelp =>
+      'A / in the template creates a folder level; a / inside a tag value is replaced with an underscore. The file name template must contain the title placeholder.';
+
+  @override
+  String get templateEmpty => 'The template cannot be empty';
+
+  @override
+  String get templateNeedsTitle =>
+      'The file name template must contain the title placeholder';
+
+  @override
+  String get templateAbsolute => 'Absolute paths are not allowed';
+
+  @override
+  String get templateParentSegment => 'A \'..\' path segment is not allowed';
+
+  @override
+  String get templateUnknownPlaceholder =>
+      'The template contains an unknown placeholder';
+
+  @override
+  String get invalidTemplate => 'Invalid template';
+
+  @override
+  String get restoreDefaultFormat => 'Restore Defaults';
+
+  @override
+  String get exampleSong => 'Example song';
+
+  @override
+  String get currentPath => 'Current';
+
+  @override
+  String get organizedPath => 'Organized';
+
+  @override
+  String get organizeFiles => 'Organize Files';
+
+  @override
+  String get organizeFilesHint => 'Preview, then move files';
+
+  @override
+  String get organizeFile => 'Organize File';
+
+  @override
+  String get organizeSelected => 'Organize Selected';
+
+  @override
+  String get startOrganizing => 'Start Organizing';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get directoryPreview => 'Folder Preview';
+
+  @override
+  String get changeList => 'Changes';
+
+  @override
+  String get organizeNormal => 'Normal';
+
+  @override
+  String get organizeSkip => 'Skip';
+
+  @override
+  String get organizeConflict => 'Conflict';
+
+  @override
+  String get organizeBlocked => 'Not Allowed';
+
+  @override
+  String get organizeReasonUnchanged => 'Already correct';
+
+  @override
+  String get organizeReasonTargetExists => 'Target exists';
+
+  @override
+  String get organizeReasonMissingFile => 'File missing';
+
+  @override
+  String get organizeReasonMissingPath => 'No path';
+
+  @override
+  String get organizeReasonOutsideLibrary => 'Outside the configured folders';
+
+  @override
+  String get organizeReasonFileProvider =>
+      'File-provider paths cannot be moved';
+
+  @override
+  String get organizeReasonPathTooLong => 'Path too long';
+
+  @override
+  String get organizeReasonTargetIsFolder => 'Target is a folder';
+
+  @override
+  String get organizeReasonInvalidTemplate => 'Invalid naming template';
+
+  @override
+  String organizeResultMessage(int moved, int skipped, int failed) {
+    return 'Moved $moved, skipped $skipped, failed $failed';
+  }
+
+  @override
+  String organizeStopped(int moved) {
+    return 'Stopped after $moved files';
+  }
+
+  @override
+  String get organizing => 'Organizing';
+
+  @override
+  String get undoOrganize => 'Undo This Organize';
+
+  @override
+  String get undoSuccessfully => 'Undone';
+
+  @override
+  String get undoFailed => 'Could not undo';
+
+  @override
+  String get metadataCompletion => 'Metadata Completion';
+
+  @override
+  String songsMissingTags(int count) {
+    return '$count songs are missing tags';
+  }
+
+  @override
+  String get batchSearchSelected => 'Search Selected';
+
+  @override
+  String get batchSearchTags => 'Search Tags in Batch';
+
+  @override
+  String batchSearching(int done, int total) {
+    return 'Searching $done / $total';
+  }
+
+  @override
+  String get filterMissingTags => 'Missing Tags';
+
+  @override
+  String get filterMissingTagsOrCover => 'Tags or Cover';
+
+  @override
+  String get filterAllIncomplete => 'All Incomplete';
+
+  @override
+  String get allMetadataComplete => 'Every song\'s metadata is complete';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get missingTitle => 'No title';
+
+  @override
+  String get missingArtist => 'No artist';
+
+  @override
+  String get missingAlbum => 'No album';
+
+  @override
+  String get missingCover => 'No cover';
+
+  @override
+  String get missingLyrics => 'No lyrics';
+
+  @override
+  String get searchTags => 'Search Tags';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get scrapeFillEmpty => 'Fill Empty Only';
+
+  @override
+  String get overwriteTags => 'Overwrite Existing Tags';
+
+  @override
+  String get writeCoverToo => 'Write Cover Too';
+
+  @override
+  String get writeLyricsToo => 'Write Lyrics Too';
+
+  @override
+  String get nextBatch => 'Next Batch';
+
+  @override
+  String get noMoreResults => 'No more results from this source';
+
+  @override
+  String get noSearchResults => 'No results';
+
+  @override
+  String get coverSkipped =>
+      'The cover format is not supported and was skipped';
+
+  @override
+  String get matchScore => 'Match';
+
+  @override
+  String get changes => 'Changes';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get applySelected => 'Apply Selected';
+
+  @override
+  String get batchReview => 'Batch Results';
+
+  @override
+  String batchApplied(int count) {
+    return 'Applied to $count songs';
+  }
+
+  @override
+  String get nextCandidate => 'Another';
+
+  @override
+  String get syncingWait => 'Syncing; please try again shortly';
+
+  @override
+  String get lyricTimeline => 'Lyric Timeline';
+
+  @override
+  String get lyricTimelineHint => 'Adjust LRC timestamps line by line';
+
+  @override
+  String get progress => 'Progress';
+
+  @override
+  String get stamp => 'Stamp';
+
+  @override
+  String get playbackOffset => 'Playback Offset';
+
+  @override
+  String get bakeOffset => 'Apply Offset and Reset';
+
+  @override
+  String get wordTimestamps => 'Word Timestamps';
+
+  @override
+  String get stripWordTimestamps => 'Remove Word Timestamps';
+
+  @override
+  String get ttmlNotEditable =>
+      'This lyric is TTML; line-level timeline editing is not supported';
+
+  @override
+  String get noLyricLines => 'No lyric lines yet';
+
+  @override
+  String get addLine => 'Add a Line';
+
+  @override
+  String get addSecondaryLine => 'Add Secondary Line';
+
+  @override
+  String get addLineBelow => 'Add Line Below';
+
+  @override
+  String get discardChanges => 'Discard Changes';
+
+  @override
+  String get invalidTimeFormat => 'Invalid time format';
+
+  @override
+  String get saveSuccessfully => 'Saved';
+
+  @override
+  String get saveFailed => 'Save failed';
+
+  @override
+  String get sidecarUpdateFailed =>
+      'Tags saved; the sidecar could not be updated';
+
+  @override
+  String get editLyricTimeline => 'Edit Lyric Timeline';
+
+  @override
+  String get albumTimeline => 'Album Timeline';
+
+  @override
+  String get albumTimelineHint => 'Browse albums by added time';
+
+  @override
+  String get lastMonth => 'Last Month';
+
+  @override
+  String get lastQuarter => 'Last 3 Months';
+
+  @override
+  String get allTime => 'All';
+
+  @override
+  String get noAlbumsInRange => 'No albums added in this period';
+
+  @override
+  String albumsMissingCreated(int count) {
+    return '$count albums have no added time';
+  }
+
+  @override
+  String albumTimelineAddedCount(int count) {
+    return '+$count songs';
+  }
+
+  @override
+  String albumTimelineSongCount(int count) {
+    return '$count songs';
+  }
+
+  @override
+  String get viewAll => 'View All';
+
+  @override
+  String get stop => 'Stop';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get actions => 'Actions';
+
+  @override
+  String get organizeFolder => 'Organize Folder';
+
+  @override
+  String get organizeDone => 'Organized';
+
+  @override
+  String get organizeComplete => 'Complete';
+
+  @override
+  String get organizePending => 'Not processed';
+
+  @override
+  String get undoApply => 'Undo This Apply';
+
+  @override
+  String get previousCard => 'Previous';
+
+  @override
+  String get nextCard => 'Next';
+
+  @override
+  String get scrapeLongPressHint => 'Long-press a card to apply it directly';
+
+  @override
+  String get organizeFailed => 'Failed';
+
+  @override
+  String get applyCurrent => 'Apply This';
+
+  @override
+  String get applyAllBest => 'Apply All Best';
+
+  @override
+  String songPosition(int index, int total) {
+    return 'Song $index of $total';
+  }
+
+  @override
+  String get jumpToSong => 'Choose a Song';
+
+  @override
+  String get previousSong => 'Previous Song';
+
+  @override
+  String get nextSong => 'Next Song';
+
+  @override
+  String resultsCount(int count) {
+    return '$count results';
+  }
 }

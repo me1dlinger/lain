@@ -31,6 +31,12 @@ SourceType sourceType = .local;
 bool isStreamSource = false;
 bool isNotStreamSource = !isStreamSource;
 
+/// Whether the active source is the on-device library. The local-only tools
+/// (file naming, metadata completion, lyric timeline, album timeline) gate on
+/// this and not on [isNotStreamSource]: WebDAV is not streamed, but its files
+/// live on a remote server and cannot be moved or re-tagged safely from here.
+bool get isLocalLibrary => sourceType == .local;
+
 final ValueNotifier<String?> fontFamilyNotifier = ValueNotifier(null);
 
 final List<String> importedFonts = [];

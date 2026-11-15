@@ -7,6 +7,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/data/single_flight.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
@@ -30,6 +31,10 @@ class PlaylistManager {
   /// old objects must not be reused - that is how a stream home page ended up
   /// showing local playlist names (and the other way round).
   String? _builtForKey;
+
+  /// Coalesces concurrent refreshes: the loader's background refresh and a
+  /// manual sync must not walk the same playlists at once.
+  final _syncFlight = SingleFlight();
 
   PlaylistManager() {
     addPlaylist(Playlist(name: 'Favorite'));
@@ -126,7 +131,9 @@ class PlaylistManager {
     }
   }
 
-  Future<void> sync() async {
+  Future<void> sync() => _syncFlight.run(_syncOnce);
+
+  Future<void> _syncOnce() async {
     await _prepareForSync();
     for (final playlist in playlists) {
       await playlist.sync();
@@ -292,6 +299,15 @@ class Playlist {
   /// what deleted playlists and favourites on an upgrade.
   final List<String> _storedIds = [];
 
+  /// One server refresh at a time for this list. A second caller joins the
+  /// running refresh (and asks for one more run) instead of starting another
+  /// fetch whose answer could be appended on top of the first.
+  final _syncFlight = SingleFlight();
+
+  /// The disk read currently running, so a sync can wait for it and two loads
+  /// share one read.
+  Future<void>? _loadInFlight;
+
   late bool isFavorite;
   late bool isNotFavorite;
 
@@ -366,10 +382,46 @@ class Playlist {
   int get totalCount => songList.length;
 
   Future<void> load() async {
+    final running = _loadInFlight;
+    if (running != null) {
+      return running;
+    }
+    final refresh = _syncFlight.inFlight;
+    if (refresh != null) {
+      // A server refresh is already building this list; use its result rather
+      // than racing it with the cached ids.
+      try {
+        await refresh;
+        if (songList.isNotEmpty || _storedIds.isNotEmpty) {
+          return;
+        }
+        // The refresh had no answer; fall through to the cached read.
+      } catch (_) {
+        // Fall through to the cached read when the refresh failed.
+      }
+      final again = _loadInFlight;
+      if (again != null) {
+        return again;
+      }
+    }
+
+    final future = _loadOnce();
+    _loadInFlight = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_loadInFlight, future)) {
+        _loadInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _loadOnce() async {
     canModify = false;
     changeNotifier.value++;
 
     final decoded = await readJsonListFile(songListFile);
+    // Read first, assign after the await: no cached half-list is ever visible.
     _storedIds
       ..clear()
       ..addAll(decoded.whereType<String>());
@@ -417,33 +469,98 @@ class Playlist {
     }
   }
 
-  Future<void> sync() async {
-    songList.clear();
+  /// Replaces [oldId] with [newId] in this playlist and writes the file.
+  ///
+  /// A local library stores songs by path, so a renamed file has to be carried
+  /// through every playlist - favourites included - or the song disappears
+  /// from them.
+  Future<void> replaceSongId(String oldId, String newId) async {
+    if (oldId == newId) {
+      return;
+    }
+    var changed = false;
+    final seen = <String>{};
+    final ids = <String>[];
+    for (final id in _storedIds) {
+      final mapped = id == oldId ? newId : id;
+      if (mapped != id) {
+        changed = true;
+      }
+      if (seen.add(mapped)) {
+        ids.add(mapped);
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    _storedIds
+      ..clear()
+      ..addAll(ids);
+    _resolveStoredIds();
+    if (isFavorite) {
+      library.id2Song[newId]?.isFavoriteNotifier.value = true;
+    }
+    changeNotifier.value++;
+    await songListFile.writeAsString(jsonEncode(_storedIds));
+  }
+
+  Future<void> sync() => _syncFlight.run(_syncWork);
+
+  Future<void> _syncWork() async {
+    // A disk read that started before this refresh must finish first: its
+    // cached ids would otherwise be written over the fresh server answer.
+    final loading = _loadInFlight;
+    if (loading != null) {
+      try {
+        await loading;
+      } catch (_) {}
+    }
+    await _syncOnce();
+  }
+
+  Future<void> _syncOnce() async {
     if (isNotStreamSource) {
       // Reload from disk. An id the library cannot resolve stays in the file
       // untouched, so a later library load brings the song back.
-      await load();
+      await _loadOnce();
       return;
     }
 
     canModify = false;
     changeNotifier.value++;
-    List<MyAudioMetadata>? tmpSongs;
-    if (isFavorite) {
-      tmpSongs = (await streamClient?.getStarredSongs());
-    } else {
-      tmpSongs = (await streamClient?.getPlaylistSongs(id!));
+    List<MyAudioMetadata>? fetched;
+    try {
+      fetched = isFavorite
+          ? await streamClient?.getStarredSongs()
+          : await streamClient?.getPlaylistSongs(id!);
+    } finally {
+      canModify = true;
+      changeNotifier.value++;
     }
-    for (final song in tmpSongs ?? []) {
-      songList.add(song);
-      if (isFavorite) {
+    if (fetched == null) {
+      // No answer: keep what is on screen and on disk instead of replacing a
+      // real list with an empty one.
+      return;
+    }
+
+    final newSongs = List<MyAudioMetadata>.of(fetched);
+    if (isFavorite) {
+      for (final song in newSongs) {
         song.isFavoriteNotifier.value = true;
       }
     }
+    final newIds = <String>[for (final song in newSongs) song.id];
+
+    // Both assignments happen after every await, in one step: the list can
+    // never hold the old songs plus the new answer, which is what duplicated
+    // every song when two syncs were in flight.
+    songList
+      ..clear()
+      ..addAll(newSongs);
     _storedIds
       ..clear()
-      ..addAll(songList.map((e) => e.id));
-    canModify = true;
+      ..addAll(newIds);
+
     changeNotifier.value++;
     layersManager.updateBackground();
     await songListFile.writeAsString(jsonEncode(_storedIds));

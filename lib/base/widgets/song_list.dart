@@ -34,6 +34,8 @@ import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/my_location.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/base/widgets/library_organize_page.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/sort_sheet.dart';
 import 'package:lain/base/widgets/themed_route.dart';
 import 'package:lain/base/widgets/play_next_button.dart';

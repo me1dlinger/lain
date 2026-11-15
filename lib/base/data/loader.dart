@@ -19,6 +19,7 @@ import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lain/base/services/logger.dart';
+import 'package:lain/base/services/library_organizer.dart';
 import 'package:lain/base/services/picture_load_scheduler.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/stream_client.dart';
@@ -118,6 +119,12 @@ class Loader {
           await firstSync();
           return;
         }
+      }
+
+      // A local file move that was interrupted is put back before the library
+      // reads the database, so the rows and the files agree again.
+      if (sourceType == .local) {
+        await LibraryOrganizer.instance.recoverJournal();
       }
 
       await library.load();

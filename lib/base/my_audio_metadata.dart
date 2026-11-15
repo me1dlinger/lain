@@ -283,6 +283,36 @@ class MyAudioMetadata {
         "playCount:$playCount\n"
         "lastPlayed:$lastPlayed";
   }
+
+  /// The same song under a new identity, for a file that was moved.
+  ///
+  /// The tags are shared (the object is immutable in practice), while the
+  /// library-only state - play history, added time, size, favourite flag and
+  /// the lyric offset - is carried over. The picture is rebuilt from the new
+  /// path, which is what makes the cover cache migration in the organizer
+  /// necessary.
+  MyAudioMetadata cloneWithId(String newId, {String? newPath}) {
+    final copy = MyAudioMetadata(
+      _audioMetadata,
+      id: newId,
+      coverId: coverId,
+      path: newPath ?? path,
+      modified: modified,
+      created: created,
+      playCount: playCount,
+      lastPlayed: lastPlayed,
+      size: size,
+      albumId: albumId,
+      artistId: artistId,
+      lyricsTimeOffset: lyricsTimeOffset,
+    );
+    copy.parsedLyrics = parsedLyrics;
+    copy.cacheExist = cacheExist;
+    copy.cachePath = cachePath;
+    copy.lrcPath = lrcPath;
+    copy.isFavoriteNotifier.value = isFavoriteNotifier.value;
+    return copy;
+  }
 }
 
 /// fnOS reports epoch milliseconds for createdAt / updatedAt, but seconds are

@@ -30,6 +30,10 @@ import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/widgets/selectable_song_list_page.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
+import 'package:lain/base/widgets/library_organize_page.dart';
+import 'package:lain/base/widgets/lyric_timeline_page.dart';
+import 'package:lain/base/widgets/metadata_scrape_dialog.dart';
 import 'package:lain/base/widgets/song_list.dart';
 import 'package:lain/base/widgets/song_info.dart';
 import 'package:lain/big_picture_view/panels/big_single_album_panel.dart';
@@ -1061,6 +1065,47 @@ void showSongOptions({
                     );
                   },
                 ),
+
+                if (isLocalLibrary) ...[
+                  _optionItem(
+                    leading: Icon(Icons.search_rounded),
+                    text: l10n.searchTags,
+                    onTap: () {
+                      Navigator.pop(context);
+                      showAnimationDialog(
+                        context: context,
+                        child: MetadataScrapeDialog(song: song),
+                      );
+                    },
+                  ),
+                  _optionItem(
+                    leading: Icon(Icons.timer_outlined),
+                    text: l10n.editLyricTimeline,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        settingsPageRoute<void>(
+                          () => LyricTimelinePage(
+                            song: song,
+                            returnOnly: false,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _optionItem(
+                    leading: Icon(Icons.drive_file_move_rounded),
+                    text: l10n.organizeFile,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        settingsPageRoute<void>(
+                          () => LibraryOrganizePage(songs: [song]),
+                        ),
+                      );
+                    },
+                  ),
+                ],
 
                 if (includeEdit)
                   _optionItem(

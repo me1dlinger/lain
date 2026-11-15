@@ -206,7 +206,13 @@
   "downloads": "下载记录",
   "downloadWaitingForWifi": "已加入下载队列，连接 Wi-Fi 后自动开始",
   "downloadResumedOnWifi": "已连接 Wi-Fi，继续下载 {count} 个任务",
-  "@downloadResumedOnWifi": {"placeholders": {"count": {"type": "int"}}},
+  "@downloadResumedOnWifi": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "downloadOnMobileData": "移动网络下载",
   "downloadQuality": "下载码率",
   "downloadTasks": "下载任务",
@@ -282,7 +288,13 @@
   "cacheLimit": "缓存上限",
   "cacheLimitUnlimited": "不限制",
   "cacheLimitGb": "{gb} GB",
-  "@cacheLimitGb": {"placeholders": {"gb": {"type": "int"}}},
+  "@cacheLimitGb": {
+    "placeholders": {
+      "gb": {
+        "type": "int"
+      }
+    }
+  },
   "moveCacheToNewDirectory": "把已有缓存移动到新目录吗？",
   "moveDownloadsToNewDirectory": "把已下载的歌曲移动到新目录吗？",
   "cacheDirectoryChanged": "缓存目录已更新",
@@ -486,25 +498,60 @@
   "commentOn": "已开启",
   "commentOff": "已关闭",
   "commentOnWithServer": "已开启 · {server}",
-  "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}},
+  "@commentOnWithServer": {
+    "description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.",
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
   "commentSortRecommended": "推荐",
   "commentSortHot": "最热",
   "commentSortTime": "最新",
   "commentMatchedSong": "来自「{name}」的评论",
-  "@commentMatchedSong": {"description": "The song the comment server matched, shown under the local song header.", "placeholders": {"name": {"type": "String"}}},
+  "@commentMatchedSong": {
+    "description": "The song the comment server matched, shown under the local song header.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "commentChangeSong": "换一首",
   "commentMismatchTitle": "这些评论对应的不是当前歌曲",
   "commentMismatchDetail": "服务器把这首歌匹配成了「{name}」，看起来对不上号。请选择正确的歌曲后再查看评论。",
-  "@commentMismatchDetail": {"placeholders": {"name": {"type": "String"}}},
+  "@commentMismatchDetail": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "commentPickSong": "选择歌曲",
   "commentSearchTitle": "搜索歌曲",
   "commentSearchHint": "歌名 / 歌手",
   "commentSearchEmpty": "没有找到相关歌曲",
   "commentSongNotFound": "服务器上没有找到这首歌",
   "commentTotalCount": "共 {count} 条评论",
-  "@commentTotalCount": {"placeholders": {"count": {"type": "int"}}},
+  "@commentTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "commentPageOf": "第 {page} / {pageCount} 页",
-  "@commentPageOf": {"placeholders": {"page": {"type": "int"}, "pageCount": {"type": "int"}}},
+  "@commentPageOf": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "pageCount": {
+        "type": "int"
+      }
+    }
+  },
   "commentShowMoreReplies": "查看更多回复",
   "statsCard": "统计",
   "serverStatus": "服务器状态",
@@ -519,9 +566,21 @@
   "notSupported": "不支持",
   "status": "状态",
   "latencyMs": "延迟 {ms} ms",
-  "@latencyMs": {"placeholders": {"ms": {"type": "int"}}},
+  "@latencyMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "latencyValue": "{ms} ms",
-  "@latencyValue": {"placeholders": {"ms": {"type": "int"}}},
+  "@latencyValue": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "customDomain": "自定义域名",
   "showAddress": "显示完整地址",
   "hideAddress": "隐藏地址",
@@ -534,7 +593,249 @@
   "hoursUnit": "小时",
   "daysUnit": "天",
   "librarySizeGB": "{size} GB",
-  "@librarySizeGB": {"placeholders": {"size": {"type": "String"}}},
+  "@librarySizeGB": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "libraryDurationHours": "{hours} {unit}",
-  "@libraryDurationHours": {"placeholders": {"hours": {"type": "String"}, "unit": {"type": "String"}}}
+  "@libraryDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "localLibraryTools": "本地音乐工具",
+  "localLibraryToolsHint": "命名、整理、补全标签",
+  "organizeSection": "整理",
+  "browseSection": "浏览",
+  "namingFormat": "文件命名格式",
+  "directorySection": "目录",
+  "filenameSection": "文件名",
+  "previewSection": "预览",
+  "directoryTemplate": "目录模板",
+  "filenameTemplate": "文件名模板",
+  "keepFeat": "保留 feat. 信息",
+  "namingPlaceholders": "可用占位符：{placeholders}",
+  "@namingPlaceholders": {
+    "placeholders": {
+      "placeholders": {
+        "type": "String"
+      }
+    }
+  },
+  "namingSlashHelp": "模板中的 / 表示目录层级；标签值里的 / 会被替换为下划线。文件名模板必须包含标题占位符。",
+  "templateEmpty": "模板不能为空",
+  "templateNeedsTitle": "文件名模板必须包含标题占位符",
+  "templateAbsolute": "不能使用绝对路径",
+  "templateParentSegment": "不能包含 .. 路径段",
+  "templateUnknownPlaceholder": "模板包含未知占位符",
+  "invalidTemplate": "模板无效",
+  "restoreDefaultFormat": "恢复默认格式",
+  "exampleSong": "示例歌曲",
+  "currentPath": "当前",
+  "organizedPath": "整理后",
+  "organizeFiles": "整理文件结构",
+  "organizeFilesHint": "预览后移动文件",
+  "organizeFile": "整理文件",
+  "organizeSelected": "整理选中",
+  "startOrganizing": "开始整理",
+  "overview": "概览",
+  "directoryPreview": "目录预览",
+  "changeList": "变更列表",
+  "organizeNormal": "正常",
+  "organizeSkip": "跳过",
+  "organizeConflict": "冲突",
+  "organizeBlocked": "不允许",
+  "organizeReasonUnchanged": "无需改动",
+  "organizeReasonTargetExists": "目标已存在",
+  "organizeReasonMissingFile": "文件不存在",
+  "organizeReasonMissingPath": "缺少路径",
+  "organizeReasonOutsideLibrary": "不在已配置目录内",
+  "organizeReasonFileProvider": "文件提供器路径暂不支持移动",
+  "organizeReasonPathTooLong": "路径过长",
+  "organizeReasonTargetIsFolder": "目标是目录",
+  "organizeReasonInvalidTemplate": "命名模板无效",
+  "organizeResultMessage": "已整理 {moved} 个文件，跳过 {skipped} 个，失败 {failed} 个",
+  "@organizeResultMessage": {
+    "placeholders": {
+      "moved": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "organizeStopped": "已停止，处理了 {moved} 个文件",
+  "@organizeStopped": {
+    "placeholders": {
+      "moved": {
+        "type": "int"
+      }
+    }
+  },
+  "organizing": "正在整理",
+  "undoOrganize": "撤销本次整理",
+  "undoSuccessfully": "已撤销",
+  "undoFailed": "无法撤销",
+  "metadataCompletion": "元数据补全",
+  "songsMissingTags": "{count} 首歌曲缺少标签",
+  "@songsMissingTags": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSearchSelected": "批量搜索选中",
+  "batchSearchTags": "批量搜索标签",
+  "batchSearching": "正在搜索 {done} / {total}",
+  "@batchSearching": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "filterMissingTags": "仅缺标签",
+  "filterMissingTagsOrCover": "缺标签或封面",
+  "filterAllIncomplete": "全部不完整",
+  "allMetadataComplete": "全部歌曲元数据完整",
+  "selectedCount": "已选 {count} 首",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missingTitle": "缺歌名",
+  "missingArtist": "缺艺术家",
+  "missingAlbum": "缺专辑",
+  "missingCover": "缺封面",
+  "missingLyrics": "缺歌词",
+  "searchTags": "搜索标签",
+  "search": "搜索",
+  "scrapeFillEmpty": "只填空字段",
+  "overwriteTags": "覆盖已有标签",
+  "writeCoverToo": "同时写入封面",
+  "writeLyricsToo": "同时写入歌词",
+  "nextBatch": "换一批",
+  "noMoreResults": "该来源没有更多结果",
+  "noSearchResults": "没有找到结果",
+  "coverSkipped": "封面格式不支持，已跳过",
+  "matchScore": "匹配",
+  "changes": "变更",
+  "apply": "应用",
+  "applySelected": "应用选中",
+  "batchReview": "批量结果",
+  "batchApplied": "已应用 {count} 首",
+  "@batchApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nextCandidate": "换一个",
+  "syncingWait": "正在同步，稍后再试",
+  "lyricTimeline": "歌词时间轴",
+  "lyricTimelineHint": "逐行调整 LRC 时间戳",
+  "progress": "进度",
+  "stamp": "打轴",
+  "playbackOffset": "播放偏移",
+  "bakeOffset": "写入时间轴并归零",
+  "wordTimestamps": "逐字时间戳",
+  "stripWordTimestamps": "移除逐字轴",
+  "ttmlNotEditable": "此歌词为 TTML，暂不支持逐行时间轴编辑",
+  "noLyricLines": "暂无歌词行",
+  "addLine": "添加一行",
+  "addSecondaryLine": "添加附行",
+  "addLineBelow": "在下方添加行",
+  "discardChanges": "放弃修改",
+  "invalidTimeFormat": "时间格式无效",
+  "saveSuccessfully": "保存成功",
+  "saveFailed": "保存失败",
+  "sidecarUpdateFailed": "标签已保存，侧车更新失败",
+  "editLyricTimeline": "编辑歌词时间轴",
+  "albumTimeline": "专辑时间轴",
+  "albumTimelineHint": "按添加时间浏览专辑",
+  "lastMonth": "一个月内",
+  "lastQuarter": "三个月内",
+  "allTime": "全部",
+  "noAlbumsInRange": "该时间段内没有新增专辑",
+  "albumsMissingCreated": "另有 {count} 张专辑缺少添加时间",
+  "@albumsMissingCreated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumTimelineAddedCount": "+{count} 首",
+  "@albumTimelineAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumTimelineSongCount": "{count} 首",
+  "@albumTimelineSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewAll": "查看全部",
+  "stop": "停止",
+  "retry": "重试",
+  "actions": "操作",
+  "organizeFolder": "整理文件夹",
+  "organizeDone": "已整理",
+  "organizeComplete": "完成",
+  "organizePending": "未处理",
+  "undoApply": "撤销本次应用",
+  "previousCard": "上一张",
+  "nextCard": "下一张",
+  "scrapeLongPressHint": "长按卡片可直接应用",
+  "organizeFailed": "失败",
+  "applyCurrent": "应用当前",
+  "applyAllBest": "应用全部最佳",
+  "songPosition": "第 {index} / {total} 首",
+  "@songPosition": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "jumpToSong": "选择歌曲",
+  "previousSong": "上一首",
+  "nextSong": "下一首",
+  "resultsCount": "{count} 个结果",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -262,7 +262,13 @@
   "downloads": "Downloads",
   "downloadWaitingForWifi": "Queued; it will start on Wi-Fi",
   "downloadResumedOnWifi": "On Wi-Fi now, continuing {count} downloads",
-  "@downloadResumedOnWifi": {"placeholders": {"count": {"type": "int"}}},
+  "@downloadResumedOnWifi": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "downloadOnMobileData": "Download over mobile data",
   "downloadQuality": "Download quality",
   "downloadTasks": "Download queue",
@@ -345,7 +351,13 @@
   "cacheLimit": "Cache limit",
   "cacheLimitUnlimited": "Unlimited",
   "cacheLimitGb": "{gb} GB",
-  "@cacheLimitGb": {"placeholders": {"gb": {"type": "int"}}},
+  "@cacheLimitGb": {
+    "placeholders": {
+      "gb": {
+        "type": "int"
+      }
+    }
+  },
   "moveCacheToNewDirectory": "Move the existing cache to the new folder?",
   "moveDownloadsToNewDirectory": "Move the downloaded songs to the new folder?",
   "cacheDirectoryChanged": "Cache directory updated",
@@ -556,25 +568,60 @@
   "commentOn": "On",
   "commentOff": "Off",
   "commentOnWithServer": "On · {server}",
-  "@commentOnWithServer": {"description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.", "placeholders": {"server": {"type": "String"}}},
+  "@commentOnWithServer": {
+    "description": "Status of the song comment feature in the settings list, with the name of the comment server it asks.",
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
   "commentSortRecommended": "Recommended",
   "commentSortHot": "Hot",
   "commentSortTime": "Latest",
   "commentMatchedSong": "Comments of “{name}”",
-  "@commentMatchedSong": {"description": "The song the comment server matched, shown under the local song header.", "placeholders": {"name": {"type": "String"}}},
+  "@commentMatchedSong": {
+    "description": "The song the comment server matched, shown under the local song header.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "commentChangeSong": "Change song",
   "commentMismatchTitle": "These comments belong to another song",
   "commentMismatchDetail": "The server matched this track with “{name}”, which does not look right. Pick the matching song to read its comments.",
-  "@commentMismatchDetail": {"placeholders": {"name": {"type": "String"}}},
+  "@commentMismatchDetail": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "commentPickSong": "Pick a song",
   "commentSearchTitle": "Search songs",
   "commentSearchHint": "Song name / artist",
   "commentSearchEmpty": "No songs found",
   "commentSongNotFound": "The comment server did not find this song",
   "commentTotalCount": "{count} comments",
-  "@commentTotalCount": {"placeholders": {"count": {"type": "int"}}},
+  "@commentTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "commentPageOf": "Page {page} of {pageCount}",
-  "@commentPageOf": {"placeholders": {"page": {"type": "int"}, "pageCount": {"type": "int"}}},
+  "@commentPageOf": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "pageCount": {
+        "type": "int"
+      }
+    }
+  },
   "commentShowMoreReplies": "Show more replies",
   "statsCard": "Stats",
   "serverStatus": "Server status",
@@ -589,9 +636,21 @@
   "notSupported": "Not supported",
   "status": "Status",
   "latencyMs": "Latency {ms} ms",
-  "@latencyMs": {"placeholders": {"ms": {"type": "int"}}},
+  "@latencyMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "latencyValue": "{ms} ms",
-  "@latencyValue": {"placeholders": {"ms": {"type": "int"}}},
+  "@latencyValue": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
   "customDomain": "Custom domain",
   "showAddress": "Show full address",
   "hideAddress": "Hide address",
@@ -604,7 +663,249 @@
   "hoursUnit": "h",
   "daysUnit": "d",
   "librarySizeGB": "{size} GB",
-  "@librarySizeGB": {"placeholders": {"size": {"type": "String"}}},
+  "@librarySizeGB": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "libraryDurationHours": "{hours} {unit}",
-  "@libraryDurationHours": {"placeholders": {"hours": {"type": "String"}, "unit": {"type": "String"}}}
+  "@libraryDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "localLibraryTools": "Local Library Tools",
+  "localLibraryToolsHint": "Name, organize and complete tags",
+  "organizeSection": "Organize",
+  "browseSection": "Browse",
+  "namingFormat": "Naming Format",
+  "directorySection": "Folder",
+  "filenameSection": "File Name",
+  "previewSection": "Preview",
+  "directoryTemplate": "Folder Template",
+  "filenameTemplate": "File Name Template",
+  "keepFeat": "Keep feat. Credit",
+  "namingPlaceholders": "Available placeholders: {placeholders}",
+  "@namingPlaceholders": {
+    "placeholders": {
+      "placeholders": {
+        "type": "String"
+      }
+    }
+  },
+  "namingSlashHelp": "A / in the template creates a folder level; a / inside a tag value is replaced with an underscore. The file name template must contain the title placeholder.",
+  "templateEmpty": "The template cannot be empty",
+  "templateNeedsTitle": "The file name template must contain the title placeholder",
+  "templateAbsolute": "Absolute paths are not allowed",
+  "templateParentSegment": "A '..' path segment is not allowed",
+  "templateUnknownPlaceholder": "The template contains an unknown placeholder",
+  "invalidTemplate": "Invalid template",
+  "restoreDefaultFormat": "Restore Defaults",
+  "exampleSong": "Example song",
+  "currentPath": "Current",
+  "organizedPath": "Organized",
+  "organizeFiles": "Organize Files",
+  "organizeFilesHint": "Preview, then move files",
+  "organizeFile": "Organize File",
+  "organizeSelected": "Organize Selected",
+  "startOrganizing": "Start Organizing",
+  "overview": "Overview",
+  "directoryPreview": "Folder Preview",
+  "changeList": "Changes",
+  "organizeNormal": "Normal",
+  "organizeSkip": "Skip",
+  "organizeConflict": "Conflict",
+  "organizeBlocked": "Not Allowed",
+  "organizeReasonUnchanged": "Already correct",
+  "organizeReasonTargetExists": "Target exists",
+  "organizeReasonMissingFile": "File missing",
+  "organizeReasonMissingPath": "No path",
+  "organizeReasonOutsideLibrary": "Outside the configured folders",
+  "organizeReasonFileProvider": "File-provider paths cannot be moved",
+  "organizeReasonPathTooLong": "Path too long",
+  "organizeReasonTargetIsFolder": "Target is a folder",
+  "organizeReasonInvalidTemplate": "Invalid naming template",
+  "organizeResultMessage": "Moved {moved}, skipped {skipped}, failed {failed}",
+  "@organizeResultMessage": {
+    "placeholders": {
+      "moved": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "organizeStopped": "Stopped after {moved} files",
+  "@organizeStopped": {
+    "placeholders": {
+      "moved": {
+        "type": "int"
+      }
+    }
+  },
+  "organizing": "Organizing",
+  "undoOrganize": "Undo This Organize",
+  "undoSuccessfully": "Undone",
+  "undoFailed": "Could not undo",
+  "metadataCompletion": "Metadata Completion",
+  "songsMissingTags": "{count} songs are missing tags",
+  "@songsMissingTags": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSearchSelected": "Search Selected",
+  "batchSearchTags": "Search Tags in Batch",
+  "batchSearching": "Searching {done} / {total}",
+  "@batchSearching": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "filterMissingTags": "Missing Tags",
+  "filterMissingTagsOrCover": "Tags or Cover",
+  "filterAllIncomplete": "All Incomplete",
+  "allMetadataComplete": "Every song's metadata is complete",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missingTitle": "No title",
+  "missingArtist": "No artist",
+  "missingAlbum": "No album",
+  "missingCover": "No cover",
+  "missingLyrics": "No lyrics",
+  "searchTags": "Search Tags",
+  "search": "Search",
+  "scrapeFillEmpty": "Fill Empty Only",
+  "overwriteTags": "Overwrite Existing Tags",
+  "writeCoverToo": "Write Cover Too",
+  "writeLyricsToo": "Write Lyrics Too",
+  "nextBatch": "Next Batch",
+  "noMoreResults": "No more results from this source",
+  "noSearchResults": "No results",
+  "coverSkipped": "The cover format is not supported and was skipped",
+  "matchScore": "Match",
+  "changes": "Changes",
+  "apply": "Apply",
+  "applySelected": "Apply Selected",
+  "batchReview": "Batch Results",
+  "batchApplied": "Applied to {count} songs",
+  "@batchApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nextCandidate": "Another",
+  "syncingWait": "Syncing; please try again shortly",
+  "lyricTimeline": "Lyric Timeline",
+  "lyricTimelineHint": "Adjust LRC timestamps line by line",
+  "progress": "Progress",
+  "stamp": "Stamp",
+  "playbackOffset": "Playback Offset",
+  "bakeOffset": "Apply Offset and Reset",
+  "wordTimestamps": "Word Timestamps",
+  "stripWordTimestamps": "Remove Word Timestamps",
+  "ttmlNotEditable": "This lyric is TTML; line-level timeline editing is not supported",
+  "noLyricLines": "No lyric lines yet",
+  "addLine": "Add a Line",
+  "addSecondaryLine": "Add Secondary Line",
+  "addLineBelow": "Add Line Below",
+  "discardChanges": "Discard Changes",
+  "invalidTimeFormat": "Invalid time format",
+  "saveSuccessfully": "Saved",
+  "saveFailed": "Save failed",
+  "sidecarUpdateFailed": "Tags saved; the sidecar could not be updated",
+  "editLyricTimeline": "Edit Lyric Timeline",
+  "albumTimeline": "Album Timeline",
+  "albumTimelineHint": "Browse albums by added time",
+  "lastMonth": "Last Month",
+  "lastQuarter": "Last 3 Months",
+  "allTime": "All",
+  "noAlbumsInRange": "No albums added in this period",
+  "albumsMissingCreated": "{count} albums have no added time",
+  "@albumsMissingCreated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumTimelineAddedCount": "+{count} songs",
+  "@albumTimelineAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumTimelineSongCount": "{count} songs",
+  "@albumTimelineSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewAll": "View All",
+  "stop": "Stop",
+  "retry": "Retry",
+  "actions": "Actions",
+  "organizeFolder": "Organize Folder",
+  "organizeDone": "Organized",
+  "organizeComplete": "Complete",
+  "organizePending": "Not processed",
+  "undoApply": "Undo This Apply",
+  "previousCard": "Previous",
+  "nextCard": "Next",
+  "scrapeLongPressHint": "Long-press a card to apply it directly",
+  "organizeFailed": "Failed",
+  "applyCurrent": "Apply This",
+  "applyAllBest": "Apply All Best",
+  "songPosition": "Song {index} of {total}",
+  "@songPosition": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "jumpToSong": "Choose a Song",
+  "previousSong": "Previous Song",
+  "nextSong": "Next Song",
+  "resultsCount": "{count} results",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

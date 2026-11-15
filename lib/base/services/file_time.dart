@@ -86,6 +86,27 @@ class FileCreationTimes {
     return result;
   }
 
+  /// Moves a remembered creation time from [oldPath] to [newPath].
+  ///
+  /// The "added time" is keyed by path, so a renamed file would otherwise lose
+  /// it and the album timeline (and the added-time sort) would drift.
+  Future<void> moveEntry(
+    String oldPath,
+    String newPath, {
+    int? millis,
+  }) async {
+    await _load();
+    final value = millis ?? _cache[oldPath];
+    _cache.remove(oldPath);
+    if (value != null && value > 0) {
+      _cache[newPath] = value;
+      _dirty = true;
+    } else {
+      _dirty = true;
+    }
+    await _save();
+  }
+
   Future<void> _resolveMissing(List<String> paths) async {
     if (Platform.isAndroid && await _resolveOnAndroid(paths)) {
       return;

@@ -1574,4 +1574,422 @@ class AppLocalizationsZh extends AppLocalizations {
   String libraryDurationHours(String hours, String unit) {
     return '$hours $unit';
   }
+
+  @override
+  String get localLibraryTools => '本地音乐工具';
+
+  @override
+  String get localLibraryToolsHint => '命名、整理、补全标签';
+
+  @override
+  String get organizeSection => '整理';
+
+  @override
+  String get browseSection => '浏览';
+
+  @override
+  String get namingFormat => '文件命名格式';
+
+  @override
+  String get directorySection => '目录';
+
+  @override
+  String get filenameSection => '文件名';
+
+  @override
+  String get previewSection => '预览';
+
+  @override
+  String get directoryTemplate => '目录模板';
+
+  @override
+  String get filenameTemplate => '文件名模板';
+
+  @override
+  String get keepFeat => '保留 feat. 信息';
+
+  @override
+  String namingPlaceholders(String placeholders) {
+    return '可用占位符：$placeholders';
+  }
+
+  @override
+  String get namingSlashHelp =>
+      '模板中的 / 表示目录层级；标签值里的 / 会被替换为下划线。文件名模板必须包含标题占位符。';
+
+  @override
+  String get templateEmpty => '模板不能为空';
+
+  @override
+  String get templateNeedsTitle => '文件名模板必须包含标题占位符';
+
+  @override
+  String get templateAbsolute => '不能使用绝对路径';
+
+  @override
+  String get templateParentSegment => '不能包含 .. 路径段';
+
+  @override
+  String get templateUnknownPlaceholder => '模板包含未知占位符';
+
+  @override
+  String get invalidTemplate => '模板无效';
+
+  @override
+  String get restoreDefaultFormat => '恢复默认格式';
+
+  @override
+  String get exampleSong => '示例歌曲';
+
+  @override
+  String get currentPath => '当前';
+
+  @override
+  String get organizedPath => '整理后';
+
+  @override
+  String get organizeFiles => '整理文件结构';
+
+  @override
+  String get organizeFilesHint => '预览后移动文件';
+
+  @override
+  String get organizeFile => '整理文件';
+
+  @override
+  String get organizeSelected => '整理选中';
+
+  @override
+  String get startOrganizing => '开始整理';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get directoryPreview => '目录预览';
+
+  @override
+  String get changeList => '变更列表';
+
+  @override
+  String get organizeNormal => '正常';
+
+  @override
+  String get organizeSkip => '跳过';
+
+  @override
+  String get organizeConflict => '冲突';
+
+  @override
+  String get organizeBlocked => '不允许';
+
+  @override
+  String get organizeReasonUnchanged => '无需改动';
+
+  @override
+  String get organizeReasonTargetExists => '目标已存在';
+
+  @override
+  String get organizeReasonMissingFile => '文件不存在';
+
+  @override
+  String get organizeReasonMissingPath => '缺少路径';
+
+  @override
+  String get organizeReasonOutsideLibrary => '不在已配置目录内';
+
+  @override
+  String get organizeReasonFileProvider => '文件提供器路径暂不支持移动';
+
+  @override
+  String get organizeReasonPathTooLong => '路径过长';
+
+  @override
+  String get organizeReasonTargetIsFolder => '目标是目录';
+
+  @override
+  String get organizeReasonInvalidTemplate => '命名模板无效';
+
+  @override
+  String organizeResultMessage(int moved, int skipped, int failed) {
+    return '已整理 $moved 个文件，跳过 $skipped 个，失败 $failed 个';
+  }
+
+  @override
+  String organizeStopped(int moved) {
+    return '已停止，处理了 $moved 个文件';
+  }
+
+  @override
+  String get organizing => '正在整理';
+
+  @override
+  String get undoOrganize => '撤销本次整理';
+
+  @override
+  String get undoSuccessfully => '已撤销';
+
+  @override
+  String get undoFailed => '无法撤销';
+
+  @override
+  String get metadataCompletion => '元数据补全';
+
+  @override
+  String songsMissingTags(int count) {
+    return '$count 首歌曲缺少标签';
+  }
+
+  @override
+  String get batchSearchSelected => '批量搜索选中';
+
+  @override
+  String get batchSearchTags => '批量搜索标签';
+
+  @override
+  String batchSearching(int done, int total) {
+    return '正在搜索 $done / $total';
+  }
+
+  @override
+  String get filterMissingTags => '仅缺标签';
+
+  @override
+  String get filterMissingTagsOrCover => '缺标签或封面';
+
+  @override
+  String get filterAllIncomplete => '全部不完整';
+
+  @override
+  String get allMetadataComplete => '全部歌曲元数据完整';
+
+  @override
+  String selectedCount(int count) {
+    return '已选 $count 首';
+  }
+
+  @override
+  String get missingTitle => '缺歌名';
+
+  @override
+  String get missingArtist => '缺艺术家';
+
+  @override
+  String get missingAlbum => '缺专辑';
+
+  @override
+  String get missingCover => '缺封面';
+
+  @override
+  String get missingLyrics => '缺歌词';
+
+  @override
+  String get searchTags => '搜索标签';
+
+  @override
+  String get search => '搜索';
+
+  @override
+  String get scrapeFillEmpty => '只填空字段';
+
+  @override
+  String get overwriteTags => '覆盖已有标签';
+
+  @override
+  String get writeCoverToo => '同时写入封面';
+
+  @override
+  String get writeLyricsToo => '同时写入歌词';
+
+  @override
+  String get nextBatch => '换一批';
+
+  @override
+  String get noMoreResults => '该来源没有更多结果';
+
+  @override
+  String get noSearchResults => '没有找到结果';
+
+  @override
+  String get coverSkipped => '封面格式不支持，已跳过';
+
+  @override
+  String get matchScore => '匹配';
+
+  @override
+  String get changes => '变更';
+
+  @override
+  String get apply => '应用';
+
+  @override
+  String get applySelected => '应用选中';
+
+  @override
+  String get batchReview => '批量结果';
+
+  @override
+  String batchApplied(int count) {
+    return '已应用 $count 首';
+  }
+
+  @override
+  String get nextCandidate => '换一个';
+
+  @override
+  String get syncingWait => '正在同步，稍后再试';
+
+  @override
+  String get lyricTimeline => '歌词时间轴';
+
+  @override
+  String get lyricTimelineHint => '逐行调整 LRC 时间戳';
+
+  @override
+  String get progress => '进度';
+
+  @override
+  String get stamp => '打轴';
+
+  @override
+  String get playbackOffset => '播放偏移';
+
+  @override
+  String get bakeOffset => '写入时间轴并归零';
+
+  @override
+  String get wordTimestamps => '逐字时间戳';
+
+  @override
+  String get stripWordTimestamps => '移除逐字轴';
+
+  @override
+  String get ttmlNotEditable => '此歌词为 TTML，暂不支持逐行时间轴编辑';
+
+  @override
+  String get noLyricLines => '暂无歌词行';
+
+  @override
+  String get addLine => '添加一行';
+
+  @override
+  String get addSecondaryLine => '添加附行';
+
+  @override
+  String get addLineBelow => '在下方添加行';
+
+  @override
+  String get discardChanges => '放弃修改';
+
+  @override
+  String get invalidTimeFormat => '时间格式无效';
+
+  @override
+  String get saveSuccessfully => '保存成功';
+
+  @override
+  String get saveFailed => '保存失败';
+
+  @override
+  String get sidecarUpdateFailed => '标签已保存，侧车更新失败';
+
+  @override
+  String get editLyricTimeline => '编辑歌词时间轴';
+
+  @override
+  String get albumTimeline => '专辑时间轴';
+
+  @override
+  String get albumTimelineHint => '按添加时间浏览专辑';
+
+  @override
+  String get lastMonth => '一个月内';
+
+  @override
+  String get lastQuarter => '三个月内';
+
+  @override
+  String get allTime => '全部';
+
+  @override
+  String get noAlbumsInRange => '该时间段内没有新增专辑';
+
+  @override
+  String albumsMissingCreated(int count) {
+    return '另有 $count 张专辑缺少添加时间';
+  }
+
+  @override
+  String albumTimelineAddedCount(int count) {
+    return '+$count 首';
+  }
+
+  @override
+  String albumTimelineSongCount(int count) {
+    return '$count 首';
+  }
+
+  @override
+  String get viewAll => '查看全部';
+
+  @override
+  String get stop => '停止';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get actions => '操作';
+
+  @override
+  String get organizeFolder => '整理文件夹';
+
+  @override
+  String get organizeDone => '已整理';
+
+  @override
+  String get organizeComplete => '完成';
+
+  @override
+  String get organizePending => '未处理';
+
+  @override
+  String get undoApply => '撤销本次应用';
+
+  @override
+  String get previousCard => '上一张';
+
+  @override
+  String get nextCard => '下一张';
+
+  @override
+  String get scrapeLongPressHint => '长按卡片可直接应用';
+
+  @override
+  String get organizeFailed => '失败';
+
+  @override
+  String get applyCurrent => '应用当前';
+
+  @override
+  String get applyAllBest => '应用全部最佳';
+
+  @override
+  String songPosition(int index, int total) {
+    return '第 $index / $total 首';
+  }
+
+  @override
+  String get jumpToSong => '选择歌曲';
+
+  @override
+  String get previousSong => '上一首';
+
+  @override
+  String get nextSong => '下一首';
+
+  @override
+  String resultsCount(int count) {
+    return '$count 个结果';
+  }
 }

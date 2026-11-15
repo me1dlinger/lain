@@ -2,27 +2,18 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:lain/base/audio_handler.dart';
-import 'package:lain/base/data/library.dart';
-import 'package:lain/base/services/picture_service.dart';
-import 'package:lain/base/services/webdav_client.dart';
 import 'package:lain/base/services/interaction.dart';
-import 'package:lain/base/services/logger.dart';
-import 'package:lain/base/data/artist_album.dart';
+import 'package:lain/base/services/metadata_write.dart';
 import 'package:lain/base/services/color_manager.dart';
-import 'package:lain/base/app.dart';
-import 'package:lain/base/services/lyric.dart';
-import 'package:lain/base/utils/contrast_color_generator.dart';
-import 'package:lain/base/widgets/cover_art_widget.dart';
-import 'package:lain/base/widgets/custom_text_field.dart';
-import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/lyric_timeline_page.dart';
+import 'package:lain/base/widgets/metadata_scrape_dialog.dart';
+import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/my_audio_metadata.dart';
-import 'package:lain/layer/layers_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class EditMetadata extends StatefulWidget {
@@ -48,6 +39,7 @@ class _EditMetadataState extends State<EditMetadata> {
   final TextEditingController _discTextController = TextEditingController();
   final TextEditingController _lyricsTextController = TextEditingController();
   late final ValueNotifier<String?> _picturePathNotifier;
+  late final String _originalPicturePath;
 
   @override
   void initState() {
@@ -63,6 +55,7 @@ class _EditMetadataState extends State<EditMetadata> {
     _discTextController.text = song.disc?.toString() ?? '';
     _lyricsTextController.text = song.lyrics ?? '';
     _picturePathNotifier = ValueNotifier(song.picture.path);
+    _originalPicturePath = song.picture.path;
   }
 
   @override
@@ -115,6 +108,21 @@ class _EditMetadataState extends State<EditMetadata> {
                 children: [
                   Center(child: _coverArt(context, song, isPhone)),
                   AppleFormSection(
+                    divided: false,
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          Icons.search_rounded,
+                          size: 22,
+                          color: iconColor.value,
+                        ),
+                        title: Text(l10n.searchTags),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _searchTags(context),
+                      ),
+                    ],
+                  ),
+                  AppleFormSection(
                     children: [
                       appleTextFieldRow(l10n.title, _titleTextController),
                       appleTextFieldRow(l10n.artist, _artistTextController),
@@ -150,6 +158,23 @@ class _EditMetadataState extends State<EditMetadata> {
                       appleFormRow(
                         l10n.lyrics,
                         appleTextField(_lyricsTextController, maxLines: 6),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.timer_outlined,
+                          size: 22,
+                          color: iconColor.value,
+                        ),
+                        title: Text(l10n.lyricTimeline),
+                        subtitle: Text(
+                          l10n.lyricTimelineHint,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textColor.withAlpha(150),
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _openLyricTimeline(context),
                       ),
                     ],
                   ),
@@ -238,6 +263,7 @@ class _EditMetadataState extends State<EditMetadata> {
       int? writeDisc = int.tryParse(_discTextController.text);
 
       Uint8List? writePictureBytes;
+      final pictureChanged = _picturePathNotifier.value != _originalPicturePath;
       if (_picturePathNotifier.value != null) {
         File pictureFile = File(_picturePathNotifier.value!);
         if (await pictureFile.exists()) {
@@ -245,75 +271,67 @@ class _EditMetadataState extends State<EditMetadata> {
         }
       }
 
-      late bool success;
-      try {
-        success = writeMetadata(
-          path: song.path!,
-          title: writeTitle,
-          artist: writeArtist,
-          album: writeAlbum,
-          albumArtist: writeAlbumArtist,
-          genre: writeGenre,
-          year: writeYear,
-          track: writeTrack,
-          disc: writeDisc,
-          lyrics: writeLyrics,
-          pictureBytes: writePictureBytes,
-          headers: sourceType == .webdav ? webdavClient?.headers : null,
-        );
-      } catch (e) {
-        logger.output(e.toString());
-        success = false;
-      }
+      final lyricsChanged = writeLyrics != (song.lyrics ?? '');
+      final success = await writeSongTags(
+        song: song,
+        title: writeTitle,
+        artist: writeArtist,
+        album: writeAlbum,
+        albumArtist: writeAlbumArtist,
+        genre: writeGenre,
+        lyrics: writeLyrics,
+        year: writeYear,
+        track: writeTrack,
+        disc: writeDisc,
+        // Only a cover the user actually picked is written; otherwise the
+        // existing artwork stays untouched.
+        pictureBytes: pictureChanged ? writePictureBytes : null,
+        lyricsChanged: lyricsChanged,
+      );
 
-      if (success) {
-        song.modified = DateTime.now();
-        if (song.cacheExist) {
-          File(song.cachePath!).deleteSync();
-          song.cacheExist = false;
-        }
-        song.title = writeTitle;
-        song.artist = writeArtist;
-        song.album = writeAlbum;
-        song.albumArtist = writeAlbumArtist;
-        song.genre = writeGenre;
-        song.lyrics = writeLyrics;
-        song.parsedLyrics = null;
-        await setParsedLyrics(song);
-        // do not modify when writeValue is null
-        song.year = writeYear ?? song.year;
-        song.track = writeTrack ?? song.track;
-        song.disc = writeDisc ?? song.disc;
-
-        await library.updateMetadata(song);
-
-        song.picture.reset();
-        // clear cache
-        final imageCache = PaintingBinding.instance.imageCache;
-        imageCache.clear();
-        imageCache.clearLiveImages();
-
-        await computeColor(song.picture);
-        if (song == currentSongNotifier.value) {
-          currentCoverArtColor = song.picture.color!;
-          contrastColorTheme = ContrastColorGenerator.generate(
-            currentCoverArtColor,
-          );
-          colorManager.updateLyricsPageColors();
-        }
-        artistAlbumManager.updateArtistAlbum();
-
-        song.updateNotifier.value++;
-        song.picture.changeNotifier.value++;
-
-        layersManager.updateBackground();
-      }
       if (context.mounted) {
         showCenterMessage(
           success ? l10n.updateSuccessfully : l10n.updateFailed,
         );
-        Navigator.pop(context);
+        if (success) {
+          Navigator.pop(context);
+        }
       }
+    }
+  }
+
+  Future<void> _searchTags(BuildContext context) async {
+    final applied = await showAnimationDialog<bool>(
+      context: context,
+      child: MetadataScrapeDialog(song: song),
+    );
+    if (applied == true && mounted) {
+      _syncControllersFromSong();
+    }
+  }
+
+  void _syncControllersFromSong() {
+    _titleTextController.text = song.title ?? '';
+    _artistTextController.text = song.artist ?? '';
+    _albumTextController.text = song.album ?? '';
+    _albumArtistTextController.text = song.albumArtist ?? '';
+    _genreTextController.text = song.genre ?? '';
+    _yearTextController.text = song.year?.toString() ?? '';
+    _trackTextController.text = song.track?.toString() ?? '';
+    _discTextController.text = song.disc?.toString() ?? '';
+    _lyricsTextController.text = song.lyrics ?? '';
+    setState(() {});
+  }
+
+  Future<void> _openLyricTimeline(BuildContext context) async {
+    final text = await Navigator.of(context).push<String>(
+      settingsPageRoute<String>(
+        () => LyricTimelinePage(song: song, returnOnly: true),
+      ),
+    );
+    if (text != null && mounted) {
+      _lyricsTextController.text = text;
+      setState(() {});
     }
   }
 }

@@ -138,6 +138,25 @@ Future<void> initAudioService() async {
   }
 }
 
+/// What the player was doing before the lyric timeline borrowed it.
+class LyricPreviewBookmark {
+  final List<MyAudioMetadata> queue;
+  final List<MyAudioMetadata> queueTmp;
+  final int index;
+  final Duration position;
+  final bool wasPlaying;
+  final int playMode;
+
+  const LyricPreviewBookmark({
+    required this.queue,
+    required this.queueTmp,
+    required this.index,
+    required this.position,
+    required this.wasPlaying,
+    required this.playMode,
+  });
+}
+
 class MyAudioHandler extends BaseAudioHandler {
   final _player = Player();
   bool _started = false;
@@ -2302,6 +2321,55 @@ class MyAudioHandler extends BaseAudioHandler {
     } catch (e) {
       _completionLog('stop on task removal failed: $e');
     }
+  }
+
+  /// Plays [song] on the main player for the lyric timeline editor.
+  ///
+  /// The editor needs the same sound and the same controls as the rest of the
+  /// app, so it borrows the main player instead of opening a second one. The
+  /// queue, song, position and playing state are remembered, and
+  /// [stopLyricPreview] puts the listener back exactly where they were.
+  Future<LyricPreviewBookmark> startLyricPreview(MyAudioMetadata song) async {
+    final bookmark = LyricPreviewBookmark(
+      queue: List<MyAudioMetadata>.of(playQueue),
+      queueTmp: List<MyAudioMetadata>.of(_playQueueTmp),
+      index: currentIndex,
+      position: getPosition(),
+      wasPlaying: isPlayingNotifier.value,
+      playMode: playModeNotifier.value,
+    );
+    await pause();
+    _playQueueTmp = [song];
+    playQueue = [song];
+    currentIndex = 0;
+    await load(start: Duration.zero);
+    await play();
+    // The temporary queue is not written to disk: a launch after the app was
+    // killed inside the editor must restore the listener's real queue, not the
+    // single song the editor was previewing.
+    return bookmark;
+  }
+
+  /// Leaves the editor's single-song preview and restores the queue and
+  /// position that were active before it.
+  Future<void> stopLyricPreview(LyricPreviewBookmark bookmark) async {
+    await pause();
+    _playQueueTmp = List<MyAudioMetadata>.of(bookmark.queueTmp);
+    playQueue = List<MyAudioMetadata>.of(bookmark.queue);
+    currentIndex = bookmark.index;
+    playModeNotifier.value = bookmark.playMode;
+    if (playQueue.isEmpty ||
+        currentIndex < 0 ||
+        currentIndex >= playQueue.length) {
+      currentSongNotifier.value = null;
+      saveAllStates();
+      return;
+    }
+    await load(start: bookmark.position);
+    if (bookmark.wasPlaying) {
+      await play();
+    }
+    saveAllStates();
   }
 
   @override

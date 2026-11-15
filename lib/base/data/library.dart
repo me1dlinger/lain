@@ -307,10 +307,21 @@ class Library {
       if (times.isEmpty) {
         return;
       }
+      var changed = false;
       for (final song in songList) {
         if (song.created == null) {
-          song.created = times[pathOf(song)];
+          final time = times[pathOf(song)];
+          if (time != null) {
+            song.created = time;
+            changed = true;
+          }
         }
+      }
+      // The album timeline groups by these times, so it has to hear about the
+      // asynchronous fill-in; without this it kept showing only the songs whose
+      // times were already cached.
+      if (changed) {
+        changeNotifier.value++;
       }
     }
 
@@ -329,6 +340,17 @@ class Library {
         apply(times);
       }),
     );
+  }
+
+  /// Resolves the local added times that are still unknown, in the background.
+  ///
+  /// The listening report asks for this when it opens on a local library: the
+  /// album timeline must not wait for the next full scan to have dates.
+  Future<void> ensureCreatedTimes() async {
+    if (sourceType != .local) {
+      return;
+    }
+    await _restoreCreatedTimes();
   }
 
   Future<void> _accumulateCache() async {
@@ -835,6 +857,10 @@ class Library {
         title: Value(song.title),
         artist: Value(song.artist),
         album: Value(song.album),
+        // The album artist belongs to the tags the editor and the scraper
+        // write; without it here the value lived only in memory and was gone
+        // after a restart.
+        albumArtist: Value(song.albumArtist),
         genre: Value(song.genre),
         lyrics: Value(song.lyrics),
         year: Value(song.year),
@@ -842,6 +868,53 @@ class Library {
         disc: Value(song.disc),
       ),
     );
+  }
+
+  /// Moves one song's stored row to its new id, in one transaction.
+  ///
+  /// Renaming a file changes a local song's identity (its path is the id), so
+  /// the row cannot simply be updated by its old key: the new row is written
+  /// with everything the song carries, and the old one removed. Both happen in
+  /// one transaction so a failure leaves exactly one of them behind.
+  Future<void> applyRename(MyAudioMetadata song, String oldId) async {
+    if (song.id == oldId) {
+      return;
+    }
+    final db = _metadataDB!;
+    await db.transaction(() async {
+      await db
+          .into(db.metadataItems)
+          .insertOnConflictUpdate(song.toCompanion());
+      await (db.delete(
+        db.metadataItems,
+      )..where((t) => t.id.equals(oldId))).go();
+    });
+  }
+
+  /// Moves a stored row from one id to another, copying every column.
+  ///
+  /// Used by the startup recovery of an interrupted file move, which runs
+  /// before the library itself is loaded and so has no song object to write.
+  Future<void> renameStoredRow(String fromId, String toId) async {
+    if (fromId == toId) {
+      return;
+    }
+    final db = _metadataDB!;
+    await db.transaction(() async {
+      final rows = await (db.select(
+        db.metadataItems,
+      )..where((t) => t.id.equals(fromId))).get();
+      if (rows.isEmpty) {
+        return;
+      }
+      final row = rows.first;
+      await db
+          .into(db.metadataItems)
+          .insertOnConflictUpdate(row.toCompanion(true).copyWith(id: Value(toId)));
+      await (db.delete(
+        db.metadataItems,
+      )..where((t) => t.id.equals(fromId))).go();
+    });
   }
 
   void shuffle() {

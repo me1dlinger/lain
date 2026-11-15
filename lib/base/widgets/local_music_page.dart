@@ -45,6 +45,7 @@ Widget opaqueSettingsPage({
   required BuildContext context,
   required String title,
   required Widget body,
+  List<Widget>? actions,
 }) {
   return ListenableBuilder(
     listenable: Listenable.merge([
@@ -60,6 +61,7 @@ Widget opaqueSettingsPage({
           body: body,
           label: '__pushed__',
           title: title,
+          actions: actions,
         ),
       );
     },

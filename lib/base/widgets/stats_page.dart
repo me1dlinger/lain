@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
+import 'package:lain/base/app.dart';
+import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/stats.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/album_timeline_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
 
@@ -26,6 +31,16 @@ class _StatsPageState extends State<StatsPage> {
   /// Year the grid was last lined up for, so that a rebuild (a theme change,
   /// say) does not drag the view back to it.
   int? _heatAnchoredFor;
+
+  @override
+  void initState() {
+    super.initState();
+    // A local library may still be resolving its added times; the album
+    // timeline section listens to the library, so the fill-in refreshes it.
+    if (isLocalLibrary) {
+      unawaited(library.ensureCreatedTimes());
+    }
+  }
 
   @override
   void dispose() {
@@ -167,6 +182,12 @@ class _StatsPageState extends State<StatsPage> {
               _Rank(album.key, '', album.value),
           ]),
         ),
+        // The timeline is a property of the local library, not of listening
+        // history; for a streamed source the section does not exist at all.
+        if (isLocalLibrary) ...[
+          _sectionTitle(l10n.albumTimeline),
+          _card(const AlbumTimelinePreview()),
+        ],
       ],
     );
   }

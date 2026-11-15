@@ -179,6 +179,36 @@ class Folder {
     );
   }
 
+  /// Replaces [oldId] with [newId] in this folder's list and on disk.
+  ///
+  /// A folder stores songs by id, and a local id is the file path, so moving a
+  /// file has to be carried through here or the folder page loses the song.
+  Future<void> replaceSongId(String oldId, String newId) async {
+    if (oldId == newId) {
+      return;
+    }
+    final song = library.id2Song[newId];
+    var changed = false;
+    for (var i = 0; i < songList.length; i++) {
+      if (songList[i].id != oldId) {
+        continue;
+      }
+      changed = true;
+      if (song == null) {
+        songList.removeAt(i);
+        i--;
+      } else {
+        songList[i] = song;
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    changeNotifier.value++;
+    layersManager.updateBackground();
+    await _saveSongIdList();
+  }
+
   void shuffle() {
     songList.shuffle();
     update();
