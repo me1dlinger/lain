@@ -2022,4 +2022,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get copied => '已复制';
+
+  @override
+  String get replayGain => '音量归一化';
+
+  @override
+  String get replayGainOff => '关闭（原始音量）';
+
+  @override
+  String get replayGainTrack => '按单曲';
+
+  @override
+  String get replayGainAlbum => '按专辑';
+
+  @override
+  String get replayGainDescription => '读取文件中的响度标签，避免不同专辑的歌曲忽大忽小。';
+
+  @override
+  String get playbackSpeed => '播放速度';
+
+  @override
+  String get audioFade => '淡入淡出';
+
+  @override
+  String get audioFadeDescription => '开始播放时音量渐入，暂停或切歌时音量渐出。';
 }

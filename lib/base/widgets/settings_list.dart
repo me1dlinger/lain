@@ -33,6 +33,7 @@ import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/widgets/comment_settings_page.dart';
 import 'package:lain/base/services/download_manager.dart';
@@ -374,6 +375,9 @@ class _SettingsListState extends State<SettingsList> {
       case SettingsCategory.playbackLyrics:
         return [
           equalizerListTile(context, l10n),
+          replayGainListTile(context, l10n),
+          playbackSpeedListTile(context, l10n),
+          audioFadeListTile(l10n),
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
@@ -1743,6 +1747,139 @@ class _SettingsListState extends State<SettingsList> {
           }
           return Icon(Icons.lock);
         },
+      ),
+    );
+  }
+
+  String _replayGainLabel(AppLocalizations l10n, ReplayGainMode mode) {
+    return switch (mode) {
+      ReplayGainMode.off => l10n.replayGainOff,
+      ReplayGainMode.track => l10n.replayGainTrack,
+      ReplayGainMode.album => l10n.replayGainAlbum,
+    };
+  }
+
+  /// Loudness tags in the files: off, per track, or per album.
+  Widget replayGainListTile(BuildContext context, AppLocalizations l10n) {
+    return ValueListenableBuilder<ReplayGainMode>(
+      valueListenable: replayGainModeNotifier,
+      builder: (context, mode, child) {
+        return ListTile(
+          leading: Icon(
+            Icons.hearing_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.replayGain),
+          subtitle: Text(_replayGainLabel(l10n, mode)),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () async {
+            final choice = await showAnimationDialog<ReplayGainMode>(
+              context: context,
+              child: SizedBox(
+                width: 300,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 56, 10),
+                        child: Text(
+                          l10n.replayGainDescription,
+                          style: TextStyle(fontSize: 12, color: iconColor.value),
+                        ),
+                      ),
+                      for (final option in ReplayGainMode.values)
+                        ListTile(
+                          title: Text(_replayGainLabel(l10n, option)),
+                          trailing: option == mode
+                              ? const Icon(Icons.check_rounded)
+                              : null,
+                          onTap: () => Navigator.pop(context, option),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (choice == null) {
+              return;
+            }
+            replayGainModeNotifier.value = choice;
+            setting.save();
+          },
+        );
+      },
+    );
+  }
+
+  /// Playback rate. The player applies a change immediately, so a track that
+  /// is already playing is not restarted.
+  Widget playbackSpeedListTile(BuildContext context, AppLocalizations l10n) {
+    return ValueListenableBuilder<double>(
+      valueListenable: playbackSpeedNotifier,
+      builder: (context, speed, child) {
+        return ListTile(
+          leading: Icon(
+            Icons.speed_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.playbackSpeed),
+          subtitle: Text(playbackSpeedLabel(speed)),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () async {
+            final choice = await showAnimationDialog<double>(
+              context: context,
+              child: SizedBox(
+                width: 260,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final option in playbackSpeedChoices)
+                        ListTile(
+                          title: Text(playbackSpeedLabel(option)),
+                          trailing:
+                              (option - speed).abs() < 0.001
+                              ? const Icon(Icons.check_rounded)
+                              : null,
+                          onTap: () => Navigator.pop(context, option),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (choice == null) {
+              return;
+            }
+            playbackSpeedNotifier.value = choice;
+            setting.save();
+          },
+        );
+      },
+    );
+  }
+
+  Widget audioFadeListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.graphic_eq_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.audioFade),
+      subtitle: Text(l10n.audioFadeDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: audioFadeNotifier,
+          onToggleCallBack: () => setting.save(),
+        ),
       ),
     );
   }

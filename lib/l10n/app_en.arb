@@ -917,5 +917,13 @@
   "lyricsPreview": "Lyrics Preview",
   "copyText": "Copy Text",
   "fileName": "File Name",
-  "copied": "Copied"
+  "copied": "Copied",
+  "replayGain": "Replay gain",
+  "replayGainOff": "Off (file level)",
+  "replayGainTrack": "Per track",
+  "replayGainAlbum": "Per album",
+  "replayGainDescription": "Use the loudness tags in the files so tracks from different albums do not jump in volume.",
+  "playbackSpeed": "Playback speed",
+  "audioFade": "Fade in and out",
+  "audioFadeDescription": "Ramp the volume in when playback starts and out when it pauses or the track changes."
 }

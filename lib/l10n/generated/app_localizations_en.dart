@@ -2059,4 +2059,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copied => 'Copied';
+
+  @override
+  String get replayGain => 'Replay gain';
+
+  @override
+  String get replayGainOff => 'Off (file level)';
+
+  @override
+  String get replayGainTrack => 'Per track';
+
+  @override
+  String get replayGainAlbum => 'Per album';
+
+  @override
+  String get replayGainDescription =>
+      'Use the loudness tags in the files so tracks from different albums do not jump in volume.';
+
+  @override
+  String get playbackSpeed => 'Playback speed';
+
+  @override
+  String get audioFade => 'Fade in and out';
+
+  @override
+  String get audioFadeDescription =>
+      'Ramp the volume in when playback starts and out when it pauses or the track changes.';
 }

@@ -33,6 +33,7 @@ import 'package:lain/base/services/media_art.dart';
 import 'package:lain/base/services/media_broadcast.dart';
 import 'package:lain/base/services/audio_focus.dart';
 import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/path.dart';
@@ -291,6 +292,10 @@ class MyAudioHandler extends BaseAudioHandler {
   MyAudioHandler() {
     // avoid reading .lrc files
     (_player.platform as NativePlayer).setProperty('sub-auto', 'no');
+    _applyReplayGain();
+    _applyPlaybackSpeed();
+    replayGainModeNotifier.addListener(_applyReplayGain);
+    playbackSpeedNotifier.addListener(_applyPlaybackSpeed);
 
     if (Platform.isIOS) {
       (_player.platform as NativePlayer).setProperty('audio-exclusive', 'yes');
@@ -1537,6 +1542,8 @@ class MyAudioHandler extends BaseAudioHandler {
     final currentSong = playQueue[currentIndex];
 
     loadingSong = true;
+    _applyReplayGain();
+    _applyPlaybackSpeed();
 
     // Announce the track before anything else. What a car shows comes from the
     // media session, so it has to switch in the same instant as the song - not
@@ -2547,6 +2554,26 @@ class MyAudioHandler extends BaseAudioHandler {
   void setVolume(double volume) {
     double adjustedVolume = (math.log(volume * 9 + 1) / math.log(10)) * 100;
     _player.setVolume(adjustedVolume);
+  }
+
+  /// Replay gain is a decoder property, so it stays applied across tracks.
+  void _applyReplayGain() {
+    final platform = _player.platform;
+    if (platform is! NativePlayer) {
+      return;
+    }
+    platform.setProperty(
+      'replaygain',
+      switch (replayGainModeNotifier.value) {
+        ReplayGainMode.off => 'no',
+        ReplayGainMode.track => 'track',
+        ReplayGainMode.album => 'album',
+      },
+    );
+  }
+
+  void _applyPlaybackSpeed() {
+    unawaited(_player.setRate(playbackSpeedNotifier.value));
   }
 
   Future<void> applyEqualizer() async {

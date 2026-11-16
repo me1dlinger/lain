@@ -3979,6 +3979,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied'**
   String get copied;
+
+  /// No description provided for @replayGain.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay gain'**
+  String get replayGain;
+
+  /// No description provided for @replayGainOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off (file level)'**
+  String get replayGainOff;
+
+  /// No description provided for @replayGainTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Per track'**
+  String get replayGainTrack;
+
+  /// No description provided for @replayGainAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Per album'**
+  String get replayGainAlbum;
+
+  /// No description provided for @replayGainDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the loudness tags in the files so tracks from different albums do not jump in volume.'**
+  String get replayGainDescription;
+
+  /// No description provided for @playbackSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playbackSpeed;
+
+  /// No description provided for @audioFade.
+  ///
+  /// In en, this message translates to:
+  /// **'Fade in and out'**
+  String get audioFade;
+
+  /// No description provided for @audioFadeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Ramp the volume in when playback starts and out when it pauses or the track changes.'**
+  String get audioFadeDescription;
 }
 
 class _AppLocalizationsDelegate
