@@ -554,6 +554,21 @@ class EmbyClient extends StreamClient {
   }
 
   @override
+  Future<List<({String name, String? id})>> getSimilarArtists(
+    String artistId,
+  ) async {
+    final response = await safeRequest<dynamic>(
+      () => dio.get('/Artists/$artistId/Similar', queryParameters: {'Limit': 8}),
+    );
+    final items = response?['Items'] as List? ?? const [];
+    return [
+      for (final item in items)
+        if ((item['Name']?.toString() ?? '').isNotEmpty)
+          (name: item['Name'].toString(), id: item['Id']?.toString()),
+    ];
+  }
+
+  @override
   Future<void> reportPlaybackProgress(
     String songId,
     Duration position, {

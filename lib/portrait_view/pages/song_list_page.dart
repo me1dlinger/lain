@@ -801,6 +801,8 @@ extension _SongListPage on _SongListState {
       controller: scrollController,
       slivers: [
         SliverToBoxAdapter(child: pageHeader()),
+        if (album != null)
+          SliverToBoxAdapter(child: moreFromArtistSection(context)),
         ValueListenableBuilder(
           valueListenable: currentSongListNotifier,
           builder: (context, currentSongList, child) {
@@ -816,6 +818,8 @@ extension _SongListPage on _SongListState {
               final groups = artistSongGroups(currentSongList);
               return SliverList(
                 delegate: SliverChildListDelegate([
+                  artistTopSongs(context, currentSongList),
+                  artistSimilarSection(context),
                   artistAlbumStrip(context, currentSongList),
                   for (final group in groups) ...[
                     artistGroupHeader(context, group.$1, group.$2),

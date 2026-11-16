@@ -1035,6 +1035,25 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
+  Future<List<({String name, String? id})>> getSimilarArtists(
+    String artistId,
+  ) async {
+    final response = await safeRequest(
+      '/rest/getArtistInfo2.view',
+      query: {'id': artistId},
+    );
+    final entries = normalize(response?['artistInfo2']?['similarArtist']) ?? [];
+    return [
+      for (final entry in entries)
+        if ((entry['name']?.toString() ?? '').isNotEmpty)
+          (
+            name: entry['name'].toString(),
+            id: entry['id']?.toString(),
+          ),
+    ];
+  }
+
+  @override
   Future<List<MyAudioMetadata>?> getRandomSongs(int count) async {
     final response = await safeRequest(
       '/rest/getRandomSongs.view',

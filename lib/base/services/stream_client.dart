@@ -236,6 +236,11 @@ abstract class StreamClient {
     String artistId,
   ) async => null;
 
+  /// Artists the source considers similar, by name. Empty when unsupported.
+  Future<List<({String name, String? id})>> getSimilarArtists(
+    String artistId,
+  ) async => const [];
+
   /// An artist's own image presence and external image URL from the source's
   /// native API, for a server that reports them outside its Subsonic endpoint.
   /// Null when the source cannot answer.

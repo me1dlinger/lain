@@ -203,6 +203,8 @@ class _SongListState extends State<SongList> {
 
   bool prepareing = true;
 
+  List<String> similarArtistNames = [];
+
   /// Server description of the album being viewed, fetched once when the page
   /// opens (only Navidrome has one).
   String? albumDescription;
@@ -324,9 +326,150 @@ class _SongListState extends State<SongList> {
     pushAlbumDetail(album);
   }
 
+  /// A scroll-reactive cover: as the page moves up, the header cover drifts a
+  /// little faster and shrinks, giving the detail page a light parallax.
+  Widget parallaxCover(Widget child) {
+    return AnimatedBuilder(
+      animation: scrollController,
+      builder: (context, child) {
+        final offset = scrollController.hasClients
+            ? scrollController.offset.clamp(0.0, 320.0)
+            : 0.0;
+        final t = (offset / 320).clamp(0.0, 1.0);
+        return Transform.translate(
+          offset: Offset(0, -offset * 0.12),
+          child: Transform.scale(scale: 1 - t * 0.05, child: child),
+        );
+      },
+      child: child,
+    );
+  }
+
+  /// The artist's most played songs, above the album groups.
+  Widget artistTopSongs(
+    BuildContext context,
+    List<MyAudioMetadata> songs,
+  ) {
+    final top = [
+      for (final song in songs)
+        if (song.playCount > 0) song,
+    ]..sort((a, b) => b.playCount.compareTo(a.playCount));
+    if (top.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+          child: Text(
+            l10n.popularSongs,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+        ),
+        for (final song in top.take(5))
+          SizedBox(
+            height: 60,
+            child: Center(
+              child: songListTile(songs.indexOf(song), songs),
+            ),
+          ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+
+  /// Similar artists from the server, as chips that open their own page.
+  Widget artistSimilarSection(BuildContext context) {
+    if (similarArtistNames.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    final textColor = colorManager.getSpecificTextColor();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+          child: Text(
+            l10n.similarArtists,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final name in similarArtistNames)
+                ActionChip(
+                  label: Text(
+                    name,
+                    style: TextStyle(fontSize: 12, color: textColor),
+                  ),
+                  backgroundColor: textColor.withAlpha(16),
+                  side: BorderSide(color: textColor.withAlpha(50)),
+                  onPressed: () {
+                    final similar = artistAlbumManager.artistMap[name];
+                    if (similar != null) {
+                      pushArtistDetail(similar);
+                    }
+                  },
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  /// Albums by the same artist, shown on an album page.
+  Widget moreFromArtistSection(BuildContext context) {
+    if (album == null || album!.songList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final artistName = getArtist(album!.songList.first);
+    final artist = artistAlbumManager.artistMap[artistName];
+    if (artist == null || artist.songList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final albums = artistAlbums(artist.songList);
+    if (albums.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+          child: Text(
+            l10n.moreFromArtist,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+        ),
+        artistAlbumStrip(
+          context,
+          artist.songList,
+          excludeAlbum: album!.name,
+        ),
+      ],
+    );
+  }
+
   /// Horizontal strip of the artist's albums; tapping one opens that album.
-  Widget artistAlbumStrip(BuildContext context, List<MyAudioMetadata> songs) {
-    final albums = artistAlbums(songs);
+  Widget artistAlbumStrip(
+    BuildContext context,
+    List<MyAudioMetadata> songs, {
+    String? excludeAlbum,
+  }) {
+    final albums = [
+      for (final album in artistAlbums(songs))
+        if (album.name != excludeAlbum) album,
+    ];
     if (albums.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -419,6 +562,21 @@ class _SongListState extends State<SongList> {
       tmp.value = false;
     }
     updateSongList();
+  }
+
+  Future<void> _loadSimilarArtists(String artistId) async {
+    try {
+      final names = await streamClient?.getSimilarArtists(artistId) ?? const [];
+      final usable = [
+        for (final item in names)
+          if (artistAlbumManager.artistMap.containsKey(item.name)) item.name,
+      ];
+      if (mounted && usable.isNotEmpty) {
+        setState(() => similarArtistNames = usable.take(8).toList());
+      }
+    } catch (e) {
+      debugPrint('[SongList] similar artists: $e');
+    }
   }
 
   void _onRandomSongsUpdated() {
@@ -646,6 +804,10 @@ class _SongListState extends State<SongList> {
       loadArtistInfoIfNeed(artist!).then((_) {
         if (mounted) setState(() {});
       });
+      final artistId = artist!.sourceId;
+      if (artistId != null && artistId.isNotEmpty && isStreamSource) {
+        unawaited(_loadSimilarArtists(artistId));
+      }
     }
 
     // The page opens on cached data; a streamed source may have newer
