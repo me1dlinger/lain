@@ -58,3 +58,6 @@ app.*.map.json
 
 # ZCode local agent state
 .zcode/
+
+# Local planning document, intentionally not published
+docs/feature-roadmap.md
