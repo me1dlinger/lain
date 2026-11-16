@@ -55,3 +55,6 @@ app.*.map.json
 .codefree/
 
 *.apk
+
+# ZCode local agent state
+.zcode/
