@@ -17,12 +17,19 @@ class StatsSong {
   int plays;
   int millis;
 
+  /// The cover identity and the source it came from, so a song played from a
+  /// server still finds its cached cover while another source is active.
+  String? coverId;
+  String? source;
+
   StatsSong({
     required this.title,
     required this.artist,
     required this.album,
     this.plays = 0,
     this.millis = 0,
+    this.coverId,
+    this.source,
   });
 
   factory StatsSong.fromJson(Map json) => StatsSong(
@@ -31,6 +38,8 @@ class StatsSong {
     album: '${json['b'] ?? ''}',
     plays: json['p'] as int? ?? 0,
     millis: json['m'] as int? ?? 0,
+    coverId: json['c']?.toString(),
+    source: json['s']?.toString(),
   );
 
   Map<String, Object?> toJson() => {
@@ -39,6 +48,8 @@ class StatsSong {
     'b': album,
     'p': plays,
     'm': millis,
+    if (coverId != null && coverId!.isNotEmpty) 'c': coverId,
+    if (source != null && source!.isNotEmpty) 's': source,
   };
 }
 
@@ -215,10 +226,23 @@ class ListeningStats {
     final album = getAlbum(song);
 
     final songKey = '${title.toLowerCase()}|${artist.toLowerCase()}';
+    final coverId = song.picture.id;
     final statsSong = statsYear.songs.putIfAbsent(
       songKey,
-      () => StatsSong(title: title, artist: artist, album: album),
+      () => StatsSong(
+        title: title,
+        artist: artist,
+        album: album,
+        coverId: coverId.isEmpty ? null : coverId,
+        source: sourceType.name,
+      ),
     );
+    // An older entry has no cover yet; fill it on the next listen.
+    if ((statsSong.coverId == null || statsSong.coverId!.isEmpty) &&
+        coverId.isNotEmpty) {
+      statsSong.coverId = coverId;
+      statsSong.source = sourceType.name;
+    }
     statsSong.plays++;
     statsSong.millis += millis;
     day.songs[songKey] = (day.songs[songKey] ?? 0) + 1;

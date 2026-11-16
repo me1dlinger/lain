@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:lain/base/app.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/stats.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/picture_service.dart';
+import 'package:lain/base/utils/path.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 
@@ -47,14 +53,39 @@ class _AnnualReportPageState extends State<AnnualReportPage> {
     if (song == null) {
       return null;
     }
-    return _pictures[_songKey(song.title, song.artist)];
+    return _pictures[_songKey(song.title, song.artist)] ?? _cachedPicture(song);
   }
 
-  MyPicture? _albumPicture(String album) {
+  /// A song played from another source is not in the active library, but its
+  /// cover may still be in that source's picture cache. The stats entry keeps
+  /// the cover id and source for exactly this case.
+  MyPicture? _cachedPicture(StatsSong song) {
+    final id = song.coverId;
+    final source = SourceType.values.asNameMap()[song.source ?? ''];
+    if (id == null || id.isEmpty || source == null) {
+      return null;
+    }
+    final path =
+        '${getPicturesPath(source)}/${md5.convert(utf8.encode(id))}';
+    if (!File(path).existsSync()) {
+      return null;
+    }
+    return MyPicture(id, explicitPath: path);
+  }
+
+  MyPicture? _albumPicture(String album, StatsYear data) {
     final wanted = album.toLowerCase().trim();
     for (final song in library.songList) {
       if ((song.album ?? '').toLowerCase().trim() == wanted) {
         return song.picture;
+      }
+    }
+    for (final song in data.songs.values) {
+      if (song.album.toLowerCase().trim() == wanted) {
+        final picture = _cachedPicture(song);
+        if (picture != null) {
+          return picture;
+        }
       }
     }
     return null;
@@ -453,7 +484,7 @@ class _AnnualReportPageState extends State<AnnualReportPage> {
                   borderRadius: BorderRadius.circular(12),
                   child: CoverArtWidget(
                     size: 82,
-                    picture: _albumPicture(topAlbum.key),
+                    picture: _albumPicture(topAlbum.key, data),
                     useResize: false,
                   ),
                 ),
