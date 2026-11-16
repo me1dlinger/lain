@@ -5,6 +5,12 @@ import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 
+/// The angle is shared by every disc instance. A route transition can build a
+/// shuttle copy and then the settled page's own disc; keeping the phase here
+/// means the second instance continues from the first instead of snapping
+/// back to zero.
+double _vinylPhase = 0;
+
 /// The now-playing artwork as a vinyl record: a black disc with fine grooves,
 /// the cover as its centre label, and a spindle. The disc turns while music
 /// plays and keeps its angle when paused.
@@ -30,7 +36,8 @@ class _VinylDiscState extends State<VinylDisc>
     _rotation = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 24),
-    );
+    )..value = _vinylPhase;
+    _rotation.addListener(_rememberPhase);
     isPlayingNotifier.addListener(_syncRotation);
     // Opening the player is a route transition. Starting here would turn the
     // record for those few hundred milliseconds and then visibly snap back
@@ -50,6 +57,10 @@ class _VinylDiscState extends State<VinylDisc>
         animation.addStatusListener(_onRouteStatus);
       }
     });
+  }
+
+  void _rememberPhase() {
+    _vinylPhase = _rotation.value;
   }
 
   void _onRouteStatus(AnimationStatus status) {
@@ -79,6 +90,8 @@ class _VinylDiscState extends State<VinylDisc>
   void dispose() {
     isPlayingNotifier.removeListener(_syncRotation);
     _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _vinylPhase = _rotation.value;
+    _rotation.removeListener(_rememberPhase);
     _rotation.dispose();
     super.dispose();
   }
