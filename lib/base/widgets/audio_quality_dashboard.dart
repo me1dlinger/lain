@@ -138,10 +138,10 @@ class AudioQualityDashboardPage extends StatelessWidget {
                 child: Column(
                   children: [
                     for (final entry in [
-                      ('HR', l10n.hires, _hrColor),
-                      ('SQ', l10n.lossless, _sqColor),
-                      ('HQ', l10n.lossy, _hqColor),
-                      ('?', l10n.unknownQuality, textColor.withAlpha(70)),
+                      ('HR', 'HR', _hrColor),
+                      ('SQ', 'SQ', _sqColor),
+                      ('HQ', 'HQ', _hqColor),
+                      ('?', 'Others', textColor.withAlpha(70)),
                     ])
                       AnimatedMetricBar(
                         label: entry.$2,
@@ -187,7 +187,7 @@ class AudioQualityDashboardPage extends StatelessWidget {
                           style: TextStyle(fontSize: 14, color: textColor),
                         ),
                         subtitle: Text(
-                          '${(song.format ?? '').toUpperCase()} · '
+                          '${_formatLabel(song)} · '
                           '${_kbps(song) ?? '—'} kbps',
                           style: TextStyle(
                             fontSize: 11,
@@ -224,11 +224,42 @@ class AudioQualityDashboardPage extends StatelessWidget {
     return result;
   }
 
+  /// The file extension is the honest label for a local file: a .m4a whose
+  /// tag reader calls the container "mp4" should still read M4A, not look like
+  /// a video.
+  static String _formatLabel(MyAudioMetadata song) {
+    const aliases = {
+      'm4a': 'M4A',
+      'mp4': 'M4A',
+      'm4b': 'M4B',
+      'aac': 'AAC',
+      'flac': 'FLAC',
+      'mp3': 'MP3',
+      'opus': 'OPUS',
+      'ogg': 'OGG',
+      'wav': 'WAV',
+      'aiff': 'AIFF',
+      'aif': 'AIFF',
+      'ape': 'APE',
+      'dsf': 'DSF',
+      'dff': 'DFF',
+      'wv': 'WV',
+      'tta': 'TTA',
+      'alac': 'ALAC',
+      'wma': 'WMA',
+    };
+    final path = song.path ?? '';
+    final dot = path.lastIndexOf('.');
+    final ext = dot == -1 ? '' : path.substring(dot + 1).toLowerCase();
+    final raw = (song.format ?? '').trim().toLowerCase();
+    final key = ext.isNotEmpty ? ext : raw;
+    return aliases[key] ?? aliases[raw] ?? (key.isEmpty ? '?' : key.toUpperCase());
+  }
+
   List<(String, int)> _formats(List<MyAudioMetadata> songs) {
     final counts = <String, int>{};
     for (final song in songs) {
-      final format = (song.format ?? '').trim().toUpperCase();
-      final key = format.isEmpty ? '?' : format;
+      final key = _formatLabel(song);
       counts[key] = (counts[key] ?? 0) + 1;
     }
     final entries = counts.entries.toList()
@@ -240,7 +271,7 @@ class AudioQualityDashboardPage extends StatelessWidget {
     return switch (format) {
       'FLAC' || 'ALAC' => _sqColor,
       'WAV' || 'AIFF' || 'APE' || 'DSF' || 'DFF' => _hrColor,
-      'MP3' || 'AAC' || 'M4A' => _hqColor,
+      'MP3' || 'AAC' || 'M4A' || 'M4B' || 'OPUS' || 'OGG' => _hqColor,
       _ => textColor.withAlpha(70),
     };
   }
