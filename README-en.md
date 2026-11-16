@@ -43,6 +43,7 @@ Currently supports:
 - New server status page: state, address and latency, speed-first selection, server information and library statistics, with a button to start a library scan on the server.
 - Global search across songs, albums, artists and playlists.
 - Album and artist pages with sorting, albums first, track numbers and album descriptions; artist artwork is decided consistently from the server and the cache.
+- Artist pages add top songs and similar artists; album pages add More from this artist; detail headers use a scroll parallax.
 - Song lists remember their sort order; recently added, play-count sorting and quality tags are available.
 - Playlists support import, export and rename while keeping their added order; a playlist cover follows the first song in the chosen order.
 - Comments: a song menu entry, a comment server, paging, hot/latest/time sorting, search, floor replies and display settings.
@@ -81,6 +82,7 @@ Currently supports:
 - The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings; its song card carries the same copy button as the song-list sheet.
 - The player cover can switch to a vinyl record: it turns while playing, stops when paused, and has grooves, a cover label and a tonearm.
 - The player menu renders the current lyric, cover and song details as a 9:16 card, saves it and opens the system share sheet.
+- The share card is customisable: top text, background blur/crop/aurora/mosaic/halftone, lyric size, cover size and translation visibility, with a live preview in settings.
 - Server progress reporting can be switched off in settings: the periodic now-playing position stops, while the finished-play count is kept.
 
 
