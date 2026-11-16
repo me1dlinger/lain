@@ -67,7 +67,7 @@ class _ShareCardSettingsPageState extends State<ShareCardSettingsPage> {
           final artist = song == null ? 'Lain' : getArtist(song);
           final album = song == null ? '' : getAlbum(song);
           return ListView(
-            padding: const EdgeInsets.fromLTRB(0, 8, 0, 40),
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 160),
             children: [
               Center(
                 child: SizedBox(
