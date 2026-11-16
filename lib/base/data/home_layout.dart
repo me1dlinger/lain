@@ -19,6 +19,7 @@ enum HomeShelf {
   recentlyAdded,
   recently,
   playlists,
+  randomSongs,
   stats,
 }
 

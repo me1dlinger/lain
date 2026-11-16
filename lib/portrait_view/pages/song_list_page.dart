@@ -18,6 +18,12 @@ extension _SongListPage on _SongListState {
             );
           },
         ),
+        if (isRandom)
+          IconButton(
+            tooltip: AppLocalizations.of(context).refresh,
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => refreshRandomSongs(force: true),
+          ),
         moreButton(context),
       ],
     );

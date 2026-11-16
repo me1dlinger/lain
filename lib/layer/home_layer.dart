@@ -10,6 +10,7 @@ import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/history.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -50,18 +51,21 @@ class HomeLayerState extends State<HomeLayer> {
   final recentlySC = ScrollController();
   final recentlyAddedSC = ScrollController();
   final playlistsSC = ScrollController();
+  final randomSC = ScrollController();
 
   final albumsDisplayIconNotifier = ValueNotifier(false);
   final frequentlyDisplayIconNotifier = ValueNotifier(false);
   final recentlyDisplayIconNotifier = ValueNotifier(false);
   final recentlyAddedDisplayIconNotifier = ValueNotifier(false);
   final playlistsDisplayIconNotifier = ValueNotifier(false);
+  final randomDisplayIconNotifier = ValueNotifier(false);
 
   final albumsChangeNotifier = ValueNotifier(0);
   final frequentlyChangeNotifier = ValueNotifier(0);
   final recentlyChangeNotifier = ValueNotifier(0);
   final recentlyAddedChangeNotifier = ValueNotifier(0);
   final playlistsChangeNotifier = ValueNotifier(0);
+  final randomChangeNotifier = ValueNotifier(0);
 
   final textController = TextEditingController();
   final searchChangeNotifier = ValueNotifier(0);
@@ -91,6 +95,7 @@ class HomeLayerState extends State<HomeLayer> {
         frequentlySC,
         recentlySC,
         playlistsSC,
+        randomSC,
       ]) {
         if (scrollController.hasClients) {
           scrollController.jumpTo(0);
@@ -100,6 +105,7 @@ class HomeLayerState extends State<HomeLayer> {
       frequentlyChangeNotifier.value++;
       recentlyChangeNotifier.value++;
       playlistsChangeNotifier.value++;
+      randomChangeNotifier.value++;
       searchChangeNotifier.value++;
     });
   }
@@ -113,6 +119,7 @@ class HomeLayerState extends State<HomeLayer> {
     frequentlySC.dispose();
     recentlySC.dispose();
     playlistsSC.dispose();
+    randomSC.dispose();
     super.dispose();
   }
 
@@ -468,6 +475,59 @@ class HomeLayerState extends State<HomeLayer> {
             scrollController: recentlySC,
             displayIconNotifier: recentlyDisplayIconNotifier,
             changeNotifier: frequentlyChangeNotifier,
+            iconTop: 67,
+          ),
+
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.randomSongs:
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('randomSongs');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.randomSongs,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.refresh,
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                onPressed: () => refreshRandomSongs(force: true),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+
+          mouseRegionForScroll(
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                randomSongsNotifier,
+                searchChangeNotifier,
+              ]),
+              builder: (context, child) {
+                return songListView(
+                  filterSongList(randomSongsNotifier.value, searchValue),
+                  randomSC,
+                );
+              },
+            ),
+            scrollController: randomSC,
+            displayIconNotifier: randomDisplayIconNotifier,
+            changeNotifier: randomChangeNotifier,
             iconTop: 67,
           ),
 

@@ -16,6 +16,7 @@ import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/app.dart';
@@ -343,6 +344,7 @@ class _SettingsListState extends State<SettingsList> {
             lanDirectListTile(l10n),
             streamQualityListTile(context, l10n),
             streamFormatListTile(context, l10n),
+            useServerRandomListTile(l10n),
           ],
           if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
             premiumFeaturesListTile(context, l10n),
@@ -818,6 +820,28 @@ class _SettingsListState extends State<SettingsList> {
     } finally {
       removeCenterLoading();
     }
+  }
+
+  Widget useServerRandomListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.shuffle_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.useServerRandom),
+      subtitle: Text(l10n.useServerRandomDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: useServerRandomNotifier,
+          onToggleCallBack: () {
+            setting.save();
+            unawaited(refreshRandomSongs(force: true));
+          },
+        ),
+      ),
+    );
   }
 
   /// Stream straight from the server while it is reachable on the LAN: the next

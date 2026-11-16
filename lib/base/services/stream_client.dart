@@ -197,6 +197,10 @@ abstract class StreamClient {
 
   Future<bool> scrobble(String songId);
 
+  /// A fresh random selection from the server's whole library, or null when
+  /// the source has no such endpoint.
+  Future<List<MyAudioMetadata>?> getRandomSongs(int count) async => null;
+
   /// Keeps the server's "now playing" entry in step with the phone: the track,
   /// how far it has played and whether it is paused. Sources without such an
   /// endpoint simply ignore it.

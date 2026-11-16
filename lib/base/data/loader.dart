@@ -17,6 +17,7 @@ import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lain/base/services/logger.dart';
@@ -155,6 +156,7 @@ class Loader {
 
       await library.load();
       unawaited(library.enforceCacheLimit());
+      unawaited(refreshRandomSongs());
 
       if (isNotStreamSource &&
           library.songList.isEmpty &&
@@ -259,6 +261,7 @@ class Loader {
     audioHandler.justClear();
 
     globalPictureList = [];
+    invalidateRandomSongs();
 
     library = Library();
     artistAlbumManager.clear();
@@ -277,6 +280,7 @@ class Loader {
     await config.activateLocal();
     layersManager.clearDataLayers();
     audioHandler.clear(notifyUndo: false);
+    invalidateRandomSongs();
     library = Library();
     await library.initFolders();
     await sync();
@@ -301,6 +305,7 @@ class Loader {
       history.clear();
 
       await library.sync();
+      unawaited(refreshRandomSongs(force: true));
 
       // A playlist is not thrown away because the library was empty while the
       // scan ran: its file still lists every id, and the songs that resolve
@@ -384,6 +389,7 @@ class Loader {
     layersManager.switchRootLayer('songs');
 
     await library.sync();
+    unawaited(refreshRandomSongs(force: true));
 
     // Read the playlist list from disk (not reset: a scan after an upgrade
     // must not delete the user's playlists) and resolve what the fresh scan

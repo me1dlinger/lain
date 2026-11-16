@@ -21,6 +21,7 @@ import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/utils/path.dart';
@@ -267,6 +268,8 @@ class Setting {
     playbackSpeedNotifier.value =
         (json['playbackSpeed'] as num?)?.toDouble() ?? 1.0;
     audioFadeNotifier.value = json['audioFade'] as bool? ?? true;
+    useServerRandomNotifier.value =
+        json['useServerRandom'] as bool? ?? true;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
@@ -412,6 +415,7 @@ class Setting {
         'replayGainMode': replayGainModeNotifier.value.name,
         'playbackSpeed': playbackSpeedNotifier.value,
         'audioFade': audioFadeNotifier.value,
+        'useServerRandom': useServerRandomNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

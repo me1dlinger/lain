@@ -23,6 +23,7 @@ import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/data/folder.dart';
 import 'package:lain/base/data/history.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/setting.dart';
@@ -100,6 +101,7 @@ class SongList extends StatefulWidget {
   final bool isFrequently;
   final bool isRecently;
   final bool isRecentlyAdded;
+  final bool isRandom;
 
   final bool isRoot;
 
@@ -131,6 +133,7 @@ class SongList extends StatefulWidget {
     this.isFrequently = false,
     this.isRecently = false,
     this.isRecentlyAdded = false,
+    this.isRandom = false,
     this.isRoot = true,
     this.isHomeDetail = false,
     this.pushedRoute = false,
@@ -155,6 +158,7 @@ class _SongListState extends State<SongList> {
   bool isFrequently = false;
   bool isRecently = false;
   bool isRecentlyAdded = false;
+  bool isRandom = false;
 
   bool canModify = false;
 
@@ -244,6 +248,8 @@ class _SongListState extends State<SongList> {
         ? l10n.recently
         : isRecentlyAdded
         ? l10n.recentlyAdded
+        : isRandom
+        ? l10n.randomSongs
         : title;
   }
 
@@ -415,6 +421,11 @@ class _SongListState extends State<SongList> {
     updateSongList();
   }
 
+  void _onRandomSongsUpdated() {
+    songList = randomSongsNotifier.value;
+    updateSongList();
+  }
+
   void updateSongList() {
     prepareing = false;
 
@@ -514,6 +525,7 @@ class _SongListState extends State<SongList> {
     isFrequently = widget.isFrequently;
     isRecently = widget.isRecently;
     isRecentlyAdded = widget.isRecentlyAdded;
+    isRandom = widget.isRandom;
 
     if (playlist != null) {
       title = playlist!.name;
@@ -569,6 +581,10 @@ class _SongListState extends State<SongList> {
     } else if (isRecentlyAdded) {
       songList = library.recentlyAddedSongList;
       library.changeNotifier.addListener(updateSongList);
+    } else if (isRandom) {
+      songList = randomSongsNotifier.value;
+      changeNotifier = randomSongsChangeNotifier;
+      randomSongsNotifier.addListener(_onRandomSongsUpdated);
     } else {
       isLibrary = true;
       songList = library.songList;
@@ -658,6 +674,7 @@ class _SongListState extends State<SongList> {
     sortTypeNotifier.removeListener(resetSelectedAndUpdateSongList);
     sortTypeNotifier.removeListener(refreshBackdrop);
     changeNotifier.removeListener(updateSongList);
+    randomSongsNotifier.removeListener(_onRandomSongsUpdated);
     textController.removeListener(startNewSearchIfNeed);
     scrollController.dispose();
     timer?.cancel();

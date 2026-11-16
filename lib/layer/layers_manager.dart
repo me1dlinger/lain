@@ -25,6 +25,7 @@ import 'package:lain/layer/playlists_layer.dart';
 import 'package:lain/layer/premium_layer.dart';
 import 'package:lain/layer/frequently_layer.dart';
 import 'package:lain/layer/recently_added_layer.dart';
+import 'package:lain/layer/random_songs_layer.dart';
 import 'package:lain/layer/recently_layer.dart';
 import 'package:lain/layer/settings_layer.dart';
 import 'package:lain/layer/single_album_layer.dart';
@@ -150,6 +151,8 @@ class LayersManager {
         return RecentlyLayer(key: GlobalKey());
       } else if (label == 'recentlyAdded') {
         return RecentlyAddedLayer(key: GlobalKey());
+      } else if (label == 'randomSongs') {
+        return RandomSongsLayer(key: GlobalKey());
       } else if (label == 'playlists') {
         return PlaylistsLayer(key: GlobalKey());
       } else if (label == 'settings') {

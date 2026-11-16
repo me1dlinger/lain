@@ -1035,6 +1035,20 @@ class NavidromeClient extends StreamClient {
   }
 
   @override
+  Future<List<MyAudioMetadata>?> getRandomSongs(int count) async {
+    final response = await safeRequest(
+      '/rest/getRandomSongs.view',
+      query: {'size': count},
+    );
+    if (response == null) {
+      return null;
+    }
+    return (normalize(response['randomSongs']?['song']) ?? [])
+        .map((e) => MyAudioMetadata.fromMap(e, .navidrome))
+        .toList();
+  }
+
+  @override
   Future<bool> scrobble(String songId) async {
     return await safeRequest(
           '/rest/scrobble.view',
