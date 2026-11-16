@@ -67,6 +67,7 @@ Currently supports:
 - The home page is the single entry point, with customisable buttons and shelf order, recently added, Navidrome statistic cards and global search.
 - Home-screen widgets in 2x2 and 4x2 layouts with cover and progress.
 - The listening report includes annual statistics, a monthly heatmap and top songs/albums/artists; two thirds of a track counts as a play.
+- The report now opens a full-screen Year in Review: four pages for the year's hours, artist, song and album, monthly rhythm and longest listening streak.
 
 ### Interface
 - Light, dark and vivid themes; song rows can show HR/SQ/HQ quality tags with a separate vivid palette.
@@ -78,6 +79,8 @@ Currently supports:
 - Dragging the seek bar shows the target time above it, and the progress advances every frame instead of stepping once a second.
 - Song-list and player menus share one bottom action sheet: a song card at the top and a single rounded card of evenly spaced actions.
 - The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings; its song card carries the same copy button as the song-list sheet.
+- The player cover can switch to a vinyl record: it turns while playing, stops when paused, and has grooves, a cover label and a tonearm.
+- The player menu renders the current lyric, cover and song details as a 9:16 card, saves it and opens the system share sheet.
 - Server progress reporting can be switched off in settings: the periodic now-playing position stops, while the finished-play count is kept.
 
 
