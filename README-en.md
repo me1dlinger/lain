@@ -48,6 +48,8 @@ Currently supports:
 - Comments: a song menu entry, a comment server, paging, hot/latest/time sorting, search, floor replies and display settings.
 - Rebranded as Lain, with local music and offline-mode controls.
 - The local library scans itself incrementally after launch, on return to the foreground and at the chosen interval; only files whose modified time changed are read again.
+- For local songs, Song Info, tag search, lyric search and metadata editing now share one panel: tags can be edited and applied, a tag search returns to the panel, and lyrics can be searched or edited on the timeline and returned; format, bitrate and path are shown on the same page.
+- A random 100-song shelf is available on the home page and redraws on refresh. A streamed source can use the server's random list; when that is off or unavailable it draws from songs saved on the device, and a local library always draws locally.
 - New library checkup page: songs missing tags, a cover or lyrics, plus likely duplicates grouped by title, artist and duration. It only reports; no file is changed or deleted there.
 - Offline mode can use the local library or the current server's already cached songs; the database is not pruned, so leaving the mode needs no resync.
 
@@ -75,7 +77,8 @@ Currently supports:
 - The lyrics-page cover breathes gently while playing and shifts with a slight parallax during the swipe between pages.
 - Dragging the seek bar shows the target time above it, and the progress advances every frame instead of stepping once a second.
 - Song-list and player menus share one bottom action sheet: a song card at the top and a single rounded card of evenly spaced actions.
-- The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings.
+- The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings; its song card carries the same copy button as the song-list sheet.
+- Server progress reporting can be switched off in settings: the periodic now-playing position stops, while the finished-play count is kept.
 
 
 ## About this project

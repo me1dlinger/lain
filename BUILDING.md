@@ -14,14 +14,14 @@
 | 显示版本 versionName | `1.0.0-beta1` |
 | 发布 ABI | 只发 **arm64-v8a** |
 | Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
-| 最近一次规范构建的 versionCode | **951160**（对应 `--build-number 949160`） |
-| 下一次打包的 build number | **949161**（预期 versionCode **951161**） |
+| 最近一次规范构建的 versionCode | **951161**（对应 `--build-number 949161`） |
+| 下一次打包的 build number | **949162**（预期 versionCode **951162**） |
 
 **当前状态（2026-11-16）**
 
-- 规范产物是 arm64 split APK；最近一次是 versionCode 951160（已核对 `aapt dump badging`，APK 约 71.0MB）。
+- 规范产物是 arm64 split APK；最近一次是 versionCode 951161（已核对 `aapt dump badging`，APK 约 71.0MB）。
 - `build/app/outputs/flutter-apk/app-release.apk` 是误打的全量包（约 213MB、versionCode 1），**不要分发，也不要把它当作版本基线**；可以直接删除。
-- 下一次打包用 `--build-number 949161`，得到 versionCode 951161；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
+- 下一次打包用 `--build-number 949162`，得到 versionCode 951162；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
 
 **版本号规则**
 
