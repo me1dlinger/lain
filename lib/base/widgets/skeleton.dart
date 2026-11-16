@@ -132,7 +132,10 @@ class CollectionSkeleton extends StatelessWidget {
               if (grid)
                 AspectRatio(
                   aspectRatio: 1,
-                  child: const _Bone(width: double.infinity, height: 13),
+                  child: const _Bone(
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
                 )
               else
                 const Align(
