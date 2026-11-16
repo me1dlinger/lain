@@ -23,6 +23,7 @@ import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/share_card_settings.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
@@ -279,6 +280,19 @@ class Setting {
     playerCoverStyleNotifier.value =
         PlayerCoverStyle.values.asNameMap()['${json['playerCoverStyle']}'] ??
         PlayerCoverStyle.square;
+    shareCardTopTextNotifier.value =
+        json['shareCardTopText'] as String? ??
+        shareCardTopTextNotifier.value;
+    shareCardBackgroundNotifier.value =
+        ShareCardBackground.values
+            .asNameMap()['${json['shareCardBackground']}'] ??
+        ShareCardBackground.blur;
+    shareCardTextSizeNotifier.value =
+        (json['shareCardTextSize'] as num?)?.toDouble() ?? 22;
+    shareCardCoverSizeNotifier.value =
+        (json['shareCardCoverSize'] as num?)?.toDouble() ?? 164;
+    shareCardShowTranslationNotifier.value =
+        json['shareCardShowTranslation'] as bool? ?? false;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
@@ -428,6 +442,11 @@ class Setting {
         'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
         'useServerRandom': useServerRandomNotifier.value,
         'playerCoverStyle': playerCoverStyleNotifier.value.name,
+        'shareCardTopText': shareCardTopTextNotifier.value,
+        'shareCardBackground': shareCardBackgroundNotifier.value.name,
+        'shareCardTextSize': shareCardTextSizeNotifier.value,
+        'shareCardCoverSize': shareCardCoverSizeNotifier.value,
+        'shareCardShowTranslation': shareCardShowTranslationNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

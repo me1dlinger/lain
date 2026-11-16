@@ -2229,4 +2229,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get annualNoData => '这一年还没有足够的听歌数据';
+
+  @override
+  String get shareCardSettings => '分享卡片';
+
+  @override
+  String get shareCardTopText => '顶部文字';
+
+  @override
+  String get shareCardBackground => '背景效果';
+
+  @override
+  String get shareCardTextSize => '歌词字号';
+
+  @override
+  String get shareCardCoverSize => '封面大小';
+
+  @override
+  String get shareCardShowTranslation => '显示翻译';
+
+  @override
+  String get shareCardBlur => '柔和虚化';
+
+  @override
+  String get shareCardCrop => '封面裁切';
+
+  @override
+  String get shareCardAurora => '流光';
+
+  @override
+  String get shareCardPixelate => '马赛克';
+
+  @override
+  String get shareCardHalftone => '点阵';
+
+  @override
+  String get similarArtists => '相似艺人';
+
+  @override
+  String get moreFromArtist => '更多来自这位艺术家';
 }

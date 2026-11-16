@@ -960,5 +960,18 @@
       }
     }
   },
-  "annualNoData": "这一年还没有足够的听歌数据"
+  "annualNoData": "这一年还没有足够的听歌数据",
+  "shareCardSettings": "分享卡片",
+  "shareCardTopText": "顶部文字",
+  "shareCardBackground": "背景效果",
+  "shareCardTextSize": "歌词字号",
+  "shareCardCoverSize": "封面大小",
+  "shareCardShowTranslation": "显示翻译",
+  "shareCardBlur": "柔和虚化",
+  "shareCardCrop": "封面裁切",
+  "shareCardAurora": "流光",
+  "shareCardPixelate": "马赛克",
+  "shareCardHalftone": "点阵",
+  "similarArtists": "相似艺人",
+  "moreFromArtist": "更多来自这位艺术家"
 }

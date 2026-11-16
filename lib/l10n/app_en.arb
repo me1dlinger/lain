@@ -1030,5 +1030,18 @@
       }
     }
   },
-  "annualNoData": "Not enough listening data for this year yet"
+  "annualNoData": "Not enough listening data for this year yet",
+  "shareCardSettings": "Share card",
+  "shareCardTopText": "Top text",
+  "shareCardBackground": "Background",
+  "shareCardTextSize": "Lyric text size",
+  "shareCardCoverSize": "Cover size",
+  "shareCardShowTranslation": "Show translation",
+  "shareCardBlur": "Soft blur",
+  "shareCardCrop": "Cover crop",
+  "shareCardAurora": "Aurora",
+  "shareCardPixelate": "Mosaic",
+  "shareCardHalftone": "Halftone",
+  "similarArtists": "Similar artists",
+  "moreFromArtist": "More from this artist"
 }

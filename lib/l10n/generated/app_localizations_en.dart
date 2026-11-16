@@ -2272,4 +2272,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get annualNoData => 'Not enough listening data for this year yet';
+
+  @override
+  String get shareCardSettings => 'Share card';
+
+  @override
+  String get shareCardTopText => 'Top text';
+
+  @override
+  String get shareCardBackground => 'Background';
+
+  @override
+  String get shareCardTextSize => 'Lyric text size';
+
+  @override
+  String get shareCardCoverSize => 'Cover size';
+
+  @override
+  String get shareCardShowTranslation => 'Show translation';
+
+  @override
+  String get shareCardBlur => 'Soft blur';
+
+  @override
+  String get shareCardCrop => 'Cover crop';
+
+  @override
+  String get shareCardAurora => 'Aurora';
+
+  @override
+  String get shareCardPixelate => 'Mosaic';
+
+  @override
+  String get shareCardHalftone => 'Halftone';
+
+  @override
+  String get similarArtists => 'Similar artists';
+
+  @override
+  String get moreFromArtist => 'More from this artist';
 }

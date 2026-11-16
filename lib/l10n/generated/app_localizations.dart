@@ -4363,6 +4363,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not enough listening data for this year yet'**
   String get annualNoData;
+
+  /// No description provided for @shareCardSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Share card'**
+  String get shareCardSettings;
+
+  /// No description provided for @shareCardTopText.
+  ///
+  /// In en, this message translates to:
+  /// **'Top text'**
+  String get shareCardTopText;
+
+  /// No description provided for @shareCardBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Background'**
+  String get shareCardBackground;
+
+  /// No description provided for @shareCardTextSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyric text size'**
+  String get shareCardTextSize;
+
+  /// No description provided for @shareCardCoverSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover size'**
+  String get shareCardCoverSize;
+
+  /// No description provided for @shareCardShowTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show translation'**
+  String get shareCardShowTranslation;
+
+  /// No description provided for @shareCardBlur.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft blur'**
+  String get shareCardBlur;
+
+  /// No description provided for @shareCardCrop.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover crop'**
+  String get shareCardCrop;
+
+  /// No description provided for @shareCardAurora.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora'**
+  String get shareCardAurora;
+
+  /// No description provided for @shareCardPixelate.
+  ///
+  /// In en, this message translates to:
+  /// **'Mosaic'**
+  String get shareCardPixelate;
+
+  /// No description provided for @shareCardHalftone.
+  ///
+  /// In en, this message translates to:
+  /// **'Halftone'**
+  String get shareCardHalftone;
+
+  /// No description provided for @similarArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar artists'**
+  String get similarArtists;
+
+  /// No description provided for @moreFromArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'More from this artist'**
+  String get moreFromArtist;
 }
 
 class _AppLocalizationsDelegate
