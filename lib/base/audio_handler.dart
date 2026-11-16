@@ -183,6 +183,18 @@ class MyAudioHandler extends BaseAudioHandler {
 
   Timer? _positionTimer;
 
+  /// A volume ramp in progress, and the command that owns it. A newer
+  /// play/pause/duck cancels the ramp so two of them never fight over the
+  /// player's level.
+  Timer? _fadeTimer;
+  int _fadeToken = 0;
+  int _transportGeneration = 0;
+
+  /// The player volume a ramp returns to. On a phone the player runs at its
+  /// own full level and the system mixer does the rest, so it must not be tied
+  /// to the in-app 0..1 slider default.
+  double _volumeTarget = 100;
+
   // Last lyric line pushed to the system media session, so the notification is
   // only refreshed when the displayed line actually changes.
   String? _publishedLyric;
@@ -292,6 +304,7 @@ class MyAudioHandler extends BaseAudioHandler {
   MyAudioHandler() {
     // avoid reading .lrc files
     (_player.platform as NativePlayer).setProperty('sub-auto', 'no');
+    _volumeTarget = _player.state.volume;
     _applyReplayGain();
     _applyPlaybackSpeed();
     replayGainModeNotifier.addListener(_applyReplayGain);
@@ -1191,6 +1204,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _wasPlayingOnLastDuck = true;
     _playbackVolumeDucked = true;
+    _cancelFade();
     _player.setVolume(duckedVolumeScaled * 100);
   }
 
@@ -1642,6 +1656,16 @@ class MyAudioHandler extends BaseAudioHandler {
       _mediaLog('playing ${currentSong.id} without waiting for artwork/lyrics');
     }
 
+    // A switch starts silently and ramps up once the new file is open. Opening
+    // at full level is what makes a track change click on a head unit.
+    final fadeEnabled = audioFadeNotifier.value;
+    if (fadeEnabled) {
+      _cancelFade();
+      _player.setVolume(0);
+    } else {
+      _restorePlayerVolume();
+    }
+
     try {
       if (currentSong.cacheExist && !lanDirectActive) {
         await _player.open(
@@ -1677,6 +1701,12 @@ class MyAudioHandler extends BaseAudioHandler {
       // Cache the track that just started; when that finishes, the queue's
       // next track is fetched so the switch can open a local file.
       unawaited(_cacheCurrentThenNext(currentSong));
+
+      if (fadeEnabled && isPlayingNotifier.value) {
+        unawaited(_fadeTo(_volumeTarget));
+      } else if (!fadeEnabled) {
+        _restorePlayerVolume();
+      }
 
       if (isPlayingNotifier.value) {
         _playLastSyncTime = DateTime.now();
@@ -2456,7 +2486,19 @@ class MyAudioHandler extends BaseAudioHandler {
       await load();
       return;
     }
+    final generation = ++_transportGeneration;
+
+    final fadeEnabled = audioFadeNotifier.value;
+    if (fadeEnabled) {
+      _cancelFade();
+      _player.setVolume(0);
+    } else {
+      _restorePlayerVolume();
+    }
     _player.play();
+    if (fadeEnabled) {
+      unawaited(_fadeTo(_volumeTarget));
+    }
 
     // Publish "playing" before the widget bookkeeping below, which can throw on
     // a device where the home widget is not set up - the media session would
@@ -2467,6 +2509,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
     await updateIsPlaying(true);
 
+    if (generation != _transportGeneration) {
+      return;
+    }
     _positionTimer ??= Timer.periodic(Duration(seconds: 1), (_) {
       _positionState.writeAsString(getPosition().inMilliseconds.toString());
     });
@@ -2474,7 +2519,16 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
+    final generation = ++_transportGeneration;
+    if (audioFadeNotifier.value && isPlayingNotifier.value) {
+      await _fadeTo(0, duration: const Duration(milliseconds: 180));
+    }
+    // A play() that arrived while the volume ramped down owns the player now.
+    if (generation != _transportGeneration) {
+      return;
+    }
     _player.pause();
+    _restorePlayerVolume();
     await updateIsPlaying(false);
     updatePlaybackState();
     _positionTimer?.cancel();
@@ -2484,6 +2538,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    _transportGeneration++;
+    _cancelFade();
+    _restorePlayerVolume();
     await _endLoadGrace();
     await _endStallGrace();
     _player.stop();
@@ -2552,8 +2609,70 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   void setVolume(double volume) {
-    double adjustedVolume = (math.log(volume * 9 + 1) / math.log(10)) * 100;
-    _player.setVolume(adjustedVolume);
+    _cancelFade();
+    _volumeTarget = _scaleVolume(volume);
+    _player.setVolume(_volumeTarget);
+  }
+
+  /// The player's own 0..100 scale for the user's 0..1 volume setting. The log
+  /// curve is kept, since that is what the volume slider has always used.
+  double _scaleVolume(double volume) =>
+      (math.log(volume * 9 + 1) / math.log(10)) * 100;
+
+  void _cancelFade() {
+    _fadeToken++;
+    _fadeTimer?.cancel();
+    _fadeTimer = null;
+  }
+
+  /// Puts the player back at the level it was playing at, e.g. after a
+  /// fade-out left it at zero. Never changes the volume setting itself.
+  void _restorePlayerVolume() {
+    _cancelFade();
+    _player.setVolume(_volumeTarget);
+  }
+
+  /// Ramps the player volume from where it is now to [target]. A newer ramp or
+  /// transport command cancels this one, and the future still completes so a
+  /// waiting caller cannot hang.
+  Future<void> _fadeTo(
+    double target, {
+    Duration duration = const Duration(milliseconds: 220),
+  }) {
+    _fadeTimer?.cancel();
+    final token = ++_fadeToken;
+    final start = _player.state.volume;
+    if ((start - target).abs() < 0.5) {
+      _player.setVolume(target);
+      return Future.value();
+    }
+
+    final completer = Completer<void>();
+    const tickMs = 16;
+    final totalMs = duration.inMilliseconds <= 0 ? tickMs : duration.inMilliseconds;
+    var elapsed = 0;
+    _fadeTimer = Timer.periodic(const Duration(milliseconds: tickMs), (timer) {
+      if (token != _fadeToken) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+        return;
+      }
+      elapsed += tickMs;
+      final progress = (elapsed / totalMs).clamp(0.0, 1.0);
+      final eased = 1 - math.pow(1 - progress, 3).toDouble();
+      _player.setVolume(start + (target - start) * eased);
+      if (progress >= 1) {
+        timer.cancel();
+        _fadeTimer = null;
+        _player.setVolume(target);
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      }
+    });
+    return completer.future;
   }
 
   /// Replay gain is a decoder property, so it stays applied across tracks.
