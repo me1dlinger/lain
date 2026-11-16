@@ -4,6 +4,7 @@ import 'package:lain/base/data/library_naming.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/widgets/album_timeline_page.dart';
 import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/library_health_page.dart';
 import 'package:lain/base/widgets/library_naming_page.dart';
 import 'package:lain/base/widgets/library_organize_page.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
@@ -123,6 +124,28 @@ class _LocalLibraryToolsBody extends StatelessWidget {
                       settingsPageRoute<void>(
                         () => const MetadataCompletionPage(),
                       ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.health_and_safety_outlined,
+                    size: 30,
+                    color: iconColor.value,
+                  ),
+                  title: Text(l10n.libraryHealth),
+                  subtitle: Text(
+                    l10n.healthTotal(library.songList.length),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withAlpha(150),
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    pushSettingsPage<void>(
+                      context,
+                      settingsPageRoute<void>(() => const LibraryHealthPage()),
                     );
                   },
                 ),

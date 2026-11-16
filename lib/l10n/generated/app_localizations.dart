@@ -4129,6 +4129,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No server available for the cached library'**
   String get noServerForOffline;
+
+  /// No description provided for @libraryHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Library checkup'**
+  String get libraryHealth;
+
+  /// No description provided for @healthMissingTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing tags'**
+  String get healthMissingTags;
+
+  /// No description provided for @healthMissingCover.
+  ///
+  /// In en, this message translates to:
+  /// **'No cover'**
+  String get healthMissingCover;
+
+  /// No description provided for @healthMissingLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'No lyrics'**
+  String get healthMissingLyrics;
+
+  /// No description provided for @healthDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicates'**
+  String get healthDuplicates;
+
+  /// No description provided for @healthTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} local songs'**
+  String healthTotal(int count);
+
+  /// No description provided for @healthClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to fix'**
+  String get healthClean;
+
+  /// No description provided for @healthNoMissingTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Every song has a title, artist and album'**
+  String get healthNoMissingTags;
+
+  /// No description provided for @healthNoMissingCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Every song has a cover'**
+  String get healthNoMissingCover;
+
+  /// No description provided for @healthNoMissingLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Every song has lyrics'**
+  String get healthNoMissingLyrics;
+
+  /// No description provided for @healthNoDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicate songs found'**
+  String get healthNoDuplicates;
+
+  /// No description provided for @healthFileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files'**
+  String healthFileCount(int count);
 }
 
 class _AppLocalizationsDelegate

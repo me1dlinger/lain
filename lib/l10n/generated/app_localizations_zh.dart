@@ -2103,4 +2103,44 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noServerForOffline => '没有可用于缓存曲库的服务器';
+
+  @override
+  String get libraryHealth => '曲库体检';
+
+  @override
+  String get healthMissingTags => '缺标签';
+
+  @override
+  String get healthMissingCover => '缺封面';
+
+  @override
+  String get healthMissingLyrics => '缺歌词';
+
+  @override
+  String get healthDuplicates => '重复歌曲';
+
+  @override
+  String healthTotal(int count) {
+    return '共 $count 首本地歌曲';
+  }
+
+  @override
+  String get healthClean => '未发现问题';
+
+  @override
+  String get healthNoMissingTags => '所有歌曲都有标题、艺术家和专辑';
+
+  @override
+  String get healthNoMissingCover => '所有歌曲都有封面';
+
+  @override
+  String get healthNoMissingLyrics => '所有歌曲都有歌词';
+
+  @override
+  String get healthNoDuplicates => '没有发现重复歌曲';
+
+  @override
+  String healthFileCount(int count) {
+    return '$count 个文件';
+  }
 }

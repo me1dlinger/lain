@@ -963,5 +963,31 @@
     }
   },
   "offlineChooseLibrary": "Which library should offline mode use?",
-  "noServerForOffline": "No server available for the cached library"
+  "noServerForOffline": "No server available for the cached library",
+  "libraryHealth": "Library checkup",
+  "healthMissingTags": "Missing tags",
+  "healthMissingCover": "No cover",
+  "healthMissingLyrics": "No lyrics",
+  "healthDuplicates": "Duplicates",
+  "healthTotal": "{count} local songs",
+  "@healthTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "healthClean": "Nothing to fix",
+  "healthNoMissingTags": "Every song has a title, artist and album",
+  "healthNoMissingCover": "Every song has a cover",
+  "healthNoMissingLyrics": "Every song has lyrics",
+  "healthNoDuplicates": "No duplicate songs found",
+  "healthFileCount": "{count} files",
+  "@healthFileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

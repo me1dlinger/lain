@@ -2143,4 +2143,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noServerForOffline => 'No server available for the cached library';
+
+  @override
+  String get libraryHealth => 'Library checkup';
+
+  @override
+  String get healthMissingTags => 'Missing tags';
+
+  @override
+  String get healthMissingCover => 'No cover';
+
+  @override
+  String get healthMissingLyrics => 'No lyrics';
+
+  @override
+  String get healthDuplicates => 'Duplicates';
+
+  @override
+  String healthTotal(int count) {
+    return '$count local songs';
+  }
+
+  @override
+  String get healthClean => 'Nothing to fix';
+
+  @override
+  String get healthNoMissingTags => 'Every song has a title, artist and album';
+
+  @override
+  String get healthNoMissingCover => 'Every song has a cover';
+
+  @override
+  String get healthNoMissingLyrics => 'Every song has lyrics';
+
+  @override
+  String get healthNoDuplicates => 'No duplicate songs found';
+
+  @override
+  String healthFileCount(int count) {
+    return '$count files';
+  }
 }

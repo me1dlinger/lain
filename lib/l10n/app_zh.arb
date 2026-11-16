@@ -893,5 +893,31 @@
     }
   },
   "offlineChooseLibrary": "离线时使用哪个曲库？",
-  "noServerForOffline": "没有可用于缓存曲库的服务器"
+  "noServerForOffline": "没有可用于缓存曲库的服务器",
+  "libraryHealth": "曲库体检",
+  "healthMissingTags": "缺标签",
+  "healthMissingCover": "缺封面",
+  "healthMissingLyrics": "缺歌词",
+  "healthDuplicates": "重复歌曲",
+  "healthTotal": "共 {count} 首本地歌曲",
+  "@healthTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "healthClean": "未发现问题",
+  "healthNoMissingTags": "所有歌曲都有标题、艺术家和专辑",
+  "healthNoMissingCover": "所有歌曲都有封面",
+  "healthNoMissingLyrics": "所有歌曲都有歌词",
+  "healthNoDuplicates": "没有发现重复歌曲",
+  "healthFileCount": "{count} 个文件",
+  "@healthFileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
