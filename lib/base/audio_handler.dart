@@ -316,7 +316,9 @@ class MyAudioHandler extends BaseAudioHandler {
   MyAudioHandler() {
     // avoid reading .lrc files
     (_player.platform as NativePlayer).setProperty('sub-auto', 'no');
-    _volumeTarget = _player.state.volume;
+    if (_player.state.volume > 0) {
+      _volumeTarget = _player.state.volume;
+    }
     _applyReplayGain();
     _applyPlaybackSpeed();
     replayGainModeNotifier.addListener(_applyReplayGain);
@@ -1764,7 +1766,7 @@ class MyAudioHandler extends BaseAudioHandler {
       unawaited(_cacheCurrentThenNext(currentSong));
 
       if (fadeEnabled && isPlayingNotifier.value) {
-        unawaited(_fadeTo(_volumeTarget));
+        unawaited(_fadeTo(_volumeTarget, from: 0));
       } else if (!fadeEnabled) {
         _restorePlayerVolume();
       }
@@ -2559,7 +2561,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _player.play();
     if (fadeEnabled) {
-      unawaited(_fadeTo(_volumeTarget));
+      unawaited(_fadeTo(_volumeTarget, from: 0));
     }
 
     // Publish "playing" before the widget bookkeeping below, which can throw on
@@ -2714,10 +2716,14 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> _fadeTo(
     double target, {
     Duration duration = const Duration(milliseconds: 220),
+    double? from,
   }) {
     _fadeTimer?.cancel();
     final token = ++_fadeToken;
-    final start = _player.state.volume;
+    // A fade-in starts from silence explicitly: the player's reported volume
+    // can still be the old value right after setVolume(0), which made the
+    // "ramp" a no-op.
+    final start = from ?? _player.state.volume;
     if ((start - target).abs() < 0.5) {
       _player.setVolume(target);
       return Future.value();
