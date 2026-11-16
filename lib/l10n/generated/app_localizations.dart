@@ -1823,13 +1823,13 @@ abstract class AppLocalizations {
   /// No description provided for @cacheCovers.
   ///
   /// In en, this message translates to:
-  /// **'Cached Covers'**
+  /// **'Covers'**
   String get cacheCovers;
 
   /// No description provided for @cacheLyrics.
   ///
   /// In en, this message translates to:
-  /// **'Cached Lyrics'**
+  /// **'Lyrics'**
   String get cacheLyrics;
 
   /// No description provided for @cacheTotal.
@@ -4441,6 +4441,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More from this artist'**
   String get moreFromArtist;
+
+  /// No description provided for @audioQualityStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio quality'**
+  String get audioQualityStats;
+
+  /// No description provided for @cacheStorageStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache storage'**
+  String get cacheStorageStats;
+
+  /// No description provided for @qualityDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality mix'**
+  String get qualityDistribution;
+
+  /// No description provided for @formatDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Format mix'**
+  String get formatDistribution;
+
+  /// No description provided for @losslessRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Lossless share'**
+  String get losslessRatio;
+
+  /// No description provided for @averageBitrate.
+  ///
+  /// In en, this message translates to:
+  /// **'Average bitrate'**
+  String get averageBitrate;
+
+  /// No description provided for @unknownQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Unclassified'**
+  String get unknownQuality;
+
+  /// No description provided for @hires.
+  ///
+  /// In en, this message translates to:
+  /// **'High-res'**
+  String get hires;
+
+  /// No description provided for @lossless.
+  ///
+  /// In en, this message translates to:
+  /// **'Lossless'**
+  String get lossless;
+
+  /// No description provided for @lossy.
+  ///
+  /// In en, this message translates to:
+  /// **'Lossy'**
+  String get lossy;
+
+  /// No description provided for @highestQualitySongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest quality'**
+  String get highestQualitySongs;
+
+  /// No description provided for @storageBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage mix'**
+  String get storageBreakdown;
+
+  /// No description provided for @cacheUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache usage'**
+  String get cacheUsage;
+
+  /// No description provided for @activeTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Active tasks'**
+  String get activeTasks;
+
+  /// No description provided for @cacheAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get cacheAudio;
+
+  /// No description provided for @cacheOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get cacheOther;
+
+  /// No description provided for @largestCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest cached songs'**
+  String get largestCached;
+
+  /// No description provided for @storageLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage locations'**
+  String get storageLocation;
+
+  /// No description provided for @downloadedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloadedFiles;
 }
 
 class _AppLocalizationsDelegate

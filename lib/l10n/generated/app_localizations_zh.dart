@@ -892,10 +892,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadDirectoryChanged => '下载目录已更新';
 
   @override
-  String get cacheCovers => '已缓存封面';
+  String get cacheCovers => '封面';
 
   @override
-  String get cacheLyrics => '已缓存歌词';
+  String get cacheLyrics => '歌词';
 
   @override
   String get cacheTotal => '合计';
@@ -2268,4 +2268,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get moreFromArtist => '更多来自这位艺术家';
+
+  @override
+  String get audioQualityStats => '音质统计';
+
+  @override
+  String get cacheStorageStats => '缓存存储';
+
+  @override
+  String get qualityDistribution => '音质分布';
+
+  @override
+  String get formatDistribution => '格式分布';
+
+  @override
+  String get losslessRatio => '无损占比';
+
+  @override
+  String get averageBitrate => '平均码率';
+
+  @override
+  String get unknownQuality => '未知';
+
+  @override
+  String get hires => '高解析';
+
+  @override
+  String get lossless => '无损';
+
+  @override
+  String get lossy => '有损';
+
+  @override
+  String get highestQualitySongs => '最高音质';
+
+  @override
+  String get storageBreakdown => '存储构成';
+
+  @override
+  String get cacheUsage => '缓存占用';
+
+  @override
+  String get activeTasks => '进行中的任务';
+
+  @override
+  String get cacheAudio => '音频';
+
+  @override
+  String get cacheOther => '其他';
+
+  @override
+  String get largestCached => '占用最大的缓存歌曲';
+
+  @override
+  String get storageLocation => '存储位置';
+
+  @override
+  String get downloadedFiles => '下载';
 }

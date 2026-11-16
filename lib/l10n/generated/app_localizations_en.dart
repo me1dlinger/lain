@@ -899,10 +899,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadDirectoryChanged => 'Download directory updated';
 
   @override
-  String get cacheCovers => 'Cached Covers';
+  String get cacheCovers => 'Covers';
 
   @override
-  String get cacheLyrics => 'Cached Lyrics';
+  String get cacheLyrics => 'Lyrics';
 
   @override
   String get cacheTotal => 'Total';
@@ -2311,4 +2311,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moreFromArtist => 'More from this artist';
+
+  @override
+  String get audioQualityStats => 'Audio quality';
+
+  @override
+  String get cacheStorageStats => 'Cache storage';
+
+  @override
+  String get qualityDistribution => 'Quality mix';
+
+  @override
+  String get formatDistribution => 'Format mix';
+
+  @override
+  String get losslessRatio => 'Lossless share';
+
+  @override
+  String get averageBitrate => 'Average bitrate';
+
+  @override
+  String get unknownQuality => 'Unclassified';
+
+  @override
+  String get hires => 'High-res';
+
+  @override
+  String get lossless => 'Lossless';
+
+  @override
+  String get lossy => 'Lossy';
+
+  @override
+  String get highestQualitySongs => 'Highest quality';
+
+  @override
+  String get storageBreakdown => 'Storage mix';
+
+  @override
+  String get cacheUsage => 'Cache usage';
+
+  @override
+  String get activeTasks => 'Active tasks';
+
+  @override
+  String get cacheAudio => 'Audio';
+
+  @override
+  String get cacheOther => 'Other';
+
+  @override
+  String get largestCached => 'Largest cached songs';
+
+  @override
+  String get storageLocation => 'Storage locations';
+
+  @override
+  String get downloadedFiles => 'Downloads';
 }
