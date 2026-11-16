@@ -27,14 +27,15 @@ import 'package:path/path.dart' as p;
 class MetadataScrapeDialog extends StatefulWidget {
   final MyAudioMetadata song;
 
-  /// Kept for callers that used to close on apply; the dialog now stays open so
-  /// the single-step undo is reachable, and closes when the user asks.
+  /// Close on a successful apply and return true. Used by the combined song
+  /// info panel, where applying should land back on that panel; the batch
+  /// tools leave it false so the one-step undo stays reachable.
   final bool returnAfterApply;
 
   const MetadataScrapeDialog({
     super.key,
     required this.song,
-    this.returnAfterApply = true,
+    this.returnAfterApply = false,
   });
 
   @override
@@ -301,6 +302,9 @@ class _MetadataScrapeDialogState extends State<MetadataScrapeDialog> {
       _applied = ok;
     });
     showCenterMessage(ok ? l10n.updateSuccessfully : l10n.updateFailed);
+    if (ok && widget.returnAfterApply && mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _undo() async {

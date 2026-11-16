@@ -375,7 +375,7 @@ class _EditMetadataState extends State<EditMetadata> {
   Future<void> _searchTags(BuildContext context) async {
     final applied = await showAnimationDialog<bool>(
       context: context,
-      child: MetadataScrapeDialog(song: song),
+      child: MetadataScrapeDialog(song: song, returnAfterApply: true),
     );
     if (applied == true && mounted) {
       _syncControllersFromSong();
