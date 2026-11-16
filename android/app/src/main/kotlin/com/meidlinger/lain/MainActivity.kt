@@ -2,6 +2,7 @@ package com.meidlinger.lain
 
 import com.ryanheise.audioservice.AudioServiceActivity
 
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -57,6 +58,29 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                         result.success(uri.toString())
                     } catch (e: Exception) {
                         result.success(null)
+                    }
+                }
+                "shareFile" -> {
+                    val path = call.argument<String>("path")
+                    if (path.isNullOrEmpty()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val uri = FileProvider.getUriForFile(
+                            this,
+                            "$packageName.media_provider",
+                            File(path)
+                        )
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/png"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(intent, "Lain"))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
                     }
                 }
                 "getFileCreatedTimes" -> {

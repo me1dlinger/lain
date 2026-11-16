@@ -1001,5 +1001,34 @@
   "useServerRandom": "Use server random list",
   "useServerRandomDescription": "On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.",
   "viewComments": "View comments",
-  "lyricsCoverMotion": "Lyrics cover motion"
+  "lyricsCoverMotion": "Lyrics cover motion",
+  "playerCoverStyle": "Player cover style",
+  "coverStyleSquare": "Square cover",
+  "coverStyleVinyl": "Vinyl record",
+  "lyricShareCard": "Share lyric card",
+  "annualReport": "Year in review",
+  "share": "Share",
+  "savedTo": "Saved to {path}",
+  "@savedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "annualDaysMusic": "days with music",
+  "annualTopArtist": "Artist of the year",
+  "annualTopAlbum": "Album of the year",
+  "annualTopSong": "Song of the year",
+  "annualMonthly": "Monthly rhythm",
+  "annualBestMonth": "Most played month",
+  "annualStreak": "Longest streak: {days} days in a row",
+  "@annualStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "annualNoData": "Not enough listening data for this year yet"
 }

@@ -4273,6 +4273,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lyrics cover motion'**
   String get lyricsCoverMotion;
+
+  /// No description provided for @playerCoverStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Player cover style'**
+  String get playerCoverStyle;
+
+  /// No description provided for @coverStyleSquare.
+  ///
+  /// In en, this message translates to:
+  /// **'Square cover'**
+  String get coverStyleSquare;
+
+  /// No description provided for @coverStyleVinyl.
+  ///
+  /// In en, this message translates to:
+  /// **'Vinyl record'**
+  String get coverStyleVinyl;
+
+  /// No description provided for @lyricShareCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Share lyric card'**
+  String get lyricShareCard;
+
+  /// No description provided for @annualReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Year in review'**
+  String get annualReport;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @savedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String savedTo(String path);
+
+  /// No description provided for @annualDaysMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'days with music'**
+  String get annualDaysMusic;
+
+  /// No description provided for @annualTopArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist of the year'**
+  String get annualTopArtist;
+
+  /// No description provided for @annualTopAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album of the year'**
+  String get annualTopAlbum;
+
+  /// No description provided for @annualTopSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Song of the year'**
+  String get annualTopSong;
+
+  /// No description provided for @annualMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly rhythm'**
+  String get annualMonthly;
+
+  /// No description provided for @annualBestMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Most played month'**
+  String get annualBestMonth;
+
+  /// No description provided for @annualStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest streak: {days} days in a row'**
+  String annualStreak(int days);
+
+  /// No description provided for @annualNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough listening data for this year yet'**
+  String get annualNoData;
 }
 
 class _AppLocalizationsDelegate

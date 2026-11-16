@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
+import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -83,7 +84,6 @@ Future<void> showReplayGainDialog(BuildContext context) async {
 }
 
 Future<void> showPlaybackSpeedDialog(BuildContext context) async {
-  final l10n = AppLocalizations.of(context);
   final current = playbackSpeedNotifier.value;
   final choice = await showAnimationDialog<double>(
     context: context,
@@ -146,5 +146,46 @@ Future<void> showAudioPlaybackModeDialog(BuildContext context) async {
     return;
   }
   playbackModeNotifier.value = choice;
+  setting.save();
+}
+
+
+String playerCoverStyleLabel(AppLocalizations l10n, PlayerCoverStyle style) {
+  return switch (style) {
+    PlayerCoverStyle.square => l10n.coverStyleSquare,
+    PlayerCoverStyle.vinyl => l10n.coverStyleVinyl,
+  };
+}
+
+Future<void> showPlayerCoverStyleDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final current = playerCoverStyleNotifier.value;
+  final choice = await showAnimationDialog<PlayerCoverStyle>(
+    context: context,
+    child: Builder(
+      builder: (dialogContext) => SizedBox(
+        width: 280,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final option in PlayerCoverStyle.values)
+                _choiceRow(
+                  dialogContext,
+                  playerCoverStyleLabel(l10n, option),
+                  option == current,
+                  option,
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  if (choice == null) {
+    return;
+  }
+  playerCoverStyleNotifier.value = choice;
   setting.save();
 }

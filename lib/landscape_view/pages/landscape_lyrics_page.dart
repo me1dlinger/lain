@@ -10,6 +10,8 @@ import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/buttons.dart';
 import 'package:lain/base/widgets/breathing_cover.dart';
+import 'package:lain/base/data/player_cover_style.dart';
+import 'package:lain/base/widgets/vinyl_disc.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/landscape_view/speaker.dart';
@@ -137,15 +139,27 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                                 Navigator.pop(context);
                               }
                             },
-                            child: CoverArtWidget(
-                              size: coverArtSize,
-                              borderRadius: coverArtSize * 0.05,
-                              picture: currentSong?.picture,
-                              elevation: 15,
-                              color: colorManager
-                                  .getSpecificLyricsPageCoverArtBaseColor(),
-                              useResize: false,
-                            ),
+                            child:
+                                ValueListenableBuilder<PlayerCoverStyle>(
+                                  valueListenable: playerCoverStyleNotifier,
+                                  builder: (context, style, child) {
+                                    if (style == PlayerCoverStyle.vinyl) {
+                                      return VinylDisc(
+                                        picture: currentSong?.picture,
+                                        size: coverArtSize,
+                                      );
+                                    }
+                                    return CoverArtWidget(
+                                      size: coverArtSize,
+                                      borderRadius: coverArtSize * 0.05,
+                                      picture: currentSong?.picture,
+                                      elevation: 15,
+                                      color: colorManager
+                                          .getSpecificLyricsPageCoverArtBaseColor(),
+                                      useResize: false,
+                                    );
+                                  },
+                                ),
                           ),
                         ),
                         ),

@@ -2223,4 +2223,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsCoverMotion => 'Lyrics cover motion';
+
+  @override
+  String get playerCoverStyle => 'Player cover style';
+
+  @override
+  String get coverStyleSquare => 'Square cover';
+
+  @override
+  String get coverStyleVinyl => 'Vinyl record';
+
+  @override
+  String get lyricShareCard => 'Share lyric card';
+
+  @override
+  String get annualReport => 'Year in review';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String savedTo(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get annualDaysMusic => 'days with music';
+
+  @override
+  String get annualTopArtist => 'Artist of the year';
+
+  @override
+  String get annualTopAlbum => 'Album of the year';
+
+  @override
+  String get annualTopSong => 'Song of the year';
+
+  @override
+  String get annualMonthly => 'Monthly rhythm';
+
+  @override
+  String get annualBestMonth => 'Most played month';
+
+  @override
+  String annualStreak(int days) {
+    return 'Longest streak: $days days in a row';
+  }
+
+  @override
+  String get annualNoData => 'Not enough listening data for this year yet';
 }

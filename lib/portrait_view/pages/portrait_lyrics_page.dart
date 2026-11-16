@@ -13,6 +13,7 @@ import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/base/widgets/action_menu.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
+import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
@@ -20,14 +21,15 @@ import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/buttons.dart';
 import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/vinyl_disc.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
-import 'package:lain/base/widgets/song_info.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
+import 'package:lain/base/widgets/lyric_share_dialog.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/widgets/seekbar.dart';
@@ -466,13 +468,25 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       fromHeroContext,
                       toHeroContext,
                     ) => FittedBox(child: toHeroContext.widget),
-                child: CoverArtWidget(
-                  size: mobileWidth * 0.84,
-                  borderRadius: mobileWidth * 0.04,
-                  picture: currentSong?.picture,
-                  elevation: 15,
-                  color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
-                  useResize: false,
+                child: ValueListenableBuilder<PlayerCoverStyle>(
+                  valueListenable: playerCoverStyleNotifier,
+                  builder: (context, style, child) {
+                    if (style == PlayerCoverStyle.vinyl) {
+                      return VinylDisc(
+                        picture: currentSong?.picture,
+                        size: mobileWidth * 0.84,
+                      );
+                    }
+                    return CoverArtWidget(
+                      size: mobileWidth * 0.84,
+                      borderRadius: mobileWidth * 0.04,
+                      picture: currentSong?.picture,
+                      elevation: 15,
+                      color: colorManager
+                          .getSpecificLyricsPageCoverArtBaseColor(),
+                      useResize: false,
+                    );
+                  },
                 ),
               ),
             ),
@@ -552,6 +566,18 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     );
   }
 
+  String? _currentShareLyric(MyAudioMetadata song) {
+    final lines = song.parsedLyrics?.lines;
+    final index = currentLyricsIndexNotifier.value;
+    if (lines != null && index >= 0 && index < lines.length) {
+      final text = lines[index].text.trim();
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
   Widget moreButton(MyAudioMetadata? currentSong) {
     final l10n = AppLocalizations.of(context);
     return IconButton(
@@ -567,6 +593,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   playbackSpeedNotifier,
                   audioFadeNotifier,
                   playbackModeNotifier,
+                  playerCoverStyleNotifier,
                 ]),
                 builder: (context, child) {
                   final textColor = lyricsPageForegroundColor.value;
@@ -631,6 +658,34 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           Navigator.pop(sheetContext);
                           showAdjustLyrics(pageContext);
                         },
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.share_rounded,
+                        label: l10n.lyricShareCard,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          if (currentSong != null) {
+                            showLyricShareDialog(
+                              pageContext,
+                              currentSong,
+                              lyric: _currentShareLyric(currentSong),
+                            );
+                          }
+                        },
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.album_rounded,
+                        label: l10n.playerCoverStyle,
+                        subtitle: playerCoverStyleLabel(
+                          l10n,
+                          playerCoverStyleNotifier.value,
+                        ),
+                        trailing: chevron,
+                        onTap: () => showPlayerCoverStyleDialog(sheetContext),
                       ),
                       ActionMenuTile(
                         icon: Icons.directions_car_rounded,

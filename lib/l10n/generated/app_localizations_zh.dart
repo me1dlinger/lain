@@ -2180,4 +2180,53 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lyricsCoverMotion => '歌词页封面动效';
+
+  @override
+  String get playerCoverStyle => '播放器封面样式';
+
+  @override
+  String get coverStyleSquare => '方形封面';
+
+  @override
+  String get coverStyleVinyl => '黑胶唱片';
+
+  @override
+  String get lyricShareCard => '分享歌词卡片';
+
+  @override
+  String get annualReport => '年度回顾';
+
+  @override
+  String get share => '分享';
+
+  @override
+  String savedTo(String path) {
+    return '已保存到 $path';
+  }
+
+  @override
+  String get annualDaysMusic => '天有音乐';
+
+  @override
+  String get annualTopArtist => '年度歌手';
+
+  @override
+  String get annualTopAlbum => '年度专辑';
+
+  @override
+  String get annualTopSong => '年度歌曲';
+
+  @override
+  String get annualMonthly => '月度节奏';
+
+  @override
+  String get annualBestMonth => '听得最多的月份';
+
+  @override
+  String annualStreak(int days) {
+    return '最长连续听歌 $days 天';
+  }
+
+  @override
+  String get annualNoData => '这一年还没有足够的听歌数据';
 }

@@ -931,5 +931,34 @@
   "useServerRandom": "使用服务器随机列表",
   "useServerRandomDescription": "开启后向服务器请求随机歌曲；关闭后从本机已保存的歌曲中抽取。服务器不可用时自动回退到本地列表。",
   "viewComments": "查看评论",
-  "lyricsCoverMotion": "歌词页封面动效"
+  "lyricsCoverMotion": "歌词页封面动效",
+  "playerCoverStyle": "播放器封面样式",
+  "coverStyleSquare": "方形封面",
+  "coverStyleVinyl": "黑胶唱片",
+  "lyricShareCard": "分享歌词卡片",
+  "annualReport": "年度回顾",
+  "share": "分享",
+  "savedTo": "已保存到 {path}",
+  "@savedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "annualDaysMusic": "天有音乐",
+  "annualTopArtist": "年度歌手",
+  "annualTopAlbum": "年度专辑",
+  "annualTopSong": "年度歌曲",
+  "annualMonthly": "月度节奏",
+  "annualBestMonth": "听得最多的月份",
+  "annualStreak": "最长连续听歌 {days} 天",
+  "@annualStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "annualNoData": "这一年还没有足够的听歌数据"
 }
