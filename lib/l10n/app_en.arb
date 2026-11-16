@@ -999,5 +999,6 @@
   "randomSongs": "Random songs",
   "randomSongsHint": "A fresh set of 100 songs each time it is refreshed",
   "useServerRandom": "Use server random list",
-  "useServerRandomDescription": "On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer."
+  "useServerRandomDescription": "On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.",
+  "viewComments": "View comments"
 }

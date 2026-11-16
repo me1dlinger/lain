@@ -2174,4 +2174,7 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get useServerRandomDescription =>
       '开启后向服务器请求随机歌曲；关闭后从本机已保存的歌曲中抽取。服务器不可用时自动回退到本地列表。';
+
+  @override
+  String get viewComments => '查看评论';
 }

@@ -4261,6 +4261,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.'**
   String get useServerRandomDescription;
+
+  /// No description provided for @viewComments.
+  ///
+  /// In en, this message translates to:
+  /// **'View comments'**
+  String get viewComments;
 }
 
 class _AppLocalizationsDelegate

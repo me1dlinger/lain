@@ -345,6 +345,7 @@ class _SettingsListState extends State<SettingsList> {
             streamQualityListTile(context, l10n),
             streamFormatListTile(context, l10n),
             useServerRandomListTile(l10n),
+            if (sourceType == .navidrome) playbackReportListTile(l10n),
           ],
           if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
             premiumFeaturesListTile(context, l10n),
@@ -384,7 +385,6 @@ class _SettingsListState extends State<SettingsList> {
           replayGainListTile(context, l10n),
           playbackSpeedListTile(context, l10n),
           audioFadeListTile(l10n),
-          playbackReportListTile(l10n),
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
@@ -831,7 +831,6 @@ class _SettingsListState extends State<SettingsList> {
         color: iconColor.value,
       ),
       title: Text(l10n.useServerRandom),
-      subtitle: Text(l10n.useServerRandomDescription),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
@@ -2038,7 +2037,6 @@ class _SettingsListState extends State<SettingsList> {
         color: iconColor.value,
       ),
       title: Text(l10n.playbackReport),
-      subtitle: Text(l10n.playbackReportDescription),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(

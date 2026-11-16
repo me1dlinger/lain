@@ -2217,4 +2217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get useServerRandomDescription =>
       'On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.';
+
+  @override
+  String get viewComments => 'View comments';
 }
