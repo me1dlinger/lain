@@ -9,6 +9,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/buttons.dart';
+import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/landscape_view/speaker.dart';
@@ -118,7 +119,8 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       children: [
                         if (pageHight >= 600) SizedBox(height: 75),
                         Spacer(),
-                        Hero(
+                        BreathingCover(
+                          child: Hero(
                           tag: 'cover',
                           flightShuttleBuilder:
                               (
@@ -145,6 +147,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                               useResize: false,
                             ),
                           ),
+                        ),
                         ),
                         if (pageHight >= 600) ...[
                           information(coverArtSize, pageHight, currentSong),

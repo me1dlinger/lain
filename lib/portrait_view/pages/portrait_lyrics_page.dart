@@ -12,6 +12,7 @@ import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/base/widgets/buttons.dart';
+import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
@@ -51,9 +52,30 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
   final enableAllNotifier = ValueNotifier(Platform.isAndroid ? false : true);
 
+  /// PageView position, 0 on the controls and 1 on the full lyrics. The cover
+  /// drifts and shrinks slightly as the page is swiped, then returns.
+  final pageController = PageController();
+  final pageOffsetNotifier = ValueNotifier<double>(0);
+
+  void _onPageOffset() {
+    if (!pageController.hasClients) {
+      return;
+    }
+    pageOffsetNotifier.value = (pageController.page ?? 0).clamp(0.0, 1.0);
+  }
+
+  @override
+  void dispose() {
+    pageController.removeListener(_onPageOffset);
+    pageController.dispose();
+    pageOffsetNotifier.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    pageController.addListener(_onPageOffset);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(Duration(milliseconds: 500));
@@ -326,6 +348,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
                       Expanded(
                         child: PageView(
+                          controller: pageController,
                           children: [
                             controlsPage(context, currentSong, isShort),
                             ValueListenableBuilder(
@@ -406,23 +429,39 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     return Column(
       children: [
         if (!isShort) ...[
-          Hero(
-            tag: 'cover',
-            flightShuttleBuilder:
-                (
-                  flightContext,
-                  animation,
-                  flightDirection,
-                  fromHeroContext,
-                  toHeroContext,
-                ) => FittedBox(child: toHeroContext.widget),
-            child: CoverArtWidget(
-              size: mobileWidth * 0.84,
-              borderRadius: mobileWidth * 0.04,
-              picture: currentSong?.picture,
-              elevation: 15,
-              color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
-              useResize: false,
+          ValueListenableBuilder<double>(
+            valueListenable: pageOffsetNotifier,
+            builder: (context, offset, child) {
+              // A small drift opposite to the swipe: the cover lags behind the
+              // page and settles back when the controls page returns.
+              return Transform.translate(
+                offset: Offset(-24 * offset, 0),
+                child: Transform.scale(
+                  scale: 1 - 0.05 * offset,
+                  child: child,
+                ),
+              );
+            },
+            child: BreathingCover(
+              child: Hero(
+                tag: 'cover',
+                flightShuttleBuilder:
+                    (
+                      flightContext,
+                      animation,
+                      flightDirection,
+                      fromHeroContext,
+                      toHeroContext,
+                    ) => FittedBox(child: toHeroContext.widget),
+                child: CoverArtWidget(
+                  size: mobileWidth * 0.84,
+                  borderRadius: mobileWidth * 0.04,
+                  picture: currentSong?.picture,
+                  elevation: 15,
+                  color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+                  useResize: false,
+                ),
+              ),
             ),
           ),
 
