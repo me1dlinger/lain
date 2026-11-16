@@ -2085,4 +2085,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get audioFadeDescription =>
       'Ramp the volume in when playback starts and out when it pauses or the track changes.';
+
+  @override
+  String get queueCleared => 'Queue cleared';
+
+  @override
+  String get undo => 'Undo';
 }

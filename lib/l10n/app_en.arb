@@ -925,5 +925,7 @@
   "replayGainDescription": "Use the loudness tags in the files so tracks from different albums do not jump in volume.",
   "playbackSpeed": "Playback speed",
   "audioFade": "Fade in and out",
-  "audioFadeDescription": "Ramp the volume in when playback starts and out when it pauses or the track changes."
+  "audioFadeDescription": "Ramp the volume in when playback starts and out when it pauses or the track changes.",
+  "queueCleared": "Queue cleared",
+  "undo": "Undo"
 }

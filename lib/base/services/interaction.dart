@@ -86,6 +86,79 @@ void showCenterMessage(String message, {int duration = 2000}) {
 
 OverlayEntry? _centerOverlayEntry;
 
+/// A bottom bar with one action, for something that was just removed and can
+/// still be put back. It sits above the mini player and disappears on its own.
+void showUndoMessage(
+  String message,
+  VoidCallback onUndo, {
+  int duration = 5000,
+}) {
+  final overlay = globalNavigatorKey.currentState?.overlay;
+  if (overlay == null) {
+    return;
+  }
+  final l10n = getAppLocalizations();
+  var closed = false;
+  late OverlayEntry entry;
+  void close() {
+    if (closed) {
+      return;
+    }
+    closed = true;
+    entry.remove();
+  }
+
+  entry = OverlayEntry(
+    builder: (context) {
+      final textColor = colorManager.getSpecificTextColor();
+      return Positioned(
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 96,
+        child: Material(
+          color: colorManager.getSpecificOpaqueBgColor(),
+          elevation: 8,
+          shape: SmoothRectangleBorder(
+            smoothness: 1,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    message,
+                    style: TextStyle(fontSize: 14, color: textColor),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    close();
+                    onUndo();
+                  },
+                  child: Text(
+                    l10n.undo,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: iconColor.value,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(entry);
+  Future.delayed(Duration(milliseconds: duration), close);
+}
+
 Future<void> showCenterLoading() async {
   final overlay = globalNavigatorKey.currentState?.overlay;
   if (overlay == null) return;

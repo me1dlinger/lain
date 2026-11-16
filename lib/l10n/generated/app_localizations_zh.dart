@@ -2046,4 +2046,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get audioFadeDescription => '开始播放时音量渐入，暂停或切歌时音量渐出。';
+
+  @override
+  String get queueCleared => '播放队列已清空';
+
+  @override
+  String get undo => '撤销';
 }

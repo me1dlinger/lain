@@ -855,5 +855,7 @@
   "replayGainDescription": "读取文件中的响度标签，避免不同专辑的歌曲忽大忽小。",
   "playbackSpeed": "播放速度",
   "audioFade": "淡入淡出",
-  "audioFadeDescription": "开始播放时音量渐入，暂停或切歌时音量渐出。"
+  "audioFadeDescription": "开始播放时音量渐入，暂停或切歌时音量渐出。",
+  "queueCleared": "播放队列已清空",
+  "undo": "撤销"
 }

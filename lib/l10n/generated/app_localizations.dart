@@ -4027,6 +4027,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ramp the volume in when playback starts and out when it pauses or the track changes.'**
   String get audioFadeDescription;
+
+  /// No description provided for @queueCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue cleared'**
+  String get queueCleared;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
 }
 
 class _AppLocalizationsDelegate

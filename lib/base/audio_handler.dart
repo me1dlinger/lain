@@ -164,6 +164,12 @@ class MyAudioHandler extends BaseAudioHandler {
   int currentIndex = -1;
   List<MyAudioMetadata> _playQueueTmp = [];
   int _tmpPlayMode = 0;
+
+  /// What the last clear removed, so it can be put back from the undo bar.
+  List<MyAudioMetadata>? _clearedQueue;
+  List<MyAudioMetadata>? _clearedQueueTmp;
+  int _clearedIndex = -1;
+  Duration _clearedPosition = Duration.zero;
   DateTime? _playLastSyncTime;
   Duration _playedDuration = Duration.zero;
 
@@ -696,9 +702,7 @@ class MyAudioHandler extends BaseAudioHandler {
       await load(start: Duration(milliseconds: int.tryParse(positionMs) ?? 0));
 
       if (isPlayingNotifier.value) {
-        _positionTimer ??= Timer.periodic(Duration(seconds: 1), (_) {
-          _positionState.writeAsString(getPosition().inMilliseconds.toString());
-        });
+        _startPositionTimer();
       }
     }
 
@@ -821,6 +825,9 @@ class MyAudioHandler extends BaseAudioHandler {
     // A tap on a row keeps the mode the user is in; the page's play-all and
     // shuffle buttons choose one.
     final mode = tapped != null ? playModeNotifier.value : playMode;
+    // A new queue replaces anything an undo could put back.
+    _clearedQueue = null;
+    _clearedQueueTmp = null;
 
     // The order this queue was created in. Every later mode change rebuilds
     // from it, so it must always describe the queue being installed now. The
@@ -1002,6 +1009,18 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> clear() async {
+    final hadQueue = playQueue.isNotEmpty;
+    if (hadQueue) {
+      _clearedQueue = List.of(playQueue);
+      _clearedQueueTmp = List.of(_playQueueTmp);
+      _clearedIndex = currentIndex.clamp(0, playQueue.length - 1);
+      _clearedPosition = getPosition();
+    } else {
+      _clearedQueue = null;
+      _clearedQueueTmp = null;
+      _clearedIndex = -1;
+      _clearedPosition = Duration.zero;
+    }
     stop();
     playQueue = [];
     _playQueueTmp = [];
@@ -1014,9 +1033,42 @@ class MyAudioHandler extends BaseAudioHandler {
       HomeWidgetService.updateNowPlayingWidget();
       HomeWidgetService.reloadPlaylistsWidget();
     }
+
+    if (hadQueue) {
+      showUndoMessage(getAppLocalizations().queueCleared, () {
+        unawaited(undoClearQueue());
+      });
+    }
+  }
+
+  /// Puts back the queue that [clear] removed and resumes where it was.
+  Future<bool> undoClearQueue() async {
+    final queue = _clearedQueue;
+    if (queue == null || queue.isEmpty) {
+      return false;
+    }
+    final tmp = _clearedQueueTmp;
+    final start = _clearedPosition;
+    final index = _clearedIndex;
+    _clearedQueue = null;
+    _clearedQueueTmp = null;
+    _clearedIndex = -1;
+    _clearedPosition = Duration.zero;
+
+    playQueue = List.of(queue);
+    _playQueueTmp = List.of(tmp ?? const []);
+    currentIndex = index.clamp(0, playQueue.length - 1);
+    await load(start: start > Duration.zero ? start : null);
+    await play();
+    saveAllStates();
+    return true;
   }
 
   void justClear() {
+    _clearedQueue = null;
+    _clearedQueueTmp = null;
+    _clearedIndex = -1;
+    _clearedPosition = Duration.zero;
     _endLoadGrace();
     _endStallGrace();
     _player.stop();
@@ -2512,8 +2564,18 @@ class MyAudioHandler extends BaseAudioHandler {
     if (generation != _transportGeneration) {
       return;
     }
-    _positionTimer ??= Timer.periodic(Duration(seconds: 1), (_) {
+    _startPositionTimer();
+  }
+
+  /// Writes the resume position and keeps the media session's progress moving.
+  /// A notification, a car and the OS lock screen read the position from the
+  /// session; without a periodic update it only changes on play/pause/seek.
+  void _startPositionTimer() {
+    _positionTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       _positionState.writeAsString(getPosition().inMilliseconds.toString());
+      if (isPlayingNotifier.value && !loadingSong) {
+        updatePlaybackState();
+      }
     });
   }
 
