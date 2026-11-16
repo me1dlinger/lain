@@ -29,6 +29,7 @@ class ActionMenuSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = colorManager.getSpecificTextColor();
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 10),
         Padding(
@@ -56,7 +57,7 @@ class ActionMenuSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: info!,
           ),
-        Expanded(
+        Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Container(
@@ -272,8 +273,8 @@ Future<void> showActionMenuSheet(
     backgroundColor: Colors.transparent,
     builder: (context) => MySheet(
       content,
-      height: 10000,
       maxHeightFactor: maxHeightFactor,
+      wrapContent: true,
     ),
   );
 }
