@@ -2064,4 +2064,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get operationFailed => '操作失败';
+
+  @override
+  String get autoScanLibrary => '自动扫描曲库';
+
+  @override
+  String get autoScanDescription => '启动后和定时检查文件夹，只重新读取有改动的文件。';
+
+  @override
+  String get scanInterval => '扫描间隔';
+
+  @override
+  String scanIntervalMinutes(int minutes) {
+    return '每 $minutes 分钟';
+  }
+
+  @override
+  String scanIntervalHours(int hours) {
+    return '每 $hours 小时';
+  }
 }

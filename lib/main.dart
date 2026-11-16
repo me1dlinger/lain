@@ -12,6 +12,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/proxy_service.dart';
 import 'package:lain/base/services/keyboard.dart';
+import 'package:lain/base/services/local_scan_scheduler.dart';
 import 'package:lain/base/services/my_tray_listener.dart';
 import 'package:lain/base/services/my_window_listener.dart';
 import 'package:lain/base/services/single_instance.dart';
@@ -312,6 +313,7 @@ Future<void> main() async {
   );
   logger.output('App start');
   await Loader.load();
+  LocalScanScheduler.instance.start();
   // A failed download queue waiting for Wi-Fi continues as soon as the app is
   // opened with one.
   unawaited(downloadManager.resumeWaitingForWifi());

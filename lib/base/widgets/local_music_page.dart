@@ -269,6 +269,52 @@ class _LocalMusicPageState extends State<LocalMusicPage> {
     }
   }
 
+  String _scanIntervalLabel(AppLocalizations l10n) {
+    final minutes = autoScanIntervalMinutesNotifier.value;
+    if (minutes >= 60 && minutes % 60 == 0) {
+      return l10n.scanIntervalHours(minutes ~/ 60);
+    }
+    return l10n.scanIntervalMinutes(minutes);
+  }
+
+  Future<void> _pickScanInterval() async {
+    final l10n = AppLocalizations.of(context);
+    final choice = await showAnimationDialog<int>(
+      context: context,
+      child: SizedBox(
+        width: 260,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final minutes in autoScanIntervalChoices)
+                ListTile(
+                  title: Text(
+                    minutes >= 60 && minutes % 60 == 0
+                        ? l10n.scanIntervalHours(minutes ~/ 60)
+                        : l10n.scanIntervalMinutes(minutes),
+                  ),
+                  trailing: minutes == autoScanIntervalMinutesNotifier.value
+                      ? const Icon(Icons.check_rounded)
+                      : null,
+                  onTap: () => Navigator.pop(context, minutes),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null) {
+      return;
+    }
+    autoScanIntervalMinutesNotifier.value = choice;
+    setting.save();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   Future<void> _startScan() async {
     final l10n = AppLocalizations.of(context);
     showCenterLoading();
@@ -339,6 +385,43 @@ class _LocalMusicPageState extends State<LocalMusicPage> {
         ),
         const Divider(),
         _sectionTitle(context, l10n.settings),
+        ListTile(
+          leading: Icon(
+            Icons.autorenew_rounded,
+            size: 30,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.autoScanLibrary),
+          subtitle: Text(
+            l10n.autoScanDescription,
+            style: const TextStyle(fontSize: 11),
+          ),
+          trailing: SizedBox(
+            width: 50,
+            child: MySwitch(
+              valueNotifier: autoScanNotifier,
+              onToggleCallBack: setting.save,
+            ),
+          ),
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: autoScanNotifier,
+          builder: (context, enabled, child) {
+            if (!enabled) {
+              return const SizedBox.shrink();
+            }
+            return ListTile(
+              leading: Icon(
+                Icons.schedule_rounded,
+                size: 30,
+                color: iconColor.value,
+              ),
+              title: Text(l10n.scanInterval),
+              subtitle: Text(_scanIntervalLabel(l10n)),
+              onTap: _pickScanInterval,
+            );
+          },
+        ),
         ListTile(
           leading: Icon(Icons.timer_outlined, size: 30, color: iconColor.value),
           title: Text(l10n.skipShortAudio(minAudioSecondsNotifier.value)),

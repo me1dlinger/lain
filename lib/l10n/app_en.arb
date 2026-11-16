@@ -931,5 +931,24 @@
   "scanNow": "Scan library now",
   "scanNowConfirm": "Ask the server to scan its music folders now?",
   "scanStarted": "Scan started",
-  "operationFailed": "Operation failed"
+  "operationFailed": "Operation failed",
+  "autoScanLibrary": "Auto scan library",
+  "autoScanDescription": "Check the folders after launch and on a timer. Only files whose modified time changed are read again.",
+  "scanInterval": "Scan interval",
+  "scanIntervalMinutes": "Every {minutes} min",
+  "@scanIntervalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "scanIntervalHours": "Every {hours} h",
+  "@scanIntervalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  }
 }

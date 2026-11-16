@@ -163,6 +163,10 @@ class Setting {
         json['skipShortAudio'] as bool? ?? skipShortAudioNotifier.value;
     minAudioSecondsNotifier.value =
         json['minAudioSeconds'] as int? ?? minAudioSecondsNotifier.value;
+    autoScanNotifier.value = json['autoScan'] as bool? ?? true;
+    autoScanIntervalMinutesNotifier.value =
+        json['autoScanIntervalMinutes'] as int? ??
+        autoScanIntervalMinutesNotifier.value;
 
     final savedCategories = json['settingsCategoryOrder'];
     if (savedCategories is List) {
@@ -360,6 +364,8 @@ class Setting {
         'blockedFolders': blockedFoldersNotifier.value,
         'skipShortAudio': skipShortAudioNotifier.value,
         'minAudioSeconds': minAudioSecondsNotifier.value,
+        'autoScan': autoScanNotifier.value,
+        'autoScanIntervalMinutes': autoScanIntervalMinutesNotifier.value,
         'settingsCategoryOrder': [
           for (final category in settingsCategoryOrderNotifier.value)
             category.name,

@@ -4063,6 +4063,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Operation failed'**
   String get operationFailed;
+
+  /// No description provided for @autoScanLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto scan library'**
+  String get autoScanLibrary;
+
+  /// No description provided for @autoScanDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the folders after launch and on a timer. Only files whose modified time changed are read again.'**
+  String get autoScanDescription;
+
+  /// No description provided for @scanInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan interval'**
+  String get scanInterval;
+
+  /// No description provided for @scanIntervalMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {minutes} min'**
+  String scanIntervalMinutes(int minutes);
+
+  /// No description provided for @scanIntervalHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {hours} h'**
+  String scanIntervalHours(int hours);
 }
 
 class _AppLocalizationsDelegate

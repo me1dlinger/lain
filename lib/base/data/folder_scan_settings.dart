@@ -18,6 +18,13 @@ final ValueNotifier<List<String>> blockedFoldersNotifier = ValueNotifier(
 final ValueNotifier<bool> skipShortAudioNotifier = ValueNotifier(true);
 final ValueNotifier<int> minAudioSecondsNotifier = ValueNotifier(60);
 
+/// Scan the local folders on a timer and after the app comes back to the
+/// foreground. Files whose modification time did not change are not read
+/// again, so a scan only costs a directory walk plus the new or edited files.
+final autoScanNotifier = ValueNotifier<bool>(true);
+final autoScanIntervalMinutesNotifier = ValueNotifier<int>(60);
+const autoScanIntervalChoices = <int>[15, 30, 60, 12 * 10, 360];
+
 String _normalizedPath(String path) =>
     path.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
 

@@ -2103,4 +2103,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get operationFailed => 'Operation failed';
+
+  @override
+  String get autoScanLibrary => 'Auto scan library';
+
+  @override
+  String get autoScanDescription =>
+      'Check the folders after launch and on a timer. Only files whose modified time changed are read again.';
+
+  @override
+  String get scanInterval => 'Scan interval';
+
+  @override
+  String scanIntervalMinutes(int minutes) {
+    return 'Every $minutes min';
+  }
+
+  @override
+  String scanIntervalHours(int hours) {
+    return 'Every $hours h';
+  }
 }

@@ -861,5 +861,24 @@
   "scanNow": "立即扫描曲库",
   "scanNowConfirm": "现在让服务器扫描音乐文件夹？",
   "scanStarted": "已开始扫描",
-  "operationFailed": "操作失败"
+  "operationFailed": "操作失败",
+  "autoScanLibrary": "自动扫描曲库",
+  "autoScanDescription": "启动后和定时检查文件夹，只重新读取有改动的文件。",
+  "scanInterval": "扫描间隔",
+  "scanIntervalMinutes": "每 {minutes} 分钟",
+  "@scanIntervalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "scanIntervalHours": "每 {hours} 小时",
+  "@scanIntervalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  }
 }

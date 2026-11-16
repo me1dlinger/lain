@@ -316,6 +316,35 @@ class Loader {
     }
   }
 
+  /// A scan that runs on its own: no page teardown, no sync messages, and
+  /// nothing happens when the app is already busy or the source is not the
+  /// local library. Files that did not change are not read again.
+  static Future<bool> autoSync() async {
+    if (_busy ||
+        !isLocalLibrary ||
+        library.folderList.isEmpty ||
+        loadingSong) {
+      return false;
+    }
+    _busy = true;
+    stateNotifier.value++;
+    try {
+      await library.sync();
+      playlistManager.resolveAfterLibraryLoad();
+      // The queue holds song objects from before the scan; swap in the current
+      // ones so a re-read tag or a removed file is reflected there too.
+      audioHandler.sync();
+      artistAlbumManager.classify();
+      return true;
+    } catch (e) {
+      logger.output('[auto scan] $e');
+      return false;
+    } finally {
+      _busy = false;
+      stateNotifier.value++;
+    }
+  }
+
   static Future<void> firstSync() async {
     _busy = true;
     stateNotifier.value++;
