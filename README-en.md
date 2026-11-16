@@ -35,7 +35,7 @@ Currently supports:
 - Fade in and out is a separate switch: the volume ramps up on start and down on pause or a track change.
 - Audio focus offers exclusive, smart ducking and mix: exclusive pauses and does not resume by itself; ducking restores the original volume when the interruption ends.
 - The queue supports drag reordering, play next, add to queue, reverse and a full queue page; clearing it shows an undo bar that restores and resumes it.
-- The media session position advances every second for notifications, the lock screen and a head unit.
+- The media session position advances every second for notifications, the lock screen and a head unit; Navidrome and Emby now receive the current track, position and paused state for their own now-playing view.
 - New full-screen driving mode with a cover-blurred background that follows the theme, in portrait and landscape; reachable from the landscape lyrics page too.
 
 ### Library and browsing
@@ -74,6 +74,8 @@ Currently supports:
 - The cover crossfades on a track change, and album, artist and playlist rows share their cover with the detail page.
 - The lyrics-page cover breathes gently while playing and shifts with a slight parallax during the swipe between pages.
 - Dragging the seek bar shows the target time above it, and the progress advances every frame instead of stepping once a second.
+- Song-list and player menus share one bottom action sheet: a song card at the top and a single rounded card of evenly spaced actions.
+- The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings.
 
 
 ## About this project
