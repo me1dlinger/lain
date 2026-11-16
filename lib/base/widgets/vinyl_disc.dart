@@ -28,7 +28,7 @@ class _VinylDiscState extends State<VinylDisc>
     _rotation = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 24),
-    )..value = 0.12;
+    );
     isPlayingNotifier.addListener(_syncRotation);
     _syncRotation();
   }

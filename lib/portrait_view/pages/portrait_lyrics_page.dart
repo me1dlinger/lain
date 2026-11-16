@@ -457,38 +457,40 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 ),
               );
             },
-            child: BreathingCover(
-              child: Hero(
-                tag: 'cover',
-                flightShuttleBuilder:
-                    (
-                      flightContext,
-                      animation,
-                      flightDirection,
-                      fromHeroContext,
-                      toHeroContext,
-                    ) => FittedBox(child: toHeroContext.widget),
-                child: ValueListenableBuilder<PlayerCoverStyle>(
-                  valueListenable: playerCoverStyleNotifier,
-                  builder: (context, style, child) {
-                    if (style == PlayerCoverStyle.vinyl) {
-                      return VinylDisc(
-                        picture: currentSong?.picture,
-                        size: mobileWidth * 0.84,
-                      );
-                    }
-                    return CoverArtWidget(
-                      size: mobileWidth * 0.84,
-                      borderRadius: mobileWidth * 0.04,
-                      picture: currentSong?.picture,
-                      elevation: 15,
-                      color: colorManager
-                          .getSpecificLyricsPageCoverArtBaseColor(),
-                      useResize: false,
-                    );
-                  },
-                ),
-              ),
+            child: ValueListenableBuilder<PlayerCoverStyle>(
+              valueListenable: playerCoverStyleNotifier,
+              builder: (context, style, child) {
+                final hero = Hero(
+                  tag: 'cover',
+                  flightShuttleBuilder:
+                      (
+                        flightContext,
+                        animation,
+                        flightDirection,
+                        fromHeroContext,
+                        toHeroContext,
+                      ) => FittedBox(child: toHeroContext.widget),
+                  child: style == PlayerCoverStyle.vinyl
+                      ? VinylDisc(
+                          picture: currentSong?.picture,
+                          size: mobileWidth * 0.84,
+                        )
+                      : CoverArtWidget(
+                          size: mobileWidth * 0.84,
+                          borderRadius: mobileWidth * 0.04,
+                          picture: currentSong?.picture,
+                          elevation: 15,
+                          color: colorManager
+                              .getSpecificLyricsPageCoverArtBaseColor(),
+                          useResize: false,
+                        ),
+                );
+                // A vinyl disc must not breathe: at its largest it would grow
+                // past the page edge and lose a slice of the circle.
+                return style == PlayerCoverStyle.vinyl
+                    ? hero
+                    : BreathingCover(child: hero);
+              },
             ),
           ),
 
@@ -571,6 +573,18 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     final index = currentLyricsIndexNotifier.value;
     if (lines != null && index >= 0 && index < lines.length) {
       final text = lines[index].text.trim();
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  String? _currentShareTranslation(MyAudioMetadata song) {
+    final lines = song.parsedLyrics?.lines;
+    final index = currentLyricsIndexNotifier.value;
+    if (lines != null && index >= 0 && index < lines.length) {
+      final text = lines[index].translates.join(' / ').trim();
       if (text.isNotEmpty) {
         return text;
       }
@@ -673,6 +687,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                               pageContext,
                               currentSong,
                               lyric: _currentShareLyric(currentSong),
+                              translation: _currentShareTranslation(currentSong),
                             );
                           }
                         },

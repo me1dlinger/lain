@@ -121,47 +121,46 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       children: [
                         if (pageHight >= 600) SizedBox(height: 75),
                         Spacer(),
-                        BreathingCover(
-                          child: Hero(
-                          tag: 'cover',
-                          flightShuttleBuilder:
-                              (
-                                flightContext,
-                                animation,
-                                flightDirection,
-                                fromHeroContext,
-                                toHeroContext,
-                              ) => FittedBox(child: toHeroContext.widget),
-                          child: GestureDetector(
-                            onVerticalDragEnd: (details) {
-                              if (isMobile &&
-                                  (details.primaryVelocity ?? 0) > 500) {
-                                Navigator.pop(context);
-                              }
-                            },
-                            child:
-                                ValueListenableBuilder<PlayerCoverStyle>(
-                                  valueListenable: playerCoverStyleNotifier,
-                                  builder: (context, style, child) {
-                                    if (style == PlayerCoverStyle.vinyl) {
-                                      return VinylDisc(
+                        ValueListenableBuilder<PlayerCoverStyle>(
+                          valueListenable: playerCoverStyleNotifier,
+                          builder: (context, style, child) {
+                            final hero = Hero(
+                              tag: 'cover',
+                              flightShuttleBuilder:
+                                  (
+                                    flightContext,
+                                    animation,
+                                    flightDirection,
+                                    fromHeroContext,
+                                    toHeroContext,
+                                  ) => FittedBox(child: toHeroContext.widget),
+                              child: GestureDetector(
+                                onVerticalDragEnd: (details) {
+                                  if (isMobile &&
+                                      (details.primaryVelocity ?? 0) > 500) {
+                                    Navigator.pop(context);
+                                  }
+                                },
+                                child: style == PlayerCoverStyle.vinyl
+                                    ? VinylDisc(
                                         picture: currentSong?.picture,
                                         size: coverArtSize,
-                                      );
-                                    }
-                                    return CoverArtWidget(
-                                      size: coverArtSize,
-                                      borderRadius: coverArtSize * 0.05,
-                                      picture: currentSong?.picture,
-                                      elevation: 15,
-                                      color: colorManager
-                                          .getSpecificLyricsPageCoverArtBaseColor(),
-                                      useResize: false,
-                                    );
-                                  },
-                                ),
-                          ),
-                        ),
+                                      )
+                                    : CoverArtWidget(
+                                        size: coverArtSize,
+                                        borderRadius: coverArtSize * 0.05,
+                                        picture: currentSong?.picture,
+                                        elevation: 15,
+                                        color: colorManager
+                                            .getSpecificLyricsPageCoverArtBaseColor(),
+                                        useResize: false,
+                                      ),
+                              ),
+                            );
+                            return style == PlayerCoverStyle.vinyl
+                                ? hero
+                                : BreathingCover(child: hero);
+                          },
                         ),
                         if (pageHight >= 600) ...[
                           information(coverArtSize, pageHight, currentSong),
