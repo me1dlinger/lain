@@ -608,10 +608,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           ).context;
                           Navigator.pop(sheetContext);
                           if (currentSong != null) {
-                            showAnimationDialog(
-                              context: pageContext,
-                              child: SongInfo(song: currentSong),
-                            );
+                            showSongInformation(pageContext, currentSong);
                           }
                         },
                       ),

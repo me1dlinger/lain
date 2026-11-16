@@ -430,10 +430,7 @@ class PlayQueuePageState extends State<PlayQueuePage> {
                     text: l10n.songInfo,
                     iconData: Icons.info_outline_rounded,
                     callback: () {
-                      showAnimationDialog(
-                        context: context,
-                        child: SongInfo(song: selectedSongList[0]),
-                      );
+                      showSongInformation(context, selectedSongList[0]);
                     },
                   ),
                 );

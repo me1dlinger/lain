@@ -1007,12 +1007,7 @@ extension _SongListPanel on _SongListState {
           text: l10n.songInfo,
           iconData: Icons.info_outline_rounded,
           callback: () {
-            showAnimationDialog(
-              context: context,
-              child: sourceType == .local
-                  ? EditMetadata(song: song)
-                  : SongInfo(song: song),
-            );
+            showSongInformation(context, song);
           },
         ),
       );

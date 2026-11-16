@@ -1088,6 +1088,15 @@ void showSongCopySheet(BuildContext context, MyAudioMetadata song) {
   );
 }
 
+/// Opens the information for [song]: editable for a local file, read-only for
+/// a streamed one that has no file to write.
+void showSongInformation(BuildContext context, MyAudioMetadata song) {
+  showAnimationDialog(
+    context: context,
+    child: isLocalLibrary ? EditMetadata(song: song) : SongInfo(song: song),
+  );
+}
+
 void showSongOptions({
   required BuildContext context,
   required MyAudioMetadata song,
@@ -1213,7 +1222,7 @@ void showSongOptions({
                 if (commentSwitchNotifier.value && activeCommentServer != null)
                   _optionItem(
                     leading: Icon(Icons.forum_outlined),
-                    text: l10n.comment,
+                    text: l10n.viewComments,
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, CommentPageView.route(song));
@@ -1239,14 +1248,7 @@ void showSongOptions({
                       rootNavigator: true,
                     ).context;
                     Navigator.pop(context);
-                    showAnimationDialog(
-                      context: pageContext,
-                      // A local file can be edited from the same panel; a
-                      // streamed song has no file to write.
-                      child: isLocalLibrary
-                          ? EditMetadata(song: song)
-                          : SongInfo(song: song),
-                    );
+                    showSongInformation(pageContext, song);
                   },
                 ),
 
@@ -1367,13 +1369,14 @@ void showPlayQueueItemOptions(
                 leading: Icon(Icons.info_outline_rounded, color: iconColor),
                 title: Text(l10n.songInfo, style: .new(color: textColor)),
                 onTap: () async {
+                  final pageContext = Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).context;
                   Navigator.pop(context);
                   await Future.delayed(Duration(milliseconds: 250));
-                  if (context.mounted) {
-                    showAnimationDialog(
-                      context: context,
-                      child: SongInfo(song: song),
-                    );
+                  if (pageContext.mounted) {
+                    showSongInformation(pageContext, song);
                   }
                 },
               ),
