@@ -4207,6 +4207,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playback settings'**
   String get playbackSettings;
+
+  /// No description provided for @searchTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search NetEase and QQ Music, then apply a match'**
+  String get searchTagsHint;
+
+  /// No description provided for @tagInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag information'**
+  String get tagInformation;
+
+  /// No description provided for @audioInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio information'**
+  String get audioInformation;
+
+  /// No description provided for @playbackReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report playback progress'**
+  String get playbackReport;
+
+  /// No description provided for @playbackReportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the server’s now-playing entry and position up to date; turn off to stop the periodic reports.'**
+  String get playbackReportDescription;
+
+  /// No description provided for @randomSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Random songs'**
+  String get randomSongs;
+
+  /// No description provided for @randomSongsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A fresh set of 100 songs each time it is refreshed'**
+  String get randomSongsHint;
+
+  /// No description provided for @useServerRandom.
+  ///
+  /// In en, this message translates to:
+  /// **'Use server random list'**
+  String get useServerRandom;
+
+  /// No description provided for @useServerRandomDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.'**
+  String get useServerRandomDescription;
 }
 
 class _AppLocalizationsDelegate

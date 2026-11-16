@@ -1009,26 +1009,13 @@ extension _SongListPanel on _SongListState {
           callback: () {
             showAnimationDialog(
               context: context,
-              child: SongInfo(song: song),
+              child: sourceType == .local
+                  ? EditMetadata(song: song)
+                  : SongInfo(song: song),
             );
           },
         ),
       );
-
-      if (sourceType == .local && artist == null && album == null) {
-        menuItems.add(
-          MenuItem(
-            iconData: Icons.edit_rounded,
-            text: l10n.editMetadata,
-            callback: () {
-              showAnimationDialog(
-                context: context,
-                child: EditMetadata(song: song),
-              );
-            },
-          ),
-        );
-      }
     }
 
     if (playlist != null) {

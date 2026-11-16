@@ -2186,4 +2186,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playbackSettings => 'Playback settings';
+
+  @override
+  String get searchTagsHint =>
+      'Search NetEase and QQ Music, then apply a match';
+
+  @override
+  String get tagInformation => 'Tag information';
+
+  @override
+  String get audioInformation => 'Audio information';
+
+  @override
+  String get playbackReport => 'Report playback progress';
+
+  @override
+  String get playbackReportDescription =>
+      'Keep the server’s now-playing entry and position up to date; turn off to stop the periodic reports.';
+
+  @override
+  String get randomSongs => 'Random songs';
+
+  @override
+  String get randomSongsHint =>
+      'A fresh set of 100 songs each time it is refreshed';
+
+  @override
+  String get useServerRandom => 'Use server random list';
+
+  @override
+  String get useServerRandomDescription =>
+      'On: ask the server for a random selection. Off: draw from the songs already saved on this device. Falls back to the local list when the server cannot answer.';
 }

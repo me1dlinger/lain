@@ -8,12 +8,15 @@ import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/metadata_write.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/widgets/apple_form.dart';
+import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/lyric_timeline_page.dart';
 import 'package:lain/base/widgets/metadata_scrape_dialog.dart';
+import 'package:lain/base/widgets/lyric_search_dialog.dart';
 import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class EditMetadata extends StatefulWidget {
@@ -75,13 +78,15 @@ class _EditMetadataState extends State<EditMetadata> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final shortSide = size.shortestSide;
 
-    bool isPhone = shortSide < 600;
+    final width = max(280.0, min(620.0, size.width - 24));
+    final height = size.height - 60 < 420
+        ? size.height - 60
+        : size.height * 0.85;
     return SizedBox(
-      height: max(350, size.height * 0.7),
-      width: isPhone ? 300 : 400,
-      child: _content(context, isPhone),
+      height: max(320, height),
+      width: width,
+      child: _content(context, size.shortestSide < 600),
     );
   }
 
@@ -94,11 +99,21 @@ class _EditMetadataState extends State<EditMetadata> {
         child: Column(
           children: [
             Text(
-              l10n.editMetadata,
+              l10n.songInfo,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
                 color: textColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              getTitle(song),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: textColor.withAlpha(160),
               ),
             ),
             const SizedBox(height: 8),
@@ -107,6 +122,7 @@ class _EditMetadataState extends State<EditMetadata> {
                 padding: const EdgeInsets.only(bottom: 10),
                 children: [
                   Center(child: _coverArt(context, song, isPhone)),
+                  const SizedBox(height: 12),
                   AppleFormSection(
                     divided: false,
                     children: [
@@ -117,11 +133,19 @@ class _EditMetadataState extends State<EditMetadata> {
                           color: iconColor.value,
                         ),
                         title: Text(l10n.searchTags),
+                        subtitle: Text(
+                          l10n.searchTagsHint,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: textColor.withAlpha(150),
+                          ),
+                        ),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => _searchTags(context),
                       ),
                     ],
                   ),
+                  appleSectionTitle(l10n.tagInformation),
                   AppleFormSection(
                     children: [
                       appleTextFieldRow(l10n.title, _titleTextController),
@@ -133,6 +157,7 @@ class _EditMetadataState extends State<EditMetadata> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                   AppleFormSection(
                     children: [
                       appleTextFieldRow(l10n.genre, _genreTextController),
@@ -153,11 +178,19 @@ class _EditMetadataState extends State<EditMetadata> {
                       ),
                     ],
                   ),
+                  appleSectionTitle(l10n.lyrics),
                   AppleFormSection(
+                    divided: false,
                     children: [
-                      appleFormRow(
-                        l10n.lyrics,
-                        appleTextField(_lyricsTextController, maxLines: 6),
+                      ListTile(
+                        leading: Icon(
+                          Icons.search_rounded,
+                          size: 22,
+                          color: iconColor.value,
+                        ),
+                        title: Text(l10n.searchLyrics),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _searchLyrics(context),
                       ),
                       ListTile(
                         leading: Icon(
@@ -176,12 +209,51 @@ class _EditMetadataState extends State<EditMetadata> {
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => _openLyricTimeline(context),
                       ),
+                      MyDivider(
+                        thickness: 0.5,
+                        height: 1,
+                        color: dividerColor,
+                      ),
+                      appleFormRow(
+                        l10n.lyrics,
+                        appleTextField(_lyricsTextController, maxLines: 8),
+                      ),
+                    ],
+                  ),
+                  appleSectionTitle(l10n.audioInformation),
+                  AppleFormSection(
+                    children: [
+                      appleFormRow(
+                        l10n.format,
+                        Text(song.format?.toUpperCase() ?? '—'),
+                      ),
+                      appleFormRow(
+                        l10n.bitrate,
+                        Text(
+                          song.bitrate == null
+                              ? '—'
+                              : '${song.bitrate} Kbps',
+                        ),
+                      ),
+                      appleFormRow(
+                        l10n.samplerate,
+                        Text(
+                          song.samplerate == null
+                              ? '—'
+                              : '${song.samplerate! / 1000.0} KHz',
+                        ),
+                      ),
+                      appleFormRow(
+                        l10n.duration,
+                        Text(song.duration?.toString() ?? '—'),
+                      ),
+                      appleFormRow(l10n.path, Text(song.path ?? '—')),
                     ],
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
                     child: appleFilledButton(
-                      l10n.confirm,
+                      l10n.apply,
                       () => _tryWriteMetadata(context, song),
                     ),
                   ),
@@ -321,6 +393,17 @@ class _EditMetadataState extends State<EditMetadata> {
     _discTextController.text = song.disc?.toString() ?? '';
     _lyricsTextController.text = song.lyrics ?? '';
     setState(() {});
+  }
+
+  Future<void> _searchLyrics(BuildContext context) async {
+    final lyrics = await showAnimationDialog<String>(
+      context: context,
+      child: LyricSearchDialog(song: song),
+    );
+    if (lyrics != null && lyrics.trim().isNotEmpty && mounted) {
+      _lyricsTextController.text = lyrics;
+      setState(() {});
+    }
   }
 
   Future<void> _openLyricTimeline(BuildContext context) async {

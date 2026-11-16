@@ -2146,4 +2146,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get playbackSettings => '播放设置';
+
+  @override
+  String get searchTagsHint => '从网易云与 QQ 音乐搜索并应用匹配结果';
+
+  @override
+  String get tagInformation => '标签信息';
+
+  @override
+  String get audioInformation => '音频信息';
+
+  @override
+  String get playbackReport => '上报播放进度';
+
+  @override
+  String get playbackReportDescription => '持续更新服务器端的“正在播放”与播放位置；关闭后不再定时上报。';
+
+  @override
+  String get randomSongs => '随机播放';
+
+  @override
+  String get randomSongsHint => '每次刷新重新抽取 100 首歌曲';
+
+  @override
+  String get useServerRandom => '使用服务器随机列表';
+
+  @override
+  String get useServerRandomDescription =>
+      '开启后向服务器请求随机歌曲；关闭后从本机已保存的歌曲中抽取。服务器不可用时自动回退到本地列表。';
 }

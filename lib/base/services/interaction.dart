@@ -32,8 +32,6 @@ import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/widgets/selectable_song_list_page.dart';
 import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/library_organize_page.dart';
-import 'package:lain/base/widgets/lyric_timeline_page.dart';
-import 'package:lain/base/widgets/metadata_scrape_dialog.dart';
 import 'package:lain/base/widgets/song_list.dart';
 import 'package:lain/base/widgets/song_info.dart';
 import 'package:lain/big_picture_view/panels/big_single_album_panel.dart';
@@ -1236,47 +1234,33 @@ void showSongOptions({
                   leading: Icon(Icons.info_outline_rounded),
                   text: l10n.songInfo,
                   onTap: () {
+                    final pageContext = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).context;
                     Navigator.pop(context);
                     showAnimationDialog(
-                      context: context,
-                      child: SongInfo(song: song),
+                      context: pageContext,
+                      // A local file can be edited from the same panel; a
+                      // streamed song has no file to write.
+                      child: isLocalLibrary
+                          ? EditMetadata(song: song)
+                          : SongInfo(song: song),
                     );
                   },
                 ),
 
                 if (isLocalLibrary) ...[
                   _optionItem(
-                    leading: Icon(Icons.search_rounded),
-                    text: l10n.searchTags,
-                    onTap: () {
-                      Navigator.pop(context);
-                      showAnimationDialog(
-                        context: context,
-                        child: MetadataScrapeDialog(song: song),
-                      );
-                    },
-                  ),
-                  _optionItem(
-                    leading: Icon(Icons.timer_outlined),
-                    text: l10n.editLyricTimeline,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        settingsPageRoute<void>(
-                          () => LyricTimelinePage(
-                            song: song,
-                            returnOnly: false,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _optionItem(
                     leading: Icon(Icons.drive_file_move_rounded),
                     text: l10n.organizeFile,
                     onTap: () {
+                      final pageContext = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).context;
                       Navigator.pop(context);
-                      Navigator.of(context).push(
+                      Navigator.of(pageContext).push(
                         settingsPageRoute<void>(
                           () => LibraryOrganizePage(songs: [song]),
                         ),
@@ -1284,19 +1268,6 @@ void showSongOptions({
                     },
                   ),
                 ],
-
-                if (includeEdit)
-                  _optionItem(
-                    leading: Icon(Icons.edit_rounded),
-                    text: l10n.editMetadata,
-                    onTap: () async {
-                      Navigator.pop(context);
-                      showAnimationDialog(
-                        context: context,
-                        child: EditMetadata(song: song),
-                      );
-                    },
-                  ),
 
                 if (playlist != null)
                   _optionItem(
