@@ -572,7 +572,17 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                     onClose: () => Navigator.pop(sheetContext),
                     info: currentSong == null
                         ? null
-                        : SongMenuInfo(song: currentSong),
+                        : SongMenuInfo(
+                            song: currentSong,
+                            onCopy: () {
+                              final pageContext = Navigator.of(
+                                sheetContext,
+                                rootNavigator: true,
+                              ).context;
+                              Navigator.pop(sheetContext);
+                              showSongCopySheet(pageContext, currentSong);
+                            },
+                          ),
                     actions: [
                       ActionMenuTile(
                         icon: Icons.add_rounded,
