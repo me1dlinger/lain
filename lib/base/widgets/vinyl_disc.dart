@@ -21,6 +21,8 @@ class VinylDisc extends StatefulWidget {
 class _VinylDiscState extends State<VinylDisc>
     with SingleTickerProviderStateMixin {
   late final AnimationController _rotation;
+  Animation<double>? _routeAnimation;
+  bool _routeReady = false;
 
   @override
   void initState() {
@@ -30,10 +32,40 @@ class _VinylDiscState extends State<VinylDisc>
       duration: const Duration(seconds: 24),
     );
     isPlayingNotifier.addListener(_syncRotation);
+    // Opening the player is a route transition. Starting here would turn the
+    // record for those few hundred milliseconds and then visibly snap back
+    // when the settled page builds its own disc; wait until the transition is
+    // over.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final animation = ModalRoute.of(context)?.animation;
+      _routeAnimation = animation;
+      if (animation == null ||
+          animation.status == AnimationStatus.completed) {
+        _routeReady = true;
+        _syncRotation();
+      } else {
+        animation.addStatusListener(_onRouteStatus);
+      }
+    });
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation = null;
+    _routeReady = true;
     _syncRotation();
   }
 
   void _syncRotation() {
+    if (!_routeReady) {
+      return;
+    }
     if (isPlayingNotifier.value) {
       if (!_rotation.isAnimating) {
         _rotation.repeat();
@@ -46,6 +78,7 @@ class _VinylDiscState extends State<VinylDisc>
   @override
   void dispose() {
     isPlayingNotifier.removeListener(_syncRotation);
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
     _rotation.dispose();
     super.dispose();
   }
