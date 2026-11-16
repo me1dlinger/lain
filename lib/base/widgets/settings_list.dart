@@ -38,6 +38,8 @@ import 'package:lain/base/widgets/equalizer.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/share_card_settings_page.dart';
+import 'package:lain/base/widgets/audio_quality_dashboard.dart';
+import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -333,6 +335,7 @@ class _SettingsListState extends State<SettingsList> {
           // The local library sits behind the servers so a stray tap does not
           // switch sources on the way to something else.
           localSourceListTile(context, l10n),
+          if (isLocalLibrary) audioQualityStatsListTile(context, l10n),
           // The tools only exist for the on-device library: for a server or a
           // WebDAV source this tile is not built at all.
           if (isLocalLibrary) localLibraryToolsListTile(context, l10n),
@@ -348,6 +351,7 @@ class _SettingsListState extends State<SettingsList> {
             streamFormatListTile(context, l10n),
             useServerRandomListTile(l10n),
             if (sourceType == .navidrome) playbackReportListTile(l10n),
+            cacheStorageStatsListTile(context, l10n),
           ],
           if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
             premiumFeaturesListTile(context, l10n),
@@ -517,6 +521,48 @@ class _SettingsListState extends State<SettingsList> {
               settingsPageRoute<void>(() => const CommentSettingsPage()),
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget audioQualityStatsListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      leading: Icon(
+        Icons.equalizer_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.audioQualityStats),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const AudioQualityDashboardPage()),
+        );
+      },
+    );
+  }
+
+  Widget cacheStorageStatsListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      leading: Icon(
+        Icons.donut_large_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.cacheStorageStats),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const CacheStorageDashboardPage()),
         );
       },
     );
