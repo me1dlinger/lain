@@ -268,6 +268,8 @@ class Setting {
     playbackSpeedNotifier.value =
         (json['playbackSpeed'] as num?)?.toDouble() ?? 1.0;
     audioFadeNotifier.value = json['audioFade'] as bool? ?? true;
+    reportPlaybackProgressNotifier.value =
+        json['reportPlaybackProgress'] as bool? ?? true;
     useServerRandomNotifier.value =
         json['useServerRandom'] as bool? ?? true;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
@@ -415,6 +417,7 @@ class Setting {
         'replayGainMode': replayGainModeNotifier.value.name,
         'playbackSpeed': playbackSpeedNotifier.value,
         'audioFade': audioFadeNotifier.value,
+        'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
         'useServerRandom': useServerRandomNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,

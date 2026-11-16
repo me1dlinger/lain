@@ -384,6 +384,7 @@ class _SettingsListState extends State<SettingsList> {
           replayGainListTile(context, l10n),
           playbackSpeedListTile(context, l10n),
           audioFadeListTile(l10n),
+          playbackReportListTile(l10n),
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
@@ -2023,6 +2024,25 @@ class _SettingsListState extends State<SettingsList> {
         width: 50,
         child: MySwitch(
           valueNotifier: audioFadeNotifier,
+          onToggleCallBack: () => setting.save(),
+        ),
+      ),
+    );
+  }
+
+  Widget playbackReportListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.cloud_upload_outlined,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.playbackReport),
+      subtitle: Text(l10n.playbackReportDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: reportPlaybackProgressNotifier,
           onToggleCallBack: () => setting.save(),
         ),
       ),

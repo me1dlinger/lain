@@ -2781,7 +2781,9 @@ class MyAudioHandler extends BaseAudioHandler {
   /// library has no server; the remaining sources decide whether they can use
   /// it.
   void _reportServerProgress({bool force = false, bool paused = false}) {
-    if (!isStreamSource || streamClient == null) {
+    if (!reportPlaybackProgressNotifier.value ||
+        !isStreamSource ||
+        streamClient == null) {
       return;
     }
     final song = currentSongNotifier.value;

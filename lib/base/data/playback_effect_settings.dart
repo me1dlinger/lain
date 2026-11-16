@@ -17,6 +17,11 @@ final playbackSpeedNotifier = ValueNotifier<double>(1.0);
 /// audible as a slope rather than a click.
 final audioFadeNotifier = ValueNotifier<bool>(true);
 
+/// Whether the phone keeps the server's now-playing entry up to date. Turning
+/// it off stops the periodic position reports but leaves the play count that
+/// is recorded when a song finishes.
+final reportPlaybackProgressNotifier = ValueNotifier<bool>(true);
+
 const playbackSpeedChoices = <double>[0.5, 0.75, 1.0, 1.15, 1.25, 1.5, 2.0];
 
 String playbackSpeedLabel(double speed) {
