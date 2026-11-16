@@ -141,6 +141,16 @@ class NavidromeClient extends StreamClient {
     return response['scanStatus']['count'];
   }
 
+  /// Asks the server to rescan its library. Subsonic limits this to an admin
+  /// account, so a non-admin login reports the server's refusal.
+  Future<bool> startScan() async {
+    final response = await safeRequest(
+      '/rest/startScan.view',
+      showRealError: true,
+    );
+    return response != null;
+  }
+
   /// The fetch in flight, so the home card and the status page asking at the
   /// same time share one pass over the server instead of racing.
   Future<NavidromeLibraryStats?>? _libraryStatsFuture;

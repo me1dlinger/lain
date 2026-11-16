@@ -927,5 +927,9 @@
   "audioFade": "Fade in and out",
   "audioFadeDescription": "Ramp the volume in when playback starts and out when it pauses or the track changes.",
   "queueCleared": "Queue cleared",
-  "undo": "Undo"
+  "undo": "Undo",
+  "scanNow": "Scan library now",
+  "scanNowConfirm": "Ask the server to scan its music folders now?",
+  "scanStarted": "Scan started",
+  "operationFailed": "Operation failed"
 }

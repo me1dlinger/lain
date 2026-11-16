@@ -857,5 +857,9 @@
   "audioFade": "淡入淡出",
   "audioFadeDescription": "开始播放时音量渐入，暂停或切歌时音量渐出。",
   "queueCleared": "播放队列已清空",
-  "undo": "撤销"
+  "undo": "撤销",
+  "scanNow": "立即扫描曲库",
+  "scanNowConfirm": "现在让服务器扫描音乐文件夹？",
+  "scanStarted": "已开始扫描",
+  "operationFailed": "操作失败"
 }

@@ -2091,4 +2091,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get undo => 'Undo';
+
+  @override
+  String get scanNow => 'Scan library now';
+
+  @override
+  String get scanNowConfirm => 'Ask the server to scan its music folders now?';
+
+  @override
+  String get scanStarted => 'Scan started';
+
+  @override
+  String get operationFailed => 'Operation failed';
 }

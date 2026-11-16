@@ -2052,4 +2052,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get undo => '撤销';
+
+  @override
+  String get scanNow => '立即扫描曲库';
+
+  @override
+  String get scanNowConfirm => '现在让服务器扫描音乐文件夹？';
+
+  @override
+  String get scanStarted => '已开始扫描';
+
+  @override
+  String get operationFailed => '操作失败';
 }

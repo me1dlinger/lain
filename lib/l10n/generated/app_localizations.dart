@@ -4039,6 +4039,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get undo;
+
+  /// No description provided for @scanNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan library now'**
+  String get scanNow;
+
+  /// No description provided for @scanNowConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the server to scan its music folders now?'**
+  String get scanNowConfirm;
+
+  /// No description provided for @scanStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan started'**
+  String get scanStarted;
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed'**
+  String get operationFailed;
 }
 
 class _AppLocalizationsDelegate

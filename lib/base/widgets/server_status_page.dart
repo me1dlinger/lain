@@ -3,6 +3,7 @@ import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/navidrome_client.dart';
 import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/widgets/apple_form.dart';
@@ -30,6 +31,7 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
   NavidromeLibraryStats? _stats;
   bool _loading = true;
   bool _reachable = false;
+  bool _scanRequested = false;
 
   /// The address is hidden by default: it can carry a private domain, and the
   /// page is often looked at over someone's shoulder.
@@ -292,10 +294,88 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
               textColor,
             ),
             _infoRow(l10n.lastScanTime, _formatDateTime(stats.lastScan), textColor),
+            _scanNowRow(l10n, textColor, stats),
           ],
         ),
       ],
     );
+  }
+
+  Widget _scanNowRow(
+    AppLocalizations l10n,
+    Color textColor,
+    NavidromeLibraryStats stats,
+  ) {
+    final scanning = stats.scanning == true || _scanRequested;
+    return InkWell(
+      onTap: scanning ? null : _startScan,
+      child: SizedBox(
+        height: 48,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.manage_search_rounded,
+                size: 20,
+                color: textColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.scanNow,
+                  style: TextStyle(fontSize: 15, color: textColor),
+                ),
+              ),
+              if (scanning)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: textColor.withAlpha(160),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: textColor.withAlpha(120),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startScan() async {
+    if (_scanRequested || _stats?.scanning == true) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    if (!await showConfirmDialog(context, l10n.scanNowConfirm)) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _scanRequested = true);
+    final ok = await _client.startScan();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _scanRequested = false);
+    showCenterMessage(ok ? l10n.scanStarted : l10n.operationFailed);
+    if (!ok) {
+      return;
+    }
+    // The server reports the scan as running almost immediately; give it a
+    // moment to enter that state before reading the status again.
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      await _fetch();
+    }
   }
 
   /// The card's first line: what the server is doing, a control for the address
