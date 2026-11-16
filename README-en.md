@@ -30,19 +30,26 @@ Currently supports:
 
 ### Playback
 - Play modes: tap cycles list loop and shuffle; a long press enters repeat one. The queue marks the repeating song.
+- Replay gain can be off, per track or per album, using the loudness tags in the files so a mixed library keeps a steady level.
+- Playback speed is selectable from 0.5x to 2.0x and applies to the running player immediately.
+- Fade in and out is a separate switch: the volume ramps up on start and down on pause or a track change.
 - Audio focus offers exclusive, smart ducking and mix: exclusive pauses and does not resume by itself; ducking restores the original volume when the interruption ends.
-- The queue supports drag reordering, play next, add to queue, reverse and a full queue page.
+- The queue supports drag reordering, play next, add to queue, reverse and a full queue page; clearing it shows an undo bar that restores and resumes it.
+- The media session position advances every second for notifications, the lock screen and a head unit.
 - New full-screen driving mode with a cover-blurred background that follows the theme, in portrait and landscape; reachable from the landscape lyrics page too.
 
 ### Library and browsing
 - Multiple servers, each with public and LAN addresses and its own certificate option, including Feiniu; addresses fail over and are masked by default.
-- New server status page: state, address and latency, speed-first selection, server information and library statistics.
+- New server status page: state, address and latency, speed-first selection, server information and library statistics, with a button to start a library scan on the server.
 - Global search across songs, albums, artists and playlists.
 - Album and artist pages with sorting, albums first, track numbers and album descriptions; artist artwork is decided consistently from the server and the cache.
 - Song lists remember their sort order; recently added, play-count sorting and quality tags are available.
 - Playlists support import, export and rename while keeping their added order; a playlist cover follows the first song in the chosen order.
 - Comments: a song menu entry, a comment server, paging, hot/latest/time sorting, search, floor replies and display settings.
 - Rebranded as Lain, with local music and offline-mode controls.
+- The local library scans itself incrementally after launch, on return to the foreground and at the chosen interval; only files whose modified time changed are read again.
+- New library checkup page: songs missing tags, a cover or lyrics, plus likely duplicates grouped by title, artist and duration. It only reports; no file is changed or deleted there.
+- Offline mode can use the local library or the current server's already cached songs; the database is not pruned, so leaving the mode needs no resync.
 
 ### Cache and downloads
 - Automatic caching can be controlled separately for songs, playlists and artists.
@@ -63,6 +70,10 @@ Currently supports:
 - Light, dark and vivid themes; song rows can show HR/SQ/HQ quality tags with a separate vivid palette.
 - Settings and home layout support long-press drag reordering; comment and lyric settings are grouped more clearly.
 - Server and metadata forms share the app's grouped-card style; the lyrics page has one font control.
+- Song and collection lists show skeleton placeholders while loading, so the layout does not jump.
+- The cover crossfades on a track change, and album, artist and playlist rows share their cover with the detail page.
+- The lyrics-page cover breathes gently while playing and shifts with a slight parallax during the swipe between pages.
+- Dragging the seek bar shows the target time above it, and the progress advances every frame instead of stepping once a second.
 
 
 ## About this project
