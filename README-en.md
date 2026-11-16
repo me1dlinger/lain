@@ -74,7 +74,7 @@ Currently supports:
 - Server and metadata forms share the app's grouped-card style; the lyrics page has one font control.
 - Song and collection lists show skeleton placeholders while loading, so the layout does not jump.
 - The cover crossfades on a track change, and album, artist and playlist rows share their cover with the detail page.
-- The lyrics-page cover breathes gently while playing and shifts with a slight parallax during the swipe between pages.
+- The lyrics-page cover breathes gently while playing and shifts with a slight parallax during the swipe between pages; it can be turned off with Lyrics cover motion in Settings > User interface.
 - Dragging the seek bar shows the target time above it, and the progress advances every frame instead of stepping once a second.
 - Song-list and player menus share one bottom action sheet: a song card at the top and a single rounded card of evenly spaced actions.
 - The player menu can change replay gain, playback speed, the fade switch and the audio focus mode without going back to settings; its song card carries the same copy button as the song-list sheet.
