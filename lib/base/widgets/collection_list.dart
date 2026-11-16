@@ -80,6 +80,11 @@ abstract class CollectionListState extends State<CollectionList> {
   // for hero tag
   String label = '';
 
+  /// The Hero tag a row's cover flies with. A layer whose detail page keys its
+  /// cover differently (a playlist follows its own tag) overrides this.
+  String heroTagAt(int index) =>
+      (currentPictureList[index]?.id ?? '') + label + currentTextList[index];
+
   late final AssetImage image;
 
   late final String Function(int) countFunction;

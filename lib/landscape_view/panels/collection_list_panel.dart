@@ -166,7 +166,7 @@ extension _CollectionListPanel on CollectionListState {
                             highlightColor: Colors.transparent,
 
                             child: Hero(
-                              tag: (picture?.id ?? '') + label + text,
+                              tag: heroTagAt(index),
                               child: CoverArtWidget(
                                 size: constraints.maxWidth,
                                 borderRadius: constraints.maxWidth / 10,

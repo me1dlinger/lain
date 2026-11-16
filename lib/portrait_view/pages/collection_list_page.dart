@@ -191,7 +191,7 @@ extension _CollectionListPage on CollectionListState {
             contentPadding: EdgeInsets.symmetric(horizontal: 20),
 
             leading: Hero(
-              tag: (picture?.id ?? '') + label + text,
+              tag: heroTagAt(index),
               transitionOnUserGestures: true,
               child: CoverArtWidget(
                 size: 50,
@@ -251,7 +251,7 @@ extension _CollectionListPage on CollectionListState {
                   children: [
                     GestureDetector(
                       child: Hero(
-                        tag: (picture?.id ?? '') + label + text,
+                        tag: heroTagAt(index),
                         transitionOnUserGestures: true,
                         child: CoverArtWidget(
                           size: constraints.maxWidth,

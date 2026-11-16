@@ -19,6 +19,16 @@ class PlaylistsLayer extends CollectionList {
 }
 
 class _PlaylistsLayerState extends CollectionListState {
+  List<Playlist> _currentPlaylists = [];
+
+  @override
+  String heroTagAt(int index) {
+    if (index < _currentPlaylists.length) {
+      return '${_currentPlaylists[index].heroTag}$label';
+    }
+    return super.heroTagAt(index);
+  }
+
   @override
   GlobalKey<NavigatorState> get globalKey => playlistsKey;
 
@@ -74,6 +84,7 @@ class _PlaylistsLayerState extends CollectionListState {
     currentPictureList = list.map((e) => e.picture).toList();
     currentTextList = list.map((e) => e.name).toList();
     currentSubCountList = list.map((e) => e.totalCount).toList();
+    _currentPlaylists = list;
     currentOnTapList = list
         .map(
           (e) => () {
