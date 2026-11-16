@@ -39,20 +39,37 @@ class CoverArtWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      // The cover's identity is part of the key: when the slot shows a
-      // different picture (a sort change picks another first song, a resync
-      // replaces the list) the state below must start over instead of reusing
-      // the previous picture's one-shot flags.
-      key: ValueKey('${picture?.id ?? picturePath}#${picture?.changeNotifier.value}'),
-      elevation: elevation,
-      color: color ?? Colors.transparent,
-      shape: SmoothRectangleBorder(
-        smoothness: 1,
-        borderRadius: BorderRadius.circular(borderRadius),
+    final coverKey =
+        '${picture?.id ?? picturePath}#${picture?.changeNotifier.value}';
+    return AnimatedSwitcher(
+      // A track change swaps the cover in place; a hard cut reads as a flicker
+      // on the now-playing page and on the mini player.
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        alignment: Alignment.center,
+        fit: StackFit.passthrough,
+        children: [
+          ...previousChildren,
+          if (currentChild != null) currentChild,
+        ],
       ),
-      clipBehavior: .antiAlias,
-      child: content(context),
+      child: Material(
+        // The cover's identity is part of the key: when the slot shows a
+        // different picture (a sort change picks another first song, a resync
+        // replaces the list) the state below must start over instead of reusing
+        // the previous picture's one-shot flags.
+        key: ValueKey(coverKey),
+        elevation: elevation,
+        color: color ?? Colors.transparent,
+        shape: SmoothRectangleBorder(
+          smoothness: 1,
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        clipBehavior: .antiAlias,
+        child: content(context),
+      ),
     );
   }
 
