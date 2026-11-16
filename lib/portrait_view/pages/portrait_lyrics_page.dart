@@ -11,10 +11,15 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:lain/base/widgets/action_menu.dart';
+import 'package:lain/base/data/playback_effect_settings.dart';
+import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/widgets/playback_options.dart';
+import 'package:lain/base/widgets/playback_mode_page.dart';
+import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/buttons.dart';
 import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
-import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/widgets/song_info.dart';
@@ -544,157 +549,140 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     return IconButton(
       onPressed: () {
         tryVibrate();
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (context) {
-            return MySheet(
-              height: 250,
-              ValueListenableBuilder(
-                valueListenable: lyricsPageForegroundColor.valueNotifier,
-                builder: (context, value, child) {
-                  return Column(
-                    children: [
-                      SizedBox(height: 5),
-
-                      ListTile(
-                        leading: CoverArtWidget(
-                          size: 50,
-                          borderRadius: 5,
-                          picture: currentSong?.picture,
+        showActionMenuSheet(
+          context,
+          Builder(
+            builder: (sheetContext) {
+              return ListenableBuilder(
+                listenable: Listenable.merge([
+                  replayGainModeNotifier,
+                  playbackSpeedNotifier,
+                  audioFadeNotifier,
+                  playbackModeNotifier,
+                ]),
+                builder: (context, child) {
+                  final textColor = lyricsPageForegroundColor.value;
+                  final chevron = Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: textColor.withAlpha(120),
+                  );
+                  return ActionMenuSheet(
+                    title: getTitle(currentSong),
+                    onClose: () => Navigator.pop(sheetContext),
+                    info: currentSong == null
+                        ? null
+                        : SongMenuInfo(song: currentSong),
+                    actions: [
+                      ActionMenuTile(
+                        icon: Icons.add_rounded,
+                        label: l10n.add2Playlist,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          if (currentSong != null) {
+                            showAddPlaylistDialog(pageContext, [currentSong]);
+                          }
+                        },
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.info_outline_rounded,
+                        label: l10n.songInfo,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          if (currentSong != null) {
+                            showAnimationDialog(
+                              context: pageContext,
+                              child: SongInfo(song: currentSong),
+                            );
+                          }
+                        },
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.lyrics_outlined,
+                        label: l10n.adjustLyrics,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          showAdjustLyrics(pageContext);
+                        },
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.directions_car_rounded,
+                        label: l10n.drivingMode,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          Navigator.push(
+                            pageContext,
+                            MaterialPageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => const DrivingModePage(),
+                            ),
+                          );
+                        },
+                      ),
+                      ActionMenuSectionTitle(title: l10n.playbackSettings),
+                      ActionMenuTile(
+                        icon: Icons.hearing_rounded,
+                        label: l10n.replayGain,
+                        subtitle: replayGainLabel(
+                          l10n,
+                          replayGainModeNotifier.value,
                         ),
-                        title: Text(
-                          getTitle(currentSong),
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: value),
+                        trailing: chevron,
+                        onTap: () => showReplayGainDialog(sheetContext),
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.speed_rounded,
+                        label: l10n.playbackSpeed,
+                        subtitle: playbackSpeedLabel(
+                          playbackSpeedNotifier.value,
                         ),
-                        subtitle: Text(
-                          "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: value),
+                        trailing: chevron,
+                        onTap: () => showPlaybackSpeedDialog(sheetContext),
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.volume_up_rounded,
+                        label: l10n.audioFade,
+                        trailing: SizedBox(
+                          width: 50,
+                          child: MySwitch(
+                            valueNotifier: audioFadeNotifier,
+                            onToggleCallBack: setting.save,
+                          ),
                         ),
                       ),
-
-                      SizedBox(height: 5),
-                      MyDivider(
-                        color: lyricsPageDividerColor,
-                        thickness: 0.5,
-                        height: 1,
-                      ),
-                      SizedBox(height: 5),
-
-                      Expanded(
-                        child: ListView(
-                          physics: const ClampingScrollPhysics(),
-                          children: [
-                            ListTile(
-                              leading: Icon(Icons.add_rounded, color: value),
-                              title: Text(
-                                l10n.add2Playlist,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: value,
-                                ),
-                              ),
-                              visualDensity: const VisualDensity(
-                                horizontal: 0,
-                                vertical: -4,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-
-                                showAddPlaylistDialog(context, [currentSong!]);
-                              },
-                            ),
-
-                            ListTile(
-                              leading: Transform.scale(
-                                scale: 0.85,
-                                child: Icon(
-                                  Icons.info_outline_rounded,
-                                  color: value,
-                                ),
-                              ),
-                              title: Text(
-                                l10n.songInfo,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: value,
-                                ),
-                              ),
-                              visualDensity: const VisualDensity(
-                                horizontal: 0,
-                                vertical: -4,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                showAnimationDialog(
-                                  context: context,
-                                  child: SongInfo(song: currentSong!),
-                                );
-                              },
-                            ),
-
-                            ListTile(
-                              leading: ImageIcon(
-                                desktopLyricsImage,
-                                color: value,
-                              ),
-                              title: Text(
-                                l10n.adjustLyrics,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: value,
-                                ),
-                              ),
-                              visualDensity: const VisualDensity(
-                                horizontal: 0,
-                                vertical: -4,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                showAdjustLyrics(context);
-                              },
-                            ),
-
-                            // One tap to the full screen driving mode: the
-                            // menu closes first, so only the big page shows.
-                            ListTile(
-                              leading: Icon(
-                                Icons.directions_car_rounded,
-                                color: value,
-                              ),
-                              title: Text(
-                                l10n.drivingMode,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: value,
-                                ),
-                              ),
-                              visualDensity: const VisualDensity(
-                                horizontal: 0,
-                                vertical: -4,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  this.context,
-                                  MaterialPageRoute(
-                                    fullscreenDialog: true,
-                                    builder: (_) => const DrivingModePage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                      ActionMenuTile(
+                        icon: Icons.graphic_eq_rounded,
+                        label: l10n.playbackMode,
+                        subtitle: PlaybackModePage.modeLabel(
+                          l10n,
+                          playbackModeNotifier.value,
                         ),
+                        trailing: chevron,
+                        onTap: () =>
+                            showAudioPlaybackModeDialog(sheetContext),
                       ),
                     ],
                   );
                 },
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
       icon: Icon(Icons.more_vert, color: lyricsPageForegroundColor.value),

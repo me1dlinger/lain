@@ -9,7 +9,16 @@ class MySheet extends StatelessWidget {
   final Widget child;
   final double? height;
 
-  const MySheet(this.child, {super.key, this.height});
+  /// The share of the screen the sheet may take at most. Action menus need
+  /// more room than the small lyric sheets.
+  final double maxHeightFactor;
+
+  const MySheet(
+    this.child, {
+    super.key,
+    this.height,
+    this.maxHeightFactor = 0.6,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +36,10 @@ class MySheet extends StatelessWidget {
           ),
           clipBehavior: .antiAlias,
           child: SizedBox(
-            height: min(height ?? 500, MediaQuery.heightOf(context) * 0.6),
+            height: min(
+              height ?? 500,
+              MediaQuery.heightOf(context) * maxHeightFactor,
+            ),
             child: MediaQuery.removePadding(
               context: context,
               removeLeft: true, // for mobile

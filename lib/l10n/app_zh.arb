@@ -919,5 +919,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "playbackSettings": "播放设置"
 }

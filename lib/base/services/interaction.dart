@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:ui';
 import 'dart:ui' as ui;
 
@@ -28,6 +27,7 @@ import 'package:lain/base/widgets/custom_text_field.dart';
 import 'package:lain/base/widgets/edit_metadata.dart';
 import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/base/widgets/action_menu.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/widgets/selectable_song_list_page.dart';
 import 'package:lain/base/widgets/settings_page_route.dart';
@@ -949,10 +949,9 @@ Widget _optionItem({
   required Icon leading,
   required Function() onTap,
 }) {
-  return ListTile(
-    leading: leading,
-    title: Text(text, style: TextStyle(fontWeight: FontWeight.bold)),
-    visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+  return ActionMenuTile(
+    icon: leading.icon ?? Icons.circle_outlined,
+    label: text,
     onTap: onTap,
   );
 }
@@ -1103,52 +1102,28 @@ void showSongOptions({
   /// Offers "view the cache" for a streamed song; a local one has none.
   bool includeCacheInfo = false,
   Playlist? playlist,
-  bool useDialog = true,
+  bool useDialog = false,
 }) {
   final l10n = AppLocalizations.of(context);
 
   final options = Builder(
     builder: (context) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 5),
-
-          ListTile(
-            leading: CoverArtWidget(
-              size: 50,
-              borderRadius: 5,
-              picture: song.picture,
-            ),
-            title: Text(getTitle(song), overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              "${getArtist(song)} - ${getAlbum(song)}",
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.copy_all_outlined, color: iconColor.value),
-              tooltip: l10n.copyText,
-              onPressed: () {
-                final pageContext = Navigator.of(
-                  context,
-                  rootNavigator: true,
-                ).context;
-                Navigator.pop(context);
-                showSongCopySheet(pageContext, song);
-              },
-            ),
-          ),
-
-          SizedBox(height: 5),
-          MyDivider(color: dividerColor, thickness: 0.5, height: 1),
-          SizedBox(height: 5),
-
-          Flexible(
-            child: ListView(
-              physics: const ClampingScrollPhysics(),
-              shrinkWrap: true,
-              children: [
-                if (moveToTop != null)
+      return ActionMenuSheet(
+        title: getTitle(song),
+        onClose: () => Navigator.pop(context),
+        info: SongMenuInfo(
+          song: song,
+          onCopy: () {
+            final pageContext = Navigator.of(
+              context,
+              rootNavigator: true,
+            ).context;
+            Navigator.pop(context);
+            showSongCopySheet(pageContext, song);
+          },
+        ),
+        actions: [
+          if (moveToTop != null)
                   _optionItem(
                     leading: Icon(Icons.vertical_align_top_rounded),
                     text: l10n.move2Top,
@@ -1334,36 +1309,24 @@ void showSongOptions({
                       }
                     },
                   ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 10),
         ],
       );
     },
   );
 
-  if (useDialog) {
+  if (useDialog || !isMobile) {
+    final screenWidth = MediaQuery.widthOf(context);
+    final width = screenWidth - 40 > 380 ? 380.0 : screenWidth - 40;
     showAnimationDialog(
       context: context,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: max(320, min(MediaQuery.widthOf(context) / 3, 400)),
-          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
-        ),
+      child: SizedBox(
+        width: width,
+        height: MediaQuery.sizeOf(context).height * 0.82,
         child: options,
       ),
     );
   } else {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      builder: (context) {
-        return MySheet(options);
-      },
-    );
+    showActionMenuSheet(context, options);
   }
 }
 

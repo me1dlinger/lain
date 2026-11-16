@@ -989,5 +989,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "playbackSettings": "Playback settings"
 }

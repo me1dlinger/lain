@@ -2183,4 +2183,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String healthFileCount(int count) {
     return '$count files';
   }
+
+  @override
+  String get playbackSettings => 'Playback settings';
 }

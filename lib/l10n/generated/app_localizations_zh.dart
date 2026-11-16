@@ -2143,4 +2143,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String healthFileCount(int count) {
     return '$count 个文件';
   }
+
+  @override
+  String get playbackSettings => '播放设置';
 }

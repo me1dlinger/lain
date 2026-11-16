@@ -4201,6 +4201,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} files'**
   String healthFileCount(int count);
+
+  /// No description provided for @playbackSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback settings'**
+  String get playbackSettings;
 }
 
 class _AppLocalizationsDelegate
