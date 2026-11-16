@@ -42,6 +42,7 @@ import 'package:lain/base/widgets/play_next_button.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/widgets/selectable_song_list_page.dart';
 import 'package:lain/base/widgets/song_info.dart';
+import 'package:lain/base/widgets/skeleton.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/landscape_view/title_bar.dart';
 import 'package:lain/layer/albums_layer.dart';

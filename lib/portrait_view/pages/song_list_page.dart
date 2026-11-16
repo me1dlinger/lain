@@ -799,11 +799,9 @@ extension _SongListPage on _SongListState {
           valueListenable: currentSongListNotifier,
           builder: (context, currentSongList, child) {
             if (prepareing) {
-              return SliverFillRemaining(
+              return const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(
-                  child: CircularProgressIndicator(color: iconColor.value),
-                ),
+                child: SongListSkeleton(),
               );
             }
             // An artist is shown as albums: a strip of album cards, then the

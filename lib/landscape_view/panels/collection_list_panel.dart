@@ -132,11 +132,8 @@ extension _CollectionListPanel on CollectionListState {
       listenable: Listenable.merge([changeNotifier]),
       builder: (context, child) {
         if (preparing) {
-          return SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: CircularProgressIndicator(color: iconColor.value),
-            ),
+          return const SliverToBoxAdapter(
+            child: SizedBox(height: 420, child: CollectionSkeleton()),
           );
         }
         return SliverPadding(

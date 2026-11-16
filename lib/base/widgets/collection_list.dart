@@ -6,6 +6,7 @@ import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/my_navigator.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/base/widgets/skeleton.dart';
 import 'package:lain/base/widgets/sort_sheet.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/landscape_view/title_bar.dart';

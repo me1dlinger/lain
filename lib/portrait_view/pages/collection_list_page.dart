@@ -8,8 +8,8 @@ extension _CollectionListPage on CollectionListState {
         listenable: Listenable.merge([isListViewNotifier, changeNotifier]),
         builder: (context, child) {
           if (preparing) {
-            return Center(
-              child: CircularProgressIndicator(color: iconColor.value),
+            return CollectionSkeleton(
+              grid: !(isListViewNotifier?.value ?? false),
             );
           }
           return (isListViewNotifier?.value ?? false)

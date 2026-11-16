@@ -69,12 +69,10 @@ extension _SongListPanel on _SongListState {
             valueListenable: currentSongListNotifier,
             builder: (context, currentSongList, child) {
               if (prepareing) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: CircularProgressIndicator(color: iconColor.value),
-                  ),
-                );
+              return const SliverFillRemaining(
+                hasScrollBody: false,
+                child: SongListSkeleton(),
+              );
               }
               if (artist != null) {
                 // Same grouping as the portrait view; reordering is not offered
