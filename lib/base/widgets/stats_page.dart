@@ -7,6 +7,7 @@ import 'package:lain/base/data/stats.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/album_timeline_page.dart';
+import 'package:lain/base/widgets/annual_report_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
 
@@ -150,6 +151,7 @@ class _StatsPageState extends State<StatsPage> {
       padding: const EdgeInsets.only(bottom: 130),
       children: [
         if (years.length > 1) _yearPicker(years, year),
+        _annualEntry(l10n, year),
         _sectionTitle(l10n.yearlyActivity),
         _card(_heatmap(l10n, int.tryParse(year) ?? DateTime.now().year, data)),
         _sectionTitle('${l10n.playRanking}  ($todayKey)'),
@@ -189,6 +191,78 @@ class _StatsPageState extends State<StatsPage> {
           _card(const AlbumTimelinePreview()),
         ],
       ],
+    );
+  }
+
+  Widget _annualEntry(AppLocalizations l10n, String year) {
+    final accent = colorManager.getSpecificButtonColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      child: Material(
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => AnnualReportPage(year: year),
+              ),
+            );
+          },
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.lerp(accent, Colors.black, 0.20)!,
+                  Color.lerp(accent, Colors.black, 0.55)!,
+                ],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.annualReport,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          year,
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(175),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white70,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
