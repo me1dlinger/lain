@@ -265,9 +265,11 @@ class SeekBarState extends State<SeekBar>
                           return;
                         }
                         if (dragValue != null) {
-                          await audioHandler.seek(
-                            Duration(milliseconds: dragValue!.toInt()),
+                          final target = Duration(
+                            milliseconds: dragValue!.toInt(),
                           );
+                          _showAt(target);
+                          await audioHandler.seek(target);
                         }
                         setState(() {
                           dragValue = null;
@@ -283,9 +285,11 @@ class SeekBarState extends State<SeekBar>
                           context,
                           durationMs,
                         );
-                        await audioHandler.seek(
-                          Duration(milliseconds: dragValue!.toInt()),
+                        final target = Duration(
+                          milliseconds: dragValue!.toInt(),
                         );
+                        _showAt(target);
+                        await audioHandler.seek(target);
                         setState(() {
                           dragValue = null;
                           isDragging = false;
@@ -354,6 +358,14 @@ class SeekBarState extends State<SeekBar>
         ),
       ),
     );
+  }
+
+  /// Shows a seek target immediately, so clearing the drag value does not
+  /// flash the old position for a frame before the player reports the new one.
+  void _showAt(Duration position) {
+    _basePosition = position;
+    _baseAt = DateTime.now();
+    displayPosition.value = position;
   }
 
   /// Map horizontal touch to slider value

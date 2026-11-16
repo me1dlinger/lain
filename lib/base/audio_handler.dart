@@ -1024,7 +1024,7 @@ class MyAudioHandler extends BaseAudioHandler {
       _clearedIndex = -1;
       _clearedPosition = Duration.zero;
     }
-    stop();
+    await stop();
     playQueue = [];
     _playQueueTmp = [];
     currentIndex = -1;
