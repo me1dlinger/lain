@@ -49,6 +49,7 @@ Currently supports:
 - Comments: a song menu entry, a comment server, paging, hot/latest/time sorting, search, floor replies and display settings.
 - Rebranded as Lain, with local music and offline-mode controls.
 - The local library scans itself incrementally after launch, on return to the foreground and at the chosen interval; only files whose modified time changed are read again.
+- The local music-source settings add an audio quality dashboard: tier mix, format mix, average bitrate, lossless share and the highest-quality songs, with animated rings and bars.
 - For local songs, Song Info, tag search, lyric search and metadata editing now share one panel: tags can be edited and applied, a tag search returns to the panel, and lyrics can be searched or edited on the timeline and returned; format, bitrate and path are shown on the same page.
 - A random 100-song shelf is available on the home page and redraws on refresh. A streamed source can use the server's random list; when that is off or unavailable it draws from songs saved on the device, and a local library always draws locally.
 - New library checkup page: songs missing tags, a cover or lyrics, plus likely duplicates grouped by title, artist and duration. It only reports; no file is changed or deleted there.
@@ -63,6 +64,7 @@ Currently supports:
 - Downloads can pick a bitrate; on mobile data they queue and continue automatically on Wi-Fi or when the app opens, with progress shown.
 - The download page holds the queue and completed records, with per-task and global continue, pause and delete; completed records show their cover.
 - New LAN direct switch: on the LAN the app streams from the server without transcoding and without reading the cache.
+- Streamed sources add a cache storage dashboard: cached audio/covers/lyrics/metadata, cache-limit usage, download tasks, largest cached songs and both storage paths.
 
 ### Home and statistics
 - The home page is the single entry point, with customisable buttons and shelf order, recently added, Navidrome statistic cards and global search.
