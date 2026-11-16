@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:flutter/scheduler.dart' show Ticker;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -6,6 +10,7 @@ import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/full_width_track_shape.dart';
+import 'package:smooth_corner/smooth_corner.dart';
 
 class SeekBar extends StatefulWidget {
   final Color? color;
@@ -24,10 +29,110 @@ class SeekBar extends StatefulWidget {
   State<SeekBar> createState() => SeekBarState();
 }
 
-class SeekBarState extends State<SeekBar> {
+class SeekBarState extends State<SeekBar>
+    with SingleTickerProviderStateMixin {
   double? dragValue;
   bool isDragging = false; // track if user is touching the thumb
   double horizontalPadding = 0;
+  final trackKey = GlobalKey();
+
+  /// The position the bar shows. It is extrapolated between the player's own
+  /// position events, so the bar moves every frame instead of stepping.
+  final displayPosition = ValueNotifier<Duration>(Duration.zero);
+
+  late final Ticker _ticker;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration>? _durationSub;
+  Duration _streamDuration = Duration.zero;
+  Duration _basePosition = Duration.zero;
+  DateTime _baseAt = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    displayPosition.value = audioHandler.getPosition();
+    _basePosition = displayPosition.value;
+    _positionSub = audioHandler.getPositionStream().listen(_onPosition);
+    _durationSub = audioHandler.getDurationStream().listen((duration) {
+      if (mounted) {
+        setState(() => _streamDuration = duration);
+      }
+    });
+    isPlayingNotifier.addListener(_onPlayingChanged);
+    _ticker = createTicker(_tick);
+    if (isPlayingNotifier.value) {
+      _ticker.start();
+    }
+  }
+
+  @override
+  void dispose() {
+    isPlayingNotifier.removeListener(_onPlayingChanged);
+    _ticker.dispose();
+    _positionSub?.cancel();
+    _durationSub?.cancel();
+    displayPosition.dispose();
+    super.dispose();
+  }
+
+  void _onPlayingChanged() {
+    if (isPlayingNotifier.value) {
+      _basePosition = audioHandler.getPosition();
+      _baseAt = DateTime.now();
+      if (!_ticker.isActive) {
+        _ticker.start();
+      }
+    } else {
+      _ticker.stop();
+      displayPosition.value = audioHandler.getPosition();
+    }
+  }
+
+  void _onPosition(Duration position) {
+    _basePosition = position;
+    _baseAt = DateTime.now();
+    // A jump that is not the normal passage of time (a seek, a switch, a
+    // resume) is shown at once; a normal tick waits for the next frame.
+    if (!isPlayingNotifier.value ||
+        isDragging ||
+        (displayPosition.value - position).abs() > const Duration(seconds: 1)) {
+      displayPosition.value = position;
+    }
+  }
+
+  void _tick(Duration _) {
+    if (!mounted) {
+      return;
+    }
+    var shown = _basePosition;
+    if (isPlayingNotifier.value && !isDragging) {
+      final elapsed = DateTime.now().difference(_baseAt);
+      // The stream reports often; only bridge a plausible gap, never a stall,
+      // pause or seek.
+      if (elapsed < const Duration(seconds: 2)) {
+        shown += elapsed;
+      }
+    }
+    final duration = _effectiveDuration();
+    if (duration > Duration.zero && shown > duration) {
+      shown = duration;
+    }
+    if ((shown - displayPosition.value).abs() >=
+        const Duration(milliseconds: 30)) {
+      displayPosition.value = shown;
+    }
+  }
+
+  Duration _effectiveDuration() {
+    var duration = _streamDuration;
+    if (duration <= Duration.zero) {
+      duration = getDuration(currentSongNotifier.value);
+    }
+    if (duration <= Duration.zero) {
+      duration = audioHandler.getCurrentDuration();
+    }
+    return duration;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,28 +141,25 @@ class SeekBarState extends State<SeekBar> {
       horizontalPadding = 45;
     }
 
-    return StreamBuilder(
-      stream: audioHandler.getDurationStream(),
-      builder: (context, asyncSnapshot) {
-        Duration duration = getDuration(currentSongNotifier.value);
-        if (duration <= Duration.zero) {
-          duration = audioHandler.getCurrentDuration();
-        }
+    return ValueListenableBuilder<Duration>(
+      valueListenable: displayPosition,
+      builder: (context, displayed, child) {
+        final duration = _effectiveDuration();
         final durationMs = duration.inMilliseconds.toDouble();
+        double sliderValue =
+            dragValue ?? displayed.inMilliseconds.toDouble();
+        if (playQueue.isEmpty) {
+          sliderValue = 0;
+        }
 
-        return StreamBuilder<Duration>(
-          stream: audioHandler.getPositionStream(),
-          builder: (context, snapshot) {
-            final position = snapshot.data ?? audioHandler.getPosition();
-            double sliderValue =
-                dragValue ?? position.inMilliseconds.toDouble();
-            if (playQueue.isEmpty) {
-              sliderValue = 0;
-            }
+        return LayoutBuilder(
+          builder: (context, constraints) {
             return SizedBox(
               height: widget.widgetHeight,
+              key: trackKey,
               child: Stack(
                 alignment: Alignment.centerLeft,
+                clipBehavior: Clip.none,
                 children: [
                   // Duration labels
                   Positioned(
@@ -103,11 +205,12 @@ class SeekBarState extends State<SeekBar> {
                         thumbColor: widget.color ?? seekBarColor.value,
                         trackHeight: isDragging ? 4 : 2,
                         trackShape: const FullWidthTrackShape(),
-                        thumbShape: RoundSliderThumbShape(
+                        thumbShape: const RoundSliderThumbShape(
                           enabledThumbRadius: 0,
                         ),
                         overlayShape: SliderComponentShape.noOverlay,
-                        activeTrackColor: widget.color ?? seekBarColor.value,
+                        activeTrackColor:
+                            widget.color ?? seekBarColor.value,
                         inactiveTrackColor: Colors.black12,
                       ),
                       child: Padding(
@@ -117,8 +220,11 @@ class SeekBarState extends State<SeekBar> {
                         child: ExcludeFocus(
                           child: Slider(
                             min: 0.0,
-                            max: durationMs,
-                            value: sliderValue.clamp(0.0, durationMs),
+                            max: durationMs <= 0 ? 1 : durationMs,
+                            value: sliderValue.clamp(
+                              0.0,
+                              durationMs <= 0 ? 1 : durationMs,
+                            ),
                             onChanged: (value) {},
                           ),
                         ),
@@ -187,6 +293,18 @@ class SeekBarState extends State<SeekBar> {
                       },
                     ),
                   ),
+
+                  // The time under the finger while dragging.
+                  if (isDragging &&
+                      dragValue != null &&
+                      durationMs > 0 &&
+                      !widget.isMiniMode)
+                    _timeBubble(
+                      context,
+                      constraints,
+                      dragValue! / durationMs,
+                      Duration(milliseconds: dragValue!.toInt()),
+                    ),
                 ],
               ),
             );
@@ -196,9 +314,51 @@ class SeekBarState extends State<SeekBar> {
     );
   }
 
+  Widget _timeBubble(
+    BuildContext context,
+    BoxConstraints constraints,
+    double fraction,
+    Duration value,
+  ) {
+    const bubbleWidth = 58.0;
+    final trackWidth = constraints.maxWidth - horizontalPadding * 2;
+    final center = horizontalPadding + trackWidth * fraction.clamp(0.0, 1.0);
+    final left = (center - bubbleWidth / 2).clamp(
+      0.0,
+      constraints.maxWidth - bubbleWidth,
+    );
+    return Positioned(
+      left: left,
+      bottom: widget.widgetHeight + 2,
+      child: IgnorePointer(
+        child: Material(
+          color: colorManager.getSpecificOpaqueBgColor(),
+          elevation: 6,
+          shape: SmoothRectangleBorder(
+            smoothness: 1,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Container(
+            width: bubbleWidth,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            alignment: Alignment.center,
+            child: Text(
+              formatDuration(value),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: colorManager.getSpecificTextColor(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Map horizontal touch to slider value
   void seekByTouch(double dx, BuildContext context, double durationMs) {
-    final box = context.findRenderObject() as RenderBox;
+    final box = trackKey.currentContext!.findRenderObject() as RenderBox;
 
     double relative =
         (dx - horizontalPadding) / (box.size.width - horizontalPadding * 2);
