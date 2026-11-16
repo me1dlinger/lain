@@ -34,6 +34,7 @@ import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
+import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -384,16 +385,18 @@ class _SettingsListState extends State<SettingsList> {
           playbackModeListTile(context, l10n),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
+          commentSettingsListTile(context, l10n),
+        ];
+      case SettingsCategory.notifications:
+        return [
+          mobileDataWarningListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             controlCenterLyricsListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             coverBroadcastListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             relayAddressListTile(context, l10n),
-          commentSettingsListTile(context, l10n),
         ];
-      case SettingsCategory.notifications:
-        return [mobileDataWarningListTile(l10n)];
       case SettingsCategory.startupBackground:
         return [
           autoPlayOnStartupListTile(l10n),
@@ -753,16 +756,20 @@ class _SettingsListState extends State<SettingsList> {
                   style: TextStyle(fontSize: 15, color: iconColor.value),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.folder_rounded),
-                title: Text(l10n.offlineLibraryLocal),
-                onTap: () => Navigator.pop(context, false),
+              Builder(
+                builder: (dialogContext) => ListTile(
+                  leading: const Icon(Icons.folder_rounded),
+                  title: Text(l10n.offlineLibraryLocal),
+                  onTap: () => Navigator.pop(dialogContext, false),
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.offline_pin_rounded),
-                title: Text(l10n.offlineLibraryCached),
-                subtitle: Text(l10n.offlineLibraryCachedDetail(cachedCount)),
-                onTap: () => Navigator.pop(context, true),
+              Builder(
+                builder: (dialogContext) => ListTile(
+                  leading: const Icon(Icons.offline_pin_rounded),
+                  title: Text(l10n.offlineLibraryCached),
+                  subtitle: Text(l10n.offlineLibraryCachedDetail(cachedCount)),
+                  onTap: () => Navigator.pop(dialogContext, true),
+                ),
               ),
             ],
           ),
@@ -1701,24 +1708,28 @@ class _SettingsListState extends State<SettingsList> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ListTile(
-                        title: Text(l10n.relayAddressAuto),
-                        trailing: relayAddressNotifier.value.isEmpty
-                            ? const Icon(Icons.check)
-                            : null,
-                        onTap: () => Navigator.pop(context, ''),
-                      ),
-                      for (final candidate in candidates)
-                        ListTile(
-                          title: Text(
-                            '${candidate.interfaceName} · ${candidate.address}',
-                          ),
-                          trailing: relayAddressNotifier.value ==
-                                  candidate.address
+                      Builder(
+                        builder: (dialogContext) => ListTile(
+                          title: Text(l10n.relayAddressAuto),
+                          trailing: relayAddressNotifier.value.isEmpty
                               ? const Icon(Icons.check)
                               : null,
-                          onTap: () =>
-                              Navigator.pop(context, candidate.address),
+                          onTap: () => Navigator.pop(dialogContext, ''),
+                        ),
+                      ),
+                      for (final candidate in candidates)
+                        Builder(
+                          builder: (dialogContext) => ListTile(
+                            title: Text(
+                              '${candidate.interfaceName} · ${candidate.address}',
+                            ),
+                            trailing: relayAddressNotifier.value ==
+                                    candidate.address
+                                ? const Icon(Icons.check)
+                                : null,
+                            onTap: () =>
+                                Navigator.pop(dialogContext, candidate.address),
+                          ),
                         ),
                     ],
                   ),
@@ -1931,11 +1942,7 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   String _replayGainLabel(AppLocalizations l10n, ReplayGainMode mode) {
-    return switch (mode) {
-      ReplayGainMode.off => l10n.replayGainOff,
-      ReplayGainMode.track => l10n.replayGainTrack,
-      ReplayGainMode.album => l10n.replayGainAlbum,
-    };
+    return replayGainLabel(l10n, mode);
   }
 
   /// Loudness tags in the files: off, per track, or per album.
@@ -1952,43 +1959,7 @@ class _SettingsListState extends State<SettingsList> {
           title: Text(l10n.replayGain),
           subtitle: Text(_replayGainLabel(l10n, mode)),
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-          onTap: () async {
-            final choice = await showAnimationDialog<ReplayGainMode>(
-              context: context,
-              child: SizedBox(
-                width: 300,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 56, 10),
-                        child: Text(
-                          l10n.replayGainDescription,
-                          style: TextStyle(fontSize: 12, color: iconColor.value),
-                        ),
-                      ),
-                      for (final option in ReplayGainMode.values)
-                        ListTile(
-                          title: Text(_replayGainLabel(l10n, option)),
-                          trailing: option == mode
-                              ? const Icon(Icons.check_rounded)
-                              : null,
-                          onTap: () => Navigator.pop(context, option),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            if (choice == null) {
-              return;
-            }
-            replayGainModeNotifier.value = choice;
-            setting.save();
-          },
+          onTap: () => showReplayGainDialog(context),
         );
       },
     );
@@ -2009,36 +1980,7 @@ class _SettingsListState extends State<SettingsList> {
           title: Text(l10n.playbackSpeed),
           subtitle: Text(playbackSpeedLabel(speed)),
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-          onTap: () async {
-            final choice = await showAnimationDialog<double>(
-              context: context,
-              child: SizedBox(
-                width: 260,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final option in playbackSpeedChoices)
-                        ListTile(
-                          title: Text(playbackSpeedLabel(option)),
-                          trailing:
-                              (option - speed).abs() < 0.001
-                              ? const Icon(Icons.check_rounded)
-                              : null,
-                          onTap: () => Navigator.pop(context, option),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            if (choice == null) {
-              return;
-            }
-            playbackSpeedNotifier.value = choice;
-            setting.save();
-          },
+          onTap: () => showPlaybackSpeedDialog(context),
         );
       },
     );
@@ -2047,7 +1989,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget audioFadeListTile(AppLocalizations l10n) {
     return ListTile(
       leading: Icon(
-        Icons.graphic_eq_rounded,
+        Icons.volume_up_rounded,
         size: iconSize,
         color: iconColor.value,
       ),
@@ -2584,7 +2526,7 @@ class _CacheDetailViewState extends State<_CacheDetailView>
                   }
                   showCenterLoading();
                   layersManager.clearDataLayers();
-                  audioHandler.clear();
+                  audioHandler.clear(notifyUndo: false);
                   await library.clearCache();
                   await library.clearPicture();
                   await library.clearLrcCache();

@@ -289,16 +289,18 @@ class _LocalMusicPageState extends State<LocalMusicPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final minutes in autoScanIntervalChoices)
-                ListTile(
-                  title: Text(
-                    minutes >= 60 && minutes % 60 == 0
-                        ? l10n.scanIntervalHours(minutes ~/ 60)
-                        : l10n.scanIntervalMinutes(minutes),
+                Builder(
+                  builder: (dialogContext) => ListTile(
+                    title: Text(
+                      minutes >= 60 && minutes % 60 == 0
+                          ? l10n.scanIntervalHours(minutes ~/ 60)
+                          : l10n.scanIntervalMinutes(minutes),
+                    ),
+                    trailing: minutes == autoScanIntervalMinutesNotifier.value
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () => Navigator.pop(dialogContext, minutes),
                   ),
-                  trailing: minutes == autoScanIntervalMinutesNotifier.value
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () => Navigator.pop(context, minutes),
                 ),
             ],
           ),

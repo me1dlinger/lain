@@ -293,7 +293,7 @@ class _ServerListPageState extends State<ServerListPage> {
 
   Future<void> _reloadLibrary() async {
     layersManager.clearDataLayers();
-    audioHandler.clear();
+    audioHandler.clear(notifyUndo: false);
     // A library (and its database handle) belongs to one source, so it has to be
     // recreated before syncing: otherwise the new source is written into - and
     // read from - the previous source's database, which is how a switch to a

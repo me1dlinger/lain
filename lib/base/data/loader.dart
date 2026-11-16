@@ -276,7 +276,7 @@ class Loader {
     }
     await config.activateLocal();
     layersManager.clearDataLayers();
-    audioHandler.clear();
+    audioHandler.clear(notifyUndo: false);
     library = Library();
     await library.initFolders();
     await sync();
