@@ -1196,6 +1196,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coverBroadcastContent => 'Content provider URI';
 
   @override
+  String get coverBroadcastAuto => 'Automatic';
+
+  @override
+  String get coverBroadcastRelayOriginal => 'Local relay (original)';
+
+  @override
+  String get relayAddress => 'Relay address';
+
+  @override
+  String get relayAddressAuto => 'Automatic';
+
+  @override
   String get broadcastLyrics => 'Broadcast lyrics';
 
   @override

@@ -251,9 +251,10 @@ class Setting {
         json['downloadOnMobileData'] as bool? ?? false;
     songQualityBadgeNotifier.value =
         json['songQualityBadge'] as bool? ?? false;
+    relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
-        CoverBroadcastMode.server;
+        CoverBroadcastMode.auto;
 
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
     streamFormatNotifier.value = StreamFormat.fromName(json['streamFormat']);
@@ -386,6 +387,7 @@ class Setting {
         'downloadQuality': downloadQualityNotifier.value.name,
         'downloadOnMobileData': downloadOnMobileDataNotifier.value,
         'coverBroadcastMode': coverBroadcastModeNotifier.value.name,
+        'relayAddress': relayAddressNotifier.value,
         'songQualityBadge': songQualityBadgeNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,

@@ -2390,6 +2390,30 @@ abstract class AppLocalizations {
   /// **'Content provider URI'**
   String get coverBroadcastContent;
 
+  /// No description provided for @coverBroadcastAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get coverBroadcastAuto;
+
+  /// No description provided for @coverBroadcastRelayOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local relay (original)'**
+  String get coverBroadcastRelayOriginal;
+
+  /// No description provided for @relayAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Relay address'**
+  String get relayAddress;
+
+  /// No description provided for @relayAddressAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get relayAddressAuto;
+
   /// No description provided for @broadcastLyrics.
   ///
   /// In en, this message translates to:

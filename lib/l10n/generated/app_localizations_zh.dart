@@ -1179,6 +1179,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coverBroadcastContent => '内容提供器 URI';
 
   @override
+  String get coverBroadcastAuto => '自动';
+
+  @override
+  String get coverBroadcastRelayOriginal => '本机中继（原图）';
+
+  @override
+  String get relayAddress => '中继地址';
+
+  @override
+  String get relayAddressAuto => '自动';
+
+  @override
   String get broadcastLyrics => '广播歌词';
 
   @override

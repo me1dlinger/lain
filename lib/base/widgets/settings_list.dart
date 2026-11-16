@@ -15,6 +15,7 @@ import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/emby_client.dart';
@@ -380,6 +381,8 @@ class _SettingsListState extends State<SettingsList> {
             controlCenterLyricsListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             coverBroadcastListTile(l10n),
+          if (isMobile && viewModeNotifier.value != .bigPicture)
+            relayAddressListTile(context, l10n),
           commentSettingsListTile(context, l10n),
         ];
       case SettingsCategory.notifications:
@@ -1482,6 +1485,77 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
+  /// Lets the user pick which of the phone's private addresses the head unit
+  /// should fetch the relay from. A phone can have several (Wi-Fi, hotspot,
+  /// VPN, cellular) and the car can only reach some of them.
+  Widget relayAddressListTile(BuildContext context, AppLocalizations l10n) {
+    return ValueListenableBuilder(
+      valueListenable: relayAddressNotifier,
+      builder: (context, address, child) {
+        final resolved = streamRelay.lanBaseUrl;
+        final label = address.isEmpty
+            ? '${l10n.relayAddressAuto}${resolved == null ? '' : ' · ${Uri.tryParse(resolved)?.host ?? resolved}'}'
+            : address;
+        return ListTile(
+          leading: Icon(
+            Icons.lan_outlined,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.relayAddress),
+          trailing: Text('$label  '),
+          onTap: () async {
+            final candidates = await streamRelay.discoverLanAddresses();
+            if (!context.mounted) {
+              return;
+            }
+            final choice = await showAnimationDialog<String>(
+              context: context,
+              child: SizedBox(
+                width: 320,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        title: Text(l10n.relayAddressAuto),
+                        trailing: relayAddressNotifier.value.isEmpty
+                            ? const Icon(Icons.check)
+                            : null,
+                        onTap: () => Navigator.pop(context, ''),
+                      ),
+                      for (final candidate in candidates)
+                        ListTile(
+                          title: Text(
+                            '${candidate.interfaceName} · ${candidate.address}',
+                          ),
+                          trailing: relayAddressNotifier.value ==
+                                  candidate.address
+                              ? const Icon(Icons.check)
+                              : null,
+                          onTap: () =>
+                              Navigator.pop(context, candidate.address),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (choice == null) {
+              return;
+            }
+            relayAddressNotifier.value = choice;
+            setting.save();
+            streamRelay.invalidateLanAddress();
+            unawaited(streamRelay.warmUp());
+            audioHandler.refreshServiceMediaItem();
+          },
+        );
+      },
+    );
+  }
+
   Widget themeListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(themeImage, size: iconSize),
@@ -2499,5 +2573,7 @@ String coverModeLabel(AppLocalizations l10n, CoverBroadcastMode mode) {
     CoverBroadcastMode.server => l10n.coverBroadcastServer,
     CoverBroadcastMode.relay => l10n.coverBroadcastRelay,
     CoverBroadcastMode.content => l10n.coverBroadcastContent,
+    CoverBroadcastMode.auto => l10n.coverBroadcastAuto,
+    CoverBroadcastMode.relayOriginal => l10n.coverBroadcastRelayOriginal,
   };
 }

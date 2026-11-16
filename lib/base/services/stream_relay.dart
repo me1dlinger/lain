@@ -1,9 +1,21 @@
 import 'dart:io';
 
+import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/services/cert_policy.dart';
 import 'package:lain/base/services/logger.dart';
 
 final streamRelay = StreamRelay();
+
+/// One private address the phone has, and the interface it belongs to.
+class LanAddressCandidate {
+  final String interfaceName;
+  final String address;
+
+  const LanAddressCandidate(this.interfaceName, this.address);
+
+  @override
+  String toString() => '$interfaceName: $address';
+}
 
 class _RelayTarget {
   final String url;
@@ -50,6 +62,19 @@ class StreamRelay {
   static const _lanBaseUrlTtl = Duration(seconds: 20);
 
   String? get lanBaseUrl => _lanBaseUrl;
+
+  /// The private addresses found on the last lookup, for the settings page.
+  List<LanAddressCandidate> _lanCandidates = [];
+  List<LanAddressCandidate> get lanCandidates =>
+      List<LanAddressCandidate>.unmodifiable(_lanCandidates);
+
+  /// Forgets the resolved address, so the next warm-up re-reads the interfaces.
+  /// Used when the user picks a different relay address.
+  void invalidateLanAddress() {
+    _lanBaseUrl = null;
+    _lanBaseUrlAt = null;
+    _lanLookupFailedAt = null;
+  }
 
   /// Cover file path (or remote URL) -> its relay token. Keyed so the same
   /// artwork always gets the same URL: the car can keep using it, and
@@ -251,29 +276,89 @@ class StreamRelay {
     return server;
   }
 
-  /// This device's address on the local network, preferring a private one.
-  Future<String?> _lanAddress() async {
+  /// Every private IPv4 address on this device, with its interface name.
+  Future<List<LanAddressCandidate>> discoverLanAddresses() async {
+    final found = <LanAddressCandidate>[];
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
         includeLoopback: false,
         includeLinkLocal: false,
       );
-
-      final addresses = [
-        for (final interface in interfaces) ...interface.addresses,
-      ];
-
-      for (final address in addresses) {
-        if (_isPrivateAddress(address.address)) {
-          return address.address;
+      for (final interface in interfaces) {
+        for (final address in interface.addresses) {
+          if (_isPrivateAddress(address.address)) {
+            found.add(LanAddressCandidate(interface.name, address.address));
+          }
         }
       }
     } catch (e) {
       logger.output('[StreamRelay] could not read the network addresses: $e');
     }
+    _lanCandidates = found;
+    return found;
+  }
 
-    return null;
+  /// How suitable an interface is for a head unit: the car's hotspot first,
+  /// then Wi-Fi, then wired, then anything that is not a tunnel or a cellular
+  /// interface. Picking the first private address used to hand out a VPN or
+  /// cellular address the car could never reach.
+  static int _interfaceRank(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('ap') || lower.contains('swlan')) {
+      return 0;
+    }
+    if (lower.contains('wlan') || lower.contains('wifi')) {
+      return 1;
+    }
+    if (lower.startsWith('eth')) {
+      return 2;
+    }
+    if (lower.contains('rmnet') ||
+        lower.contains('ccmni') ||
+        lower.contains('pdp') ||
+        lower.contains('tun') ||
+        lower.contains('tap') ||
+        lower.contains('ppp') ||
+        lower.contains('clat') ||
+        lower.contains('dummy') ||
+        lower.contains('rev_')) {
+      return 9;
+    }
+    return 5;
+  }
+
+  /// This device's address a car can reach.
+  Future<String?> _lanAddress() async {
+    final candidates = await discoverLanAddresses();
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    final preferred = relayAddressNotifier.value.trim();
+    if (preferred.isNotEmpty) {
+      for (final candidate in candidates) {
+        if (candidate.address == preferred) {
+          return candidate.address;
+        }
+      }
+      logger.output(
+        '[relay] chosen address $preferred is not on this network, falling back',
+      );
+    }
+
+    final sorted = List<LanAddressCandidate>.of(candidates)
+      ..sort(
+        (a, b) => _interfaceRank(
+          a.interfaceName,
+        ).compareTo(_interfaceRank(b.interfaceName)),
+      );
+    logger.output(
+      '[relay] candidates ${sorted.map((c) => '${c.interfaceName}:${c.address}').join(', ')}',
+    );
+    final best = sorted.first;
+    logger.output('[relay] using ${best.interfaceName}:${best.address}');
+    return best.address;
   }
 
   bool _isPrivateAddress(String address) {

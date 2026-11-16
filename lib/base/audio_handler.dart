@@ -2006,7 +2006,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
     // A cover the app has not loaded yet: load it for the UI and for the copy
     // above. This never blocks the publish.
-    if (!onDisk && !song.picture.isLoaded && _coverLoadInFlight.add(song.id)) {
+    if (!onDisk && _coverLoadInFlight.add(song.id)) {
+      // Ask the file, not the flag: a picture object can say "loaded" after
+      // its file was cleared from the cache, and that is a cover the head unit
+      // would never get.
       unawaited(_whenCoverReady(song));
     }
 
@@ -2020,42 +2023,102 @@ class MyAudioHandler extends BaseAudioHandler {
     );
   }
 
+  /// The mode actually used for this source. [CoverBroadcastMode.auto] picks
+  /// the server for a streamed source and the local relay for a local library,
+  /// so switching sources switches the artwork route without touching the
+  /// setting.
+  CoverBroadcastMode get _effectiveCoverMode {
+    final selected = coverBroadcastModeNotifier.value;
+    if (selected != CoverBroadcastMode.auto) {
+      return selected;
+    }
+    return isStreamSource
+        ? CoverBroadcastMode.server
+        : CoverBroadcastMode.relay;
+  }
+
   /// Decides which URI (if any) the head unit may fetch itself, according to
   /// [coverBroadcastModeNotifier]. The bitmap is always published as well.
   void _announceCover(MyAudioMetadata song, bool onDisk) {
-    final mode = coverBroadcastModeNotifier.value;
-    if (mode == CoverBroadcastMode.bitmap) {
-      _pubFetchArtUri = null;
-      _pubFileArtUri = isMobile ? null : _pubFileArtUri;
-      return;
+    final mode = _effectiveCoverMode;
+    switch (mode) {
+      case CoverBroadcastMode.auto:
+        return;
+      case CoverBroadcastMode.bitmap:
+        _pubFetchArtUri = null;
+        if (isMobile) {
+          _pubFileArtUri = null;
+        }
+        return;
+      case CoverBroadcastMode.server:
+        final remote = streamClient?.getPictureUrl(song.picture.id);
+        _pubFetchArtUri = (remote == null || remote.isEmpty)
+            ? null
+            : _coverUrlWithSize(remote, MediaArt.broadcastSide);
+        if (_pubFetchArtUri == null && isMobile) {
+          // A local library (or a server that has no URL) still has the relay.
+          _announceRelay(song, onDisk, original: false);
+        }
+        return;
+      case CoverBroadcastMode.relay:
+        _announceRelay(song, onDisk, original: false);
+        return;
+      case CoverBroadcastMode.relayOriginal:
+        _announceRelay(song, onDisk, original: true);
+        return;
+      case CoverBroadcastMode.content:
+        _pubFetchArtUri = null;
+        final small = _pubSmallArtPath;
+        if (small == null) {
+          return;
+        }
+        final cached = _contentUriCache[small];
+        if (cached != null) {
+          _pubFileArtUri = cached;
+          return;
+        }
+        unawaited(_resolveContentUri(small, song));
+        return;
     }
-    if (mode == CoverBroadcastMode.server) {
-      final remote = streamClient?.getPictureUrl(song.picture.id);
-      _pubFetchArtUri = (remote == null || remote.isEmpty)
-          ? null
-          : _coverUrlWithSize(remote, MediaArt.broadcastSide);
-      return;
-    }
-    if (mode == CoverBroadcastMode.relay) {
-      final key = _pubSmallArtPath ?? (onDisk ? song.picture.path : null);
-      _pubFetchArtUri = key == null
-          ? null
-          : streamRelay.coverUrlSync(filePath: key);
-      return;
-    }
+  }
 
-    // content:// URI served by the app's provider.
-    _pubFetchArtUri = null;
+  /// Points the session at this phone's relay for [song]'s cover.
+  void _announceRelay(
+    MyAudioMetadata song,
+    bool onDisk, {
+    required bool original,
+  }) {
     final small = _pubSmallArtPath;
-    if (small == null) {
+    final key = original
+        ? (onDisk ? song.picture.path : small)
+        : (small ?? (onDisk ? song.picture.path : null));
+    if (key == null) {
       return;
     }
-    final cached = _contentUriCache[small];
-    if (cached != null) {
-      _pubFileArtUri = cached;
-      return;
+    final uri = streamRelay.coverUrlSync(filePath: key);
+    _pubFetchArtUri = uri;
+    if (uri == null) {
+      // The LAN address may not be resolved yet (cold start, network change).
+      // Publish once it is, without waiting here.
+      unawaited(
+        streamRelay.warmUp().then((_) {
+          if (currentSongNotifier.value?.id != song.id) {
+            return;
+          }
+          final mode = _effectiveCoverMode;
+          if (mode != CoverBroadcastMode.relay &&
+              mode != CoverBroadcastMode.relayOriginal) {
+            return;
+          }
+          final resolved = streamRelay.coverUrlSync(filePath: key);
+          if (resolved == null) {
+            return;
+          }
+          _pubFetchArtUri = resolved;
+          refreshServiceMediaItem();
+        }),
+      );
     }
-    unawaited(_resolveContentUri(small, song));
   }
 
   Future<void> _resolveContentUri(String path, MyAudioMetadata song) async {
@@ -2185,7 +2248,7 @@ class MyAudioHandler extends BaseAudioHandler {
         if (bytes != null && bytes.isNotEmpty) {
           small = await mediaArt.smallFromBytes(path, bytes);
         }
-      } else if (!song.picture.isLoaded) {
+      } else {
         // A local cover is extracted from the file on first play; do that
         // first, then shrink it.
         await loadPictureSafe(song.picture, priority: true);
