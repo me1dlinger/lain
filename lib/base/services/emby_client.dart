@@ -552,4 +552,28 @@ class EmbyClient extends StreamClient {
     safeRequest<dynamic>(() => dio.post('/Users/$userId/PlayedItems/$songId'));
     return true;
   }
+
+  @override
+  Future<void> reportPlaybackProgress(
+    String songId,
+    Duration position, {
+    bool paused = false,
+    double speed = 1.0,
+  }) async {
+    await safeRequest<dynamic>(
+      () => dio.post(
+        '/Sessions/Playing/Progress',
+        data: {
+          "ItemId": songId,
+          "PlaySessionId": songId,
+          "PositionTicks": position.inMicroseconds * 10,
+          "IsPaused": paused,
+          "IsMuted": false,
+          "CanSeek": true,
+          "PlayMethod": "DirectPlay",
+          "PlaybackRate": speed,
+        },
+      ),
+    );
+  }
 }

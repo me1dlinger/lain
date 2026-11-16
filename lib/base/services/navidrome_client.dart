@@ -1043,6 +1043,40 @@ class NavidromeClient extends StreamClient {
         ) !=
         null;
   }
+
+  @override
+  Future<void> reportPlaybackProgress(
+    String songId,
+    Duration position, {
+    bool paused = false,
+    double speed = 1.0,
+  }) async {
+    // The OpenSubsonic playback report carries the exact position and state.
+    // Servers that predate it answer with an error, so the standard scrobble
+    // "now playing" update is used instead.
+    final reported = await safeRequest(
+      '/rest/reportPlayback.view',
+      query: {
+        'mediaId': songId,
+        'mediaType': 'song',
+        'positionMs': position.inMilliseconds,
+        'state': paused ? 'paused' : 'playing',
+        'playbackRate': speed,
+        'ignoreScrobble': true,
+      },
+    );
+    if (reported != null) {
+      return;
+    }
+    await safeRequest(
+      '/rest/scrobble.view',
+      query: {
+        'id': songId,
+        'submission': false,
+        'position': position.inSeconds,
+      },
+    );
+  }
 }
 
 /// Snapshot of a Navidrome server and its library, for the home stats card

@@ -197,6 +197,16 @@ abstract class StreamClient {
 
   Future<bool> scrobble(String songId);
 
+  /// Keeps the server's "now playing" entry in step with the phone: the track,
+  /// how far it has played and whether it is paused. Sources without such an
+  /// endpoint simply ignore it.
+  Future<void> reportPlaybackProgress(
+    String songId,
+    Duration position, {
+    bool paused = false,
+    double speed = 1.0,
+  }) async {}
+
   /// Whether this source can star a whole album or artist (as opposed to single
   /// songs only). Local libraries answer true through their own store.
   bool get supportsEntityFavorites => false;

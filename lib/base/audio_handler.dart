@@ -196,6 +196,12 @@ class MyAudioHandler extends BaseAudioHandler {
   int _fadeToken = 0;
   int _transportGeneration = 0;
 
+  /// The last position reported to the server's now-playing entry, and the
+  /// song it belonged to. Reports are throttled so a stream does not get one
+  /// request per second.
+  DateTime? _lastProgressReportAt;
+  String? _progressReportSongId;
+
   /// The player volume a ramp returns to. On a phone the player runs at its
   /// own full level and the system mixer does the rest, so it must not be tied
   /// to the in-app 0..1 slider default.
@@ -1011,7 +1017,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _prefetchNeighbours();
   }
 
-  Future<void> clear() async {
+  Future<void> clear({bool notifyUndo = true}) async {
     final hadQueue = playQueue.isNotEmpty;
     if (hadQueue) {
       _clearedQueue = List.of(playQueue);
@@ -1037,7 +1043,7 @@ class MyAudioHandler extends BaseAudioHandler {
       HomeWidgetService.reloadPlaylistsWidget();
     }
 
-    if (hadQueue) {
+    if (hadQueue && notifyUndo) {
       showUndoMessage(getAppLocalizations().queueCleared, () {
         unawaited(undoClearQueue());
       });
@@ -1795,6 +1801,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
 
     updatePlaybackState(postion: Duration.zero);
+    _reportServerProgress(force: true);
 
     if (start == null) {
       _positionState.writeAsString(Duration.zero.inMilliseconds.toString());
@@ -2561,6 +2568,7 @@ class MyAudioHandler extends BaseAudioHandler {
     isPlayingNotifier.value = true;
     _playLastSyncTime ??= DateTime.now();
     updatePlaybackState();
+    _reportServerProgress(force: true);
 
     await updateIsPlaying(true);
 
@@ -2578,6 +2586,7 @@ class MyAudioHandler extends BaseAudioHandler {
       _positionState.writeAsString(getPosition().inMilliseconds.toString());
       if (isPlayingNotifier.value && !loadingSong) {
         updatePlaybackState();
+        _reportServerProgress();
       }
     });
   }
@@ -2596,6 +2605,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _restorePlayerVolume();
     await updateIsPlaying(false);
     updatePlaybackState();
+    _reportServerProgress(force: true, paused: true);
     _positionTimer?.cancel();
     _positionTimer = null;
     _positionState.writeAsString(getPosition().inMilliseconds.toString());
@@ -2624,6 +2634,7 @@ class MyAudioHandler extends BaseAudioHandler {
     await Future.delayed(Duration(milliseconds: 50));
     updateLyricsNotifier.value++;
     _positionState.writeAsString(getPosition().inMilliseconds.toString());
+    _reportServerProgress(force: true);
   }
 
   @override
@@ -2758,6 +2769,37 @@ class MyAudioHandler extends BaseAudioHandler {
 
   void _applyPlaybackSpeed() {
     unawaited(_player.setRate(playbackSpeedNotifier.value));
+  }
+
+  /// Sends the phone's position to the server's "now playing" entry. A local
+  /// library has no server; the remaining sources decide whether they can use
+  /// it.
+  void _reportServerProgress({bool force = false, bool paused = false}) {
+    if (!isStreamSource || streamClient == null) {
+      return;
+    }
+    final song = currentSongNotifier.value;
+    if (song == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final sameSong = _progressReportSongId == song.id;
+    if (!force &&
+        sameSong &&
+        _lastProgressReportAt != null &&
+        now.difference(_lastProgressReportAt!) < const Duration(seconds: 10)) {
+      return;
+    }
+    _progressReportSongId = song.id;
+    _lastProgressReportAt = now;
+    unawaited(
+      streamClient!.reportPlaybackProgress(
+        song.id,
+        getPosition(),
+        paused: paused,
+        speed: playbackSpeedNotifier.value,
+      ),
+    );
   }
 
   Future<void> applyEqualizer() async {
