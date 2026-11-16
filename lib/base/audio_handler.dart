@@ -645,7 +645,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
     for (final id in rawList ?? []) {
       final song = library.id2Song[id];
-      if (song != null) result.add(song);
+      // Offline cached mode cannot play a song whose file is not on disk.
+      if (song != null && (!library.cachedOnly || song.cacheExist)) {
+        result.add(song);
+      }
     }
 
     return result;

@@ -2083,4 +2083,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String scanIntervalHours(int hours) {
     return '每 $hours 小时';
   }
+
+  @override
+  String get offlineLibrarySource => '离线曲库';
+
+  @override
+  String get offlineLibraryLocal => '本地音乐库';
+
+  @override
+  String get offlineLibraryCached => '服务器缓存歌曲';
+
+  @override
+  String offlineLibraryCachedDetail(int count) {
+    return '已有 $count 首在本地';
+  }
+
+  @override
+  String get offlineChooseLibrary => '离线时使用哪个曲库？';
+
+  @override
+  String get noServerForOffline => '没有可用于缓存曲库的服务器';
 }

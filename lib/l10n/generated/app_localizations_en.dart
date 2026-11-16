@@ -2123,4 +2123,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String scanIntervalHours(int hours) {
     return 'Every $hours h';
   }
+
+  @override
+  String get offlineLibrarySource => 'Offline library';
+
+  @override
+  String get offlineLibraryLocal => 'Local music library';
+
+  @override
+  String get offlineLibraryCached => 'Cached songs of the server';
+
+  @override
+  String offlineLibraryCachedDetail(int count) {
+    return '$count songs already on disk';
+  }
+
+  @override
+  String get offlineChooseLibrary => 'Which library should offline mode use?';
+
+  @override
+  String get noServerForOffline => 'No server available for the cached library';
 }

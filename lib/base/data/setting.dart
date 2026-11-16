@@ -139,6 +139,11 @@ class Setting {
 
     offlineModeNotifier.value =
         json['offlineMode'] as bool? ?? offlineModeNotifier.value;
+    offlineUseCachedLibraryNotifier.value =
+        json['offlineUseCachedLibrary'] as bool? ??
+        offlineUseCachedLibraryNotifier.value;
+    offlineServerIdNotifier.value =
+        json['offlineServerId'] as String? ?? offlineServerIdNotifier.value;
 
     lanDirectNotifier.value =
         json['lanDirect'] as bool? ?? lanDirectNotifier.value;
@@ -359,6 +364,8 @@ class Setting {
         'vibrationOn': vibrationOnNoitifier.value,
         'mobileDataWarning': mobileDataWarningNotifier.value,
         'offlineMode': offlineModeNotifier.value,
+        'offlineUseCachedLibrary': offlineUseCachedLibraryNotifier.value,
+        'offlineServerId': offlineServerIdNotifier.value,
         'lanDirect': lanDirectNotifier.value,
         'folderScanSubdirectories': folderScanSubdirectories,
         'blockedFolders': blockedFoldersNotifier.value,

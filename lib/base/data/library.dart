@@ -134,6 +134,11 @@ class Library {
   Map<String, MyAudioMetadata> id2Song = {};
   List<MyAudioMetadata> songList = [];
 
+  /// Offline cached mode: keep only songs whose audio is already on disk. The
+  /// metadata database still holds the full server library, so leaving the mode
+  /// needs no resync.
+  bool cachedOnly = false;
+
   final changeNotifier = ValueNotifier(0);
 
   File? _folderIdListFile;
@@ -275,11 +280,19 @@ class Library {
 
     await _accumulateCache();
 
+    if (cachedOnly) {
+      songList.removeWhere((song) => !song.cacheExist);
+      changeNotifier.value++;
+    }
+
     // Warm the playlist-level lists (a few hundred songs at most) so the media
     // session has artwork and lyrics ready without the user asking. Phones only:
     // it exists for what a head unit shows, and a desktop has nothing to feed.
     // Idempotent, so it costs nothing the second time round.
-    if (isMobile && isStreamSource && autoCachePlaylistsNotifier.value) {
+    if (isMobile &&
+        isStreamSource &&
+        !cachedOnly &&
+        autoCachePlaylistsNotifier.value) {
       unawaited(precachePlaylists());
     }
   }

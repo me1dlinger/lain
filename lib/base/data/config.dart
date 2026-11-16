@@ -447,9 +447,28 @@ class Config {
     return true;
   }
 
+  /// Comes back to [server] without probing it, for an offline launch that only
+  /// needs the cached library. The saved address is used; requests that do go
+  /// out fail normally and are retried when the network returns.
+  Future<bool> activateServerOffline(MusicServer server) async {
+    ignoreServerCert = server.ignoresCert;
+    if (!servers.any((item) => item.id == server.id)) {
+      servers.add(server);
+    }
+    activeServerId = server.id;
+    sourceType = server.type;
+    isStreamSource =
+        sourceType == .navidrome ||
+        sourceType == .emby ||
+        sourceType == .feiniu;
+    isNotStreamSource = !isStreamSource;
+    _openClient(server, server.currentUrl);
+    await save();
+    return true;
+  }
+
   /// Switches to a local library: no server, folders are scanned instead.
-  Future<void> activateLocal() async {
-    ignoreServerCert = false;
+  Future<void> activateLocal() async {    ignoreServerCert = false;
     activeServerId = null;
     sourceType = .local;
     isStreamSource = false;

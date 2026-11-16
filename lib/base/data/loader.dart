@@ -13,6 +13,7 @@ import 'package:lain/base/data/history.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/comment_client.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/playlist.dart';
@@ -80,8 +81,28 @@ class Loader {
     CommentClient.rememberAddress = markCommentServerAlive;
 
     // Offline mode is persisted, so a launch that would otherwise come up on
-    // the last server always starts on the local library instead.
-    if (offlineModeNotifier.value && sourceType != .local) {
+    // the last server always starts on the local library instead - unless the
+    // user chose that server's cached songs, which needs no network.
+    if (offlineModeNotifier.value && offlineUseCachedLibraryNotifier.value) {
+      MusicServer? wanted;
+      for (final server in config.servers) {
+        if (server.id == offlineServerIdNotifier.value) {
+          wanted = server;
+          break;
+        }
+      }
+      wanted ??= config.servers.isEmpty ? null : config.servers.first;
+      // A previous offline launch may have switched to the local library and
+      // cleared the active server; bring the cached library's server back
+      // without probing it.
+      if (sourceType == .local && wanted != null) {
+        try {
+          await config.activateServerOffline(wanted);
+        } catch (e) {
+          logger.output('[startup] restore cached server failed: $e');
+        }
+      }
+    } else if (offlineModeNotifier.value && sourceType != .local) {
       try {
         await config.activateLocal();
       } catch (e) {
@@ -114,7 +135,12 @@ class Loader {
     // throw both used to leave `_busy` true for the life of the process, which
     // silently disabled every action guarded by it.
     try {
-      if (isStreamSource && streamClient != null) {
+      library.cachedOnly =
+          offlineModeNotifier.value &&
+          offlineUseCachedLibraryNotifier.value &&
+          isStreamSource;
+
+      if (!library.cachedOnly && isStreamSource && streamClient != null) {
         if (!File(getSyncedFilePath(sourceType)).existsSync()) {
           await firstSync();
           return;
@@ -171,14 +197,18 @@ class Loader {
       // source shows its lists first instead of an empty page. The call reads
       // the same disk cache again (idempotent) and bumps the artist list's
       // notifier when the fresh summaries arrive.
-      unawaited(prefetchArtistInfo());
+      if (!library.cachedOnly) {
+        unawaited(prefetchArtistInfo());
+      }
 
       // The cached lists are what is on screen; the server may have newer data
       // (songs added there, plays scrobbled elsewhere, playlists edited).
       // Refresh the dynamic lists in the background - never blocking the first
       // paint - so the home page is up to date without a manual sync. Covers
       // are the sync's job and stay untouched.
-      unawaited(refreshServerLists());
+      if (!library.cachedOnly) {
+        unawaited(refreshServerLists());
+      }
     } catch (e) {
       logger.output('[startup] load failed: $e');
     } finally {

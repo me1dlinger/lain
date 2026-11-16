@@ -11,6 +11,8 @@ import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
+import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
@@ -331,6 +333,7 @@ class _SettingsListState extends State<SettingsList> {
           // WebDAV source this tile is not built at all.
           if (isLocalLibrary) localLibraryToolsListTile(context, l10n),
           offlineModeListTile(l10n),
+          offlineLibrarySourceListTile(context, l10n),
           // WebDAV still uses the generic folder manager; the local library
           // has its own second-level page.
           if (sourceType == .webdav) selectMusicFoldersListTile(context, l10n),
@@ -603,14 +606,211 @@ class _SettingsListState extends State<SettingsList> {
         child: MySwitch(
           valueNotifier: offlineModeNotifier,
           onToggleCallBack: () {
+            final enabling = offlineModeNotifier.value;
             setting.save();
-            if (offlineModeNotifier.value) {
-              unawaited(_enterOfflineMode());
+            if (enabling) {
+              unawaited(_enterOfflineMode(context, l10n));
+            } else if (offlineUseCachedLibraryNotifier.value &&
+                sourceType != .local) {
+              unawaited(_reloadOnlineLibrary());
             }
           },
         ),
       ),
     );
+  }
+
+  /// Which library offline mode shows. Only meaningful while it is on: the
+  /// local folders, or the songs of the current server that are already on
+  /// disk.
+  Widget offlineLibrarySourceListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: offlineModeNotifier,
+      builder: (context, enabled, child) {
+        if (!enabled) {
+          return const SizedBox.shrink();
+        }
+        final cached =
+            offlineUseCachedLibraryNotifier.value && isStreamSource;
+        return ListTile(
+          leading: Icon(
+            cached ? Icons.offline_pin_rounded : Icons.folder_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.offlineLibrarySource),
+          subtitle: Text(
+            cached ? l10n.offlineLibraryCached : l10n.offlineLibraryLocal,
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () => unawaited(_pickOfflineLibrary(context, l10n)),
+        );
+      },
+    );
+  }
+
+  /// Asks which library offline mode should show. On a local source there is
+  /// only one answer, so the switch simply stays on the local library.
+  Future<void> _enterOfflineMode(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    if (sourceType == .local) {
+      offlineUseCachedLibraryNotifier.value = false;
+      setting.save();
+      return;
+    }
+    final choice = await _askOfflineLibrary(context, l10n);
+    if (choice == null) {
+      offlineModeNotifier.value = false;
+      setting.save();
+      return;
+    }
+    offlineServerIdNotifier.value = config.activeServerId ?? '';
+    if (choice) {
+      offlineUseCachedLibraryNotifier.value = true;
+      setting.save();
+      await _reloadCachedLibrary();
+    } else {
+      offlineUseCachedLibraryNotifier.value = false;
+      setting.save();
+      showCenterLoading();
+      try {
+        await Loader.switchToLocal();
+        playlistManager.updateNotifier.value++;
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        logger.output('[settings] could not enter offline mode: $e');
+        showCenterMessage('$e');
+      } finally {
+        removeCenterLoading();
+      }
+    }
+  }
+
+  Future<void> _pickOfflineLibrary(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final cached =
+        offlineUseCachedLibraryNotifier.value && isStreamSource;
+    if (sourceType == .local) {
+      // Coming back to the cached library needs a server; the one the user was
+      // on is remembered, because switching to the local library cleared it.
+      final wanted = _offlineServer();
+      if (wanted == null) {
+        showCenterMessage(l10n.noServerForOffline);
+        return;
+      }
+      await config.activateServerOffline(wanted);
+      offlineUseCachedLibraryNotifier.value = true;
+      setting.save();
+      await _reloadCachedLibrary();
+      return;
+    }
+    final choice = await _askOfflineLibrary(context, l10n);
+    if (choice == null || choice == cached) {
+      return;
+    }
+    if (choice) {
+      offlineUseCachedLibraryNotifier.value = true;
+      offlineServerIdNotifier.value = config.activeServerId ?? '';
+      setting.save();
+      await _reloadCachedLibrary();
+    } else {
+      offlineUseCachedLibraryNotifier.value = false;
+      setting.save();
+      await Loader.switchToLocal();
+    }
+  }
+
+  /// True means the server's cached songs, false the local library, null that
+  /// the dialog was dismissed.
+  Future<bool?> _askOfflineLibrary(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final cachedCount = library.songList.where((song) => song.cacheExist).length;
+    return showAnimationDialog<bool>(
+      context: context,
+      child: SizedBox(
+        width: 300,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Text(
+                  l10n.offlineChooseLibrary,
+                  style: TextStyle(fontSize: 15, color: iconColor.value),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_rounded),
+                title: Text(l10n.offlineLibraryLocal),
+                onTap: () => Navigator.pop(context, false),
+              ),
+              ListTile(
+                leading: const Icon(Icons.offline_pin_rounded),
+                title: Text(l10n.offlineLibraryCached),
+                subtitle: Text(l10n.offlineLibraryCachedDetail(cachedCount)),
+                onTap: () => Navigator.pop(context, true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  MusicServer? _offlineServer() {
+    for (final server in config.servers) {
+      if (server.id == offlineServerIdNotifier.value) {
+        return server;
+      }
+    }
+    return config.servers.isEmpty ? null : config.servers.first;
+  }
+
+  Future<void> _reloadCachedLibrary() async {
+    showCenterLoading();
+    try {
+      await Loader.reload();
+      playlistManager.updateNotifier.value++;
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      logger.output('[settings] could not load the cached library: $e');
+      showCenterMessage('$e');
+    } finally {
+      removeCenterLoading();
+    }
+  }
+
+  /// Leaving offline mode on a server source brings the full library back; the
+  /// metadata database was never pruned, only filtered.
+  Future<void> _reloadOnlineLibrary() async {
+    showCenterLoading();
+    try {
+      await Loader.reload();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      logger.output('[settings] could not leave offline mode: $e');
+      showCenterMessage('$e');
+    } finally {
+      removeCenterLoading();
+    }
   }
 
   /// Stream straight from the server while it is reachable on the LAN: the next
@@ -632,27 +832,6 @@ class _SettingsListState extends State<SettingsList> {
         ),
       ),
     );
-  }
-
-  /// Turning offline mode on moves to the local library right away; every
-  /// online activation path is refused while it stays on.
-  Future<void> _enterOfflineMode() async {
-    if (sourceType == .local) {
-      return;
-    }
-    showCenterLoading();
-    try {
-      await Loader.switchToLocal();
-      playlistManager.updateNotifier.value++;
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      logger.output('[settings] could not enter offline mode: $e');
-      showCenterMessage('$e');
-    } finally {
-      removeCenterLoading();
-    }
   }
 
   Widget syncListTile(BuildContext context, AppLocalizations l10n) {

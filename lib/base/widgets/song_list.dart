@@ -420,6 +420,11 @@ class _SongListState extends State<SongList> {
     final currentSongList = List<MyAudioMetadata>.from(
       searchValue.isEmpty ? songList : tmpSongList,
     );
+    // Offline cached mode reaches playlists and history too: a page must not
+    // show a song whose audio is not on disk.
+    if (library.cachedOnly) {
+      currentSongList.removeWhere((song) => !song.cacheExist);
+    }
 
     for (var e in currentSongList) {
       showPlayButtonNotifierMap.putIfAbsent(e, () => ValueNotifier(false));

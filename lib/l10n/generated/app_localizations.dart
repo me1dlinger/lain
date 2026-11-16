@@ -4093,6 +4093,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every {hours} h'**
   String scanIntervalHours(int hours);
+
+  /// No description provided for @offlineLibrarySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline library'**
+  String get offlineLibrarySource;
+
+  /// No description provided for @offlineLibraryLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local music library'**
+  String get offlineLibraryLocal;
+
+  /// No description provided for @offlineLibraryCached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached songs of the server'**
+  String get offlineLibraryCached;
+
+  /// No description provided for @offlineLibraryCachedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs already on disk'**
+  String offlineLibraryCachedDetail(int count);
+
+  /// No description provided for @offlineChooseLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Which library should offline mode use?'**
+  String get offlineChooseLibrary;
+
+  /// No description provided for @noServerForOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No server available for the cached library'**
+  String get noServerForOffline;
 }
 
 class _AppLocalizationsDelegate

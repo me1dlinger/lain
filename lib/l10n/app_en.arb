@@ -950,5 +950,18 @@
         "type": "int"
       }
     }
-  }
+  },
+  "offlineLibrarySource": "Offline library",
+  "offlineLibraryLocal": "Local music library",
+  "offlineLibraryCached": "Cached songs of the server",
+  "offlineLibraryCachedDetail": "{count} songs already on disk",
+  "@offlineLibraryCachedDetail": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineChooseLibrary": "Which library should offline mode use?",
+  "noServerForOffline": "No server available for the cached library"
 }

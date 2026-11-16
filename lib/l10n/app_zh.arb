@@ -880,5 +880,18 @@
         "type": "int"
       }
     }
-  }
+  },
+  "offlineLibrarySource": "离线曲库",
+  "offlineLibraryLocal": "本地音乐库",
+  "offlineLibraryCached": "服务器缓存歌曲",
+  "offlineLibraryCachedDetail": "已有 {count} 首在本地",
+  "@offlineLibraryCachedDetail": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineChooseLibrary": "离线时使用哪个曲库？",
+  "noServerForOffline": "没有可用于缓存曲库的服务器"
 }
