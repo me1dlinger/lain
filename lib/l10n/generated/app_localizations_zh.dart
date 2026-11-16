@@ -2177,4 +2177,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewComments => '查看评论';
+
+  @override
+  String get lyricsCoverMotion => '歌词页封面动效';
 }

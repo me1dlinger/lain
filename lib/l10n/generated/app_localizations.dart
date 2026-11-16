@@ -4267,6 +4267,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View comments'**
   String get viewComments;
+
+  /// No description provided for @lyricsCoverMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics cover motion'**
+  String get lyricsCoverMotion;
 }
 
 class _AppLocalizationsDelegate

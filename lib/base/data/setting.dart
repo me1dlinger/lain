@@ -24,6 +24,7 @@ import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
+import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/utils/path.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
 import 'package:lain/portrait_view/portrait_view.dart';
@@ -235,6 +236,8 @@ class Setting {
     lyricsFontSizeOffsetNotifier.value =
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
+    lyricsCoverMotionNotifier.value =
+        json['lyricsCoverMotion'] as bool? ?? true;
 
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
@@ -395,6 +398,7 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'lyricsCoverMotion': lyricsCoverMotionNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,

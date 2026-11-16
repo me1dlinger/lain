@@ -2220,4 +2220,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewComments => 'View comments';
+
+  @override
+  String get lyricsCoverMotion => 'Lyrics cover motion';
 }

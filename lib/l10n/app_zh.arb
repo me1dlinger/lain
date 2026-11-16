@@ -930,5 +930,6 @@
   "randomSongsHint": "每次刷新重新抽取 100 首歌曲",
   "useServerRandom": "使用服务器随机列表",
   "useServerRandomDescription": "开启后向服务器请求随机歌曲；关闭后从本机已保存的歌曲中抽取。服务器不可用时自动回退到本地列表。",
-  "viewComments": "查看评论"
+  "viewComments": "查看评论",
+  "lyricsCoverMotion": "歌词页封面动效"
 }

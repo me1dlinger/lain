@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/ui_motion_settings.dart';
 
 /// A very slow breathing scale for cover art. It is subtle on purpose: the
 /// page is a reading surface, and a cover that visibly pumps is distracting.
@@ -31,11 +32,12 @@ class _BreathingCoverState extends State<BreathingCover>
     _controller = AnimationController(vsync: this, duration: widget.period)
       ..value = 0.5;
     isPlayingNotifier.addListener(_syncPlayback);
+    lyricsCoverMotionNotifier.addListener(_syncPlayback);
     _syncPlayback();
   }
 
   void _syncPlayback() {
-    if (isPlayingNotifier.value) {
+    if (lyricsCoverMotionNotifier.value && isPlayingNotifier.value) {
       if (!_controller.isAnimating) {
         _controller.repeat();
       }
@@ -49,6 +51,7 @@ class _BreathingCoverState extends State<BreathingCover>
   @override
   void dispose() {
     isPlayingNotifier.removeListener(_syncPlayback);
+    lyricsCoverMotionNotifier.removeListener(_syncPlayback);
     _controller.dispose();
     super.dispose();
   }

@@ -17,6 +17,7 @@ import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/app.dart';
@@ -354,6 +355,7 @@ class _SettingsListState extends State<SettingsList> {
         return [
           homeLayoutListTile(context, l10n),
           themeListTile(context, l10n),
+          lyricsCoverMotionListTile(l10n),
           languageListTile(context, l10n),
           if (viewModeNotifier.value != .bigPicture)
             fontListTile(context, l10n),
@@ -2070,6 +2072,24 @@ class _SettingsListState extends State<SettingsList> {
           },
         );
       },
+    );
+  }
+
+  Widget lyricsCoverMotionListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.animation_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.lyricsCoverMotion),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: lyricsCoverMotionNotifier,
+          onToggleCallBack: () => setting.save(),
+        ),
+      ),
     );
   }
 

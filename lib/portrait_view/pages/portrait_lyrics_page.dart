@@ -22,6 +22,7 @@ import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/widgets/song_info.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
@@ -434,11 +435,18 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     return Column(
       children: [
         if (!isShort) ...[
-          ValueListenableBuilder<double>(
-            valueListenable: pageOffsetNotifier,
-            builder: (context, offset, child) {
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              pageOffsetNotifier,
+              lyricsCoverMotionNotifier,
+            ]),
+            builder: (context, child) {
               // A small drift opposite to the swipe: the cover lags behind the
-              // page and settles back when the controls page returns.
+              // page and settles back when the controls page returns. Turning
+              // the motion setting off keeps it still.
+              final offset = lyricsCoverMotionNotifier.value
+                  ? pageOffsetNotifier.value
+                  : 0.0;
               return Transform.translate(
                 offset: Offset(-24 * offset, 0),
                 child: Transform.scale(
