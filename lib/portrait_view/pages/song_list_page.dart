@@ -870,7 +870,11 @@ extension _SongListPage on _SongListState {
               );
             }
             return SliverFixedExtentList.builder(
-              itemExtent: 60,
+              // Rows with a second subtitle line (rediscovery, most played)
+              // need a little more height.
+              itemExtent: (isRediscovery || (isFrequently && sourceType != .emby))
+                  ? 74
+                  : 60,
               itemCount: currentSongList.length,
               itemBuilder: (context, index) {
                 return Center(child: songListTile(index, currentSongList));
@@ -965,6 +969,10 @@ extension _SongListPage on _SongListState {
 
   Widget songListTile(int index, List<MyAudioMetadata> currentSongList) {
     final song = currentSongList[index];
+    // Rediscovery adds the last-played date; most played only needs the
+    // count. Both get their own line, so artist and album keep the full width.
+    final showStatsLine =
+        isRediscovery || (isFrequently && sourceType != .emby);
     return ValueListenableBuilder(
       valueListenable: song.updateNotifier,
       builder: (context, value, child) {
@@ -1009,39 +1017,48 @@ extension _SongListPage on _SongListState {
             },
           ),
 
-          subtitle: Row(
-            children: [
-              SongBadges(song: song),
-              if (isRediscovery) ...[
-                RediscoveryStats(song: song),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                child: Text(
-                  "${getArtist(song)} - ${getAlbum(song)}",
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12),
+          subtitle: showStatsLine
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        SongBadges(song: song),
+                        Expanded(
+                          child: Text(
+                            "${getArtist(song)} - ${getAlbum(song)}",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    if (isRediscovery)
+                      RediscoveryStats(song: song, fontSize: 10.5)
+                    else
+                      PlayCountStat(song: song, fontSize: 10.5),
+                  ],
+                )
+              : Row(
+                  children: [
+                    SongBadges(song: song),
+                    Expanded(
+                      child: Text(
+                        "${getArtist(song)} - ${getAlbum(song)}",
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () =>
               audioHandler.setPlayQueue(currentSongList, 0, targetIndex: index),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isFrequently && sourceType != .emby)
-                SizedBox(
-                  width: 100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      ImageIcon(playOutlinedImage, size: 15),
-                      Text(song.playCount.toString()),
-                    ],
-                  ),
-                ),
               playNextButton(context, song),
               songOptionsButton(index, song),
             ],
