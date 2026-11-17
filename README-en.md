@@ -25,6 +25,8 @@ Currently supports:
 ### Car and media session
 - Bluetooth/head-unit metadata follows a track switch immediately; title, artist and duration no longer lag.
 - Artwork can be a server URL, the local relay, a content provider URI, or the bitmap only; the broadcast carries a compressed thumbnail.
+- Car display lives under Song broadcast with Layout, Cover and Lyrics tabs: two or three lines, freely ordered original lyric/translation/title/artist/album fields, custom separators, and a built-in/live preview.
+- Classic Bluetooth offers four cover variants for compatibility testing: bitmap, bitmap + content URI, original large image, and bitmap + relay/server URI.
 - Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title".
 - On the LAN the phone can serve the artwork to the head unit directly.
 
