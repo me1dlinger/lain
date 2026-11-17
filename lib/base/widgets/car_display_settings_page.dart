@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/car_display.dart';
@@ -5,12 +6,10 @@ import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/my_audio_metadata.dart';
-import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/widgets/my_switch.dart';
-import 'package:lain/base/app.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
@@ -540,9 +539,9 @@ class _CarPreview extends StatelessWidget {
   }
 
   Widget _liveToggle(AppLocalizations l10n, Color textColor) {
-    Widget option(String label, bool selected) {
+    Widget option(String label, bool selected, bool value) {
       return GestureDetector(
-        onTap: () => onLiveChanged(selected),
+        onTap: () => onLiveChanged(value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -571,8 +570,8 @@ class _CarPreview extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          option(l10n.carPreviewBuiltin, !live),
-          option(l10n.carPreviewLive, live),
+          option(l10n.carPreviewBuiltin, !live, false),
+          option(l10n.carPreviewLive, live, true),
         ],
       ),
     );
@@ -597,10 +596,10 @@ class _CarPreview extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: Image(
-        image: getSourceTypeImage(sourceType),
-        width: 52,
-        height: 52,
+      child: SvgPicture.asset(
+        'assets/images/app_icon.svg',
+        width: 60,
+        height: 60,
         fit: BoxFit.contain,
       ),
     );

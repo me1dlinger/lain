@@ -15,6 +15,7 @@ import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/background_task_service.dart';
+import 'package:lain/base/services/broadcast_inspector.dart';
 import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
@@ -102,6 +103,7 @@ Future<void> initAudioService() async {
   // Start the LAN cover relay now, so the first track can be published with a
   // car-fetchable artwork URI straight away instead of a beat later.
   unawaited(streamRelay.warmUp());
+  unawaited(broadcastInspector.start());
 
   _session.becomingNoisyEventStream.listen((_) {
     audioHandler.pause();
@@ -2526,6 +2528,19 @@ class MyAudioHandler extends BaseAudioHandler {
           final debugUri = bitmapPath == null
               ? null
               : streamRelay.coverUrlSync(filePath: bitmapPath);
+          broadcastInspector.update(
+            title: title,
+            artist: artist,
+            album: album,
+            lines: carLines,
+            lyric: line,
+            translation: carLyric.translation,
+            coverPath: bitmapPath,
+            fetchUri: fetchUri,
+            debugUri: debugUri,
+            mode: classicCoverModeNotifier.value.name,
+            bitmap: bitmapPath != null,
+          );
           _mediaLog(
             'publish id=$id kind=${kind.name}'
             ' art=${fileUri == null ? 'none' : 'uri'}'
