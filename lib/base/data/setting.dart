@@ -13,6 +13,7 @@ import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
+import 'package:lain/base/data/car_display.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
@@ -293,6 +294,13 @@ class Setting {
         (json['shareCardCoverSize'] as num?)?.toDouble() ?? 164;
     shareCardShowTranslationNotifier.value =
         json['shareCardShowTranslation'] as bool? ?? false;
+    carDisplayConfigNotifier.value = CarDisplayConfig.fromJson(
+      json['carDisplay'],
+    );
+    classicCoverModeNotifier.value =
+        ClassicCoverMode.values
+            .asNameMap()['${json['classicCoverMode']}'] ??
+        ClassicCoverMode.bitmap;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
@@ -447,6 +455,8 @@ class Setting {
         'shareCardTextSize': shareCardTextSizeNotifier.value,
         'shareCardCoverSize': shareCardCoverSizeNotifier.value,
         'shareCardShowTranslation': shareCardShowTranslationNotifier.value,
+        'carDisplay': carDisplayConfigNotifier.value.toJson(),
+        'classicCoverMode': classicCoverModeNotifier.value.name,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

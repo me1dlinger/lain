@@ -2368,4 +2368,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadedFiles => 'Downloads';
+
+  @override
+  String get carDisplay => 'Song broadcast';
+
+  @override
+  String get carDisplayLines => 'Lines';
+
+  @override
+  String get carLinesTwo => 'Two lines';
+
+  @override
+  String get carLinesThree => 'Three lines';
+
+  @override
+  String get carLine1 => 'First line';
+
+  @override
+  String get carLine2 => 'Second line';
+
+  @override
+  String get carLine3 => 'Third line';
+
+  @override
+  String get carTokenLyricOriginal => 'Original lyric';
+
+  @override
+  String get carTokenLyricTranslation => 'Translation';
+
+  @override
+  String get carTokenTitle => 'Song title';
+
+  @override
+  String get carTokenArtist => 'Artist';
+
+  @override
+  String get carTokenAlbum => 'Album';
+
+  @override
+  String get carAddField => 'Add field';
+
+  @override
+  String get carSeparator => 'Separator';
+
+  @override
+  String get carSeparatorSpace => 'Space';
+
+  @override
+  String get carPreview => 'Preview';
+
+  @override
+  String get carReset => 'Reset';
+
+  @override
+  String get classicCoverMode => 'Classic Bluetooth cover';
+
+  @override
+  String get classicCoverBitmap => 'Bitmap';
+
+  @override
+  String get classicCoverBitmapUri => 'Bitmap + URI';
+
+  @override
+  String get classicCoverLarge => 'Original large image';
+
+  @override
+  String get classicCoverRelay => 'Bitmap + relay/server URI';
+
+  @override
+  String get carTabLayout => 'Layout';
+
+  @override
+  String get carTabCover => 'Cover';
+
+  @override
+  String get carTabLyrics => 'Lyrics';
+
+  @override
+  String get carPreviewBuiltin => 'Built-in';
+
+  @override
+  String get carPreviewLive => 'Live';
+
+  @override
+  String get carNoSong => 'Nothing is playing';
 }

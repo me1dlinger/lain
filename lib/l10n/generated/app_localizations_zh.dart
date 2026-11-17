@@ -2325,4 +2325,88 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get downloadedFiles => '下载';
+
+  @override
+  String get carDisplay => '歌曲广播';
+
+  @override
+  String get carDisplayLines => '显示行数';
+
+  @override
+  String get carLinesTwo => '两行';
+
+  @override
+  String get carLinesThree => '三行';
+
+  @override
+  String get carLine1 => '第一行';
+
+  @override
+  String get carLine2 => '第二行';
+
+  @override
+  String get carLine3 => '第三行';
+
+  @override
+  String get carTokenLyricOriginal => '原词';
+
+  @override
+  String get carTokenLyricTranslation => '翻译';
+
+  @override
+  String get carTokenTitle => '歌名';
+
+  @override
+  String get carTokenArtist => '艺术家';
+
+  @override
+  String get carTokenAlbum => '专辑';
+
+  @override
+  String get carAddField => '添加字段';
+
+  @override
+  String get carSeparator => '连接符';
+
+  @override
+  String get carSeparatorSpace => '空格';
+
+  @override
+  String get carPreview => '预览';
+
+  @override
+  String get carReset => '恢复默认';
+
+  @override
+  String get classicCoverMode => '经典蓝牙封面';
+
+  @override
+  String get classicCoverBitmap => '位图';
+
+  @override
+  String get classicCoverBitmapUri => '位图 + URI';
+
+  @override
+  String get classicCoverLarge => '原始大图';
+
+  @override
+  String get classicCoverRelay => '位图 + 中继/服务器 URI';
+
+  @override
+  String get carTabLayout => '布局';
+
+  @override
+  String get carTabCover => '封面';
+
+  @override
+  String get carTabLyrics => '歌词';
+
+  @override
+  String get carPreviewBuiltin => '内置';
+
+  @override
+  String get carPreviewLive => '实时';
+
+  @override
+  String get carNoSong => '当前没有播放歌曲';
 }

@@ -4555,6 +4555,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloads'**
   String get downloadedFiles;
+
+  /// No description provided for @carDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Song broadcast'**
+  String get carDisplay;
+
+  /// No description provided for @carDisplayLines.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines'**
+  String get carDisplayLines;
+
+  /// No description provided for @carLinesTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'Two lines'**
+  String get carLinesTwo;
+
+  /// No description provided for @carLinesThree.
+  ///
+  /// In en, this message translates to:
+  /// **'Three lines'**
+  String get carLinesThree;
+
+  /// No description provided for @carLine1.
+  ///
+  /// In en, this message translates to:
+  /// **'First line'**
+  String get carLine1;
+
+  /// No description provided for @carLine2.
+  ///
+  /// In en, this message translates to:
+  /// **'Second line'**
+  String get carLine2;
+
+  /// No description provided for @carLine3.
+  ///
+  /// In en, this message translates to:
+  /// **'Third line'**
+  String get carLine3;
+
+  /// No description provided for @carTokenLyricOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original lyric'**
+  String get carTokenLyricOriginal;
+
+  /// No description provided for @carTokenLyricTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get carTokenLyricTranslation;
+
+  /// No description provided for @carTokenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Song title'**
+  String get carTokenTitle;
+
+  /// No description provided for @carTokenArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get carTokenArtist;
+
+  /// No description provided for @carTokenAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get carTokenAlbum;
+
+  /// No description provided for @carAddField.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get carAddField;
+
+  /// No description provided for @carSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **'Separator'**
+  String get carSeparator;
+
+  /// No description provided for @carSeparatorSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Space'**
+  String get carSeparatorSpace;
+
+  /// No description provided for @carPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get carPreview;
+
+  /// No description provided for @carReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get carReset;
+
+  /// No description provided for @classicCoverMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic Bluetooth cover'**
+  String get classicCoverMode;
+
+  /// No description provided for @classicCoverBitmap.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitmap'**
+  String get classicCoverBitmap;
+
+  /// No description provided for @classicCoverBitmapUri.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitmap + URI'**
+  String get classicCoverBitmapUri;
+
+  /// No description provided for @classicCoverLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Original large image'**
+  String get classicCoverLarge;
+
+  /// No description provided for @classicCoverRelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitmap + relay/server URI'**
+  String get classicCoverRelay;
+
+  /// No description provided for @carTabLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get carTabLayout;
+
+  /// No description provided for @carTabCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get carTabCover;
+
+  /// No description provided for @carTabLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics'**
+  String get carTabLyrics;
+
+  /// No description provided for @carPreviewBuiltin.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get carPreviewBuiltin;
+
+  /// No description provided for @carPreviewLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get carPreviewLive;
+
+  /// No description provided for @carNoSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is playing'**
+  String get carNoSong;
 }
 
 class _AppLocalizationsDelegate

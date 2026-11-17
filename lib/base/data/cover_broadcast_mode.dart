@@ -32,3 +32,14 @@ final coverBroadcastModeNotifier = ValueNotifier<CoverBroadcastMode>(
 /// A phone can have several private addresses (Wi-Fi, hotspot, VPN); the one a
 /// head unit can reach is not always the first one.
 final relayAddressNotifier = ValueNotifier<String>('');
+
+
+/// How a classic Bluetooth (AVRCP) head unit is offered the cover. AVRCP
+/// metadata itself has no image field; Android's stack reads the media
+/// session, and different units/stacks pick a bitmap, a URI, or neither.
+/// These are testable variants of the same session item.
+enum ClassicCoverMode { bitmap, bitmapUri, largeBitmap, relayUri }
+
+final classicCoverModeNotifier = ValueNotifier<ClassicCoverMode>(
+  ClassicCoverMode.bitmap,
+);

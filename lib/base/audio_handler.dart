@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/car_display.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
@@ -1959,6 +1960,19 @@ class MyAudioHandler extends BaseAudioHandler {
     return line;
   }
 
+  ({String original, String translation}) _currentCarLyricPair() {
+    final lines = currentSongNotifier.value?.parsedLyrics?.lines;
+    final index = currentLyricsIndexNotifier.value;
+    if (lines == null || index < 0 || index >= lines.length) {
+      return (original: '', translation: '');
+    }
+    return carLyricPair(
+      text: lines[index].text,
+      translations: lines[index].translates,
+      englishLocale: getAppLocalizations().localeName.startsWith('en'),
+    );
+  }
+
   /// Diagnostics for the media session. Written to the app's log (exportable
   /// from the settings) and to stdout, so `adb logcat` shows the same lines
   /// while the phone - rather than a car - is under test.
@@ -2222,6 +2236,21 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// The content URI for [path] if it is known, otherwise resolves it in the
+  /// background and returns null. Classic Bluetooth modes use this to add a
+  /// URI next to the bitmap, or to publish the URI instead of it.
+  String? _contentUriFor(String? path, MyAudioMetadata song) {
+    if (path == null || path.isEmpty) {
+      return null;
+    }
+    final cached = _contentUriCache[path];
+    if (cached != null) {
+      return cached;
+    }
+    unawaited(_resolveContentUri(path, song));
+    return null;
+  }
+
   Future<void> _resolveContentUri(String path, MyAudioMetadata song) async {
     if (!_contentUriInFlight.add(path)) {
       return;
@@ -2240,8 +2269,10 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     _contentUriCache[path] = uri;
-    if (coverBroadcastModeNotifier.value == CoverBroadcastMode.content &&
-        currentSongNotifier.value?.id == song.id) {
+    final wantsContent =
+        coverBroadcastModeNotifier.value == CoverBroadcastMode.content ||
+        classicCoverModeNotifier.value == ClassicCoverMode.bitmapUri;
+    if (wantsContent && currentSongNotifier.value?.id == song.id) {
       _pubFileArtUri = uri;
       refreshServiceMediaItem();
     }
@@ -2406,10 +2437,40 @@ class MyAudioHandler extends BaseAudioHandler {
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
 
+    var bitmapPath = art.smallArtPath;
+    var fileUri = art.fileUri;
+    var fetchUri = art.fetchUri;
+    switch (classicCoverModeNotifier.value) {
+      case ClassicCoverMode.bitmap:
+        fileUri = null;
+        fetchUri = null;
+      case ClassicCoverMode.bitmapUri:
+        final uri = _contentUriFor(art.smallArtPath, currentSong);
+        fileUri = uri;
+        fetchUri = uri;
+      case ClassicCoverMode.largeBitmap:
+        bitmapPath = art.coverPath ?? art.smallArtPath;
+        fileUri = null;
+        fetchUri = null;
+      case ClassicCoverMode.relayUri:
+        // Keep the server/relay URL selected by the cover broadcast mode.
+        break;
+    }
+
     final title = getTitle(currentSong);
     final artist = getArtist(currentSong);
     final album = getAlbum(currentSong);
     final lyricsOn = controlCenterLyricsNotifier.value;
+    final carLyric = _currentCarLyricPair();
+    final carLines = composeCarDisplayLines(
+      carDisplayConfigNotifier.value,
+      title: title,
+      artist: artist,
+      album: album,
+      lyric: carLyric.original,
+      translation: carLyric.translation,
+      lyricsEnabled: lyricsOn,
+    );
     // Versioned once there is artwork, so a cover that arrived late (or was
     // rebuilt after a failure) is published under an id a consumer has not
     // cached a bitmap for yet.
@@ -2420,9 +2481,10 @@ class MyAudioHandler extends BaseAudioHandler {
       album,
       line,
       lyricsOn,
-      art.fileUri,
-      art.smallArtPath,
-      art.fetchUri,
+      fileUri,
+      bitmapPath,
+      fetchUri,
+      carLines,
     ]);
 
     // Publication goes through the broadcast gate. It coalesces a burst into
@@ -2439,7 +2501,7 @@ class MyAudioHandler extends BaseAudioHandler {
       MediaSnapshot(
         id: id,
         key: key,
-        hasArt: art.fileUri != null || art.smallArtPath != null,
+        hasArt: bitmapPath != null || fetchUri != null,
         deliver: (_) {
           mediaItem.add(
             buildServiceMediaItem(
@@ -2450,17 +2512,28 @@ class MyAudioHandler extends BaseAudioHandler {
               duration: currentSong.duration,
               lyric: line,
               lyricInTitle: lyricsOn,
-              fileArtUri: art.fileUri,
-              artCacheFile: art.smallArtPath,
-              fetchableArtUri: art.fetchUri,
+              fileArtUri: fileUri,
+              artCacheFile: bitmapPath,
+              fetchableArtUri: fetchUri,
+              carLines: carLines,
             ),
           );
 
+          // The relay URL of whatever image this item carries. It is only a
+          // diagnostic for the PC inspector: it does not change what the car
+          // receives, but it lets the inspector show the exact bytes behind
+          // either a bitmap or a URI scheme.
+          final debugUri = bitmapPath == null
+              ? null
+              : streamRelay.coverUrlSync(filePath: bitmapPath);
           _mediaLog(
             'publish id=$id kind=${kind.name}'
-            ' art=${art.fileUri == null ? 'none' : 'file'}'
-            ' bitmap=${art.smallArtPath == null ? 'none' : 'yes'}'
+            ' art=${fileUri == null ? 'none' : 'uri'}'
+            ' bitmap=${bitmapPath == null ? 'none' : 'yes'}'
+            ' fetch=${fetchUri ?? '-'}'
+            ' debug=${debugUri ?? '-'}'
             ' lyric=${line == null ? '-' : '"$line"'}'
+            ' lines=${carLines.map((line) => '"$line"').join(' | ')}'
             '${_sinceSwitch()}',
           );
         },

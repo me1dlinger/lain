@@ -39,6 +39,7 @@ import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/share_card_settings_page.dart';
 import 'package:lain/base/widgets/audio_quality_dashboard.dart';
+import 'package:lain/base/widgets/car_display_settings_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
@@ -402,11 +403,7 @@ class _SettingsListState extends State<SettingsList> {
         return [
           mobileDataWarningListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
-            controlCenterLyricsListTile(l10n),
-          if (isMobile && viewModeNotifier.value != .bigPicture)
-            coverBroadcastListTile(l10n),
-          if (isMobile && viewModeNotifier.value != .bigPicture)
-            relayAddressListTile(context, l10n),
+            carDisplayListTile(context, l10n),
         ];
       case SettingsCategory.startupBackground:
         return [
@@ -2076,6 +2073,24 @@ class _SettingsListState extends State<SettingsList> {
           onToggleCallBack: () => setting.save(),
         ),
       ),
+    );
+  }
+
+  Widget carDisplayListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.directions_car_filled_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.carDisplay),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const CarDisplaySettingsPage()),
+        );
+      },
     );
   }
 

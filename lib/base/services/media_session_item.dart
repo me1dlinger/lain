@@ -50,6 +50,7 @@ MediaItem buildServiceMediaItem({
   String? fileArtUri,
   String? artCacheFile,
   String? fetchableArtUri,
+  List<String>? carLines,
 }) {
   // A blank line is not a lyric, and with broadcasting off the line is not
   // published at all: the head unit gets the track's own metadata and nothing
@@ -68,11 +69,26 @@ MediaItem buildServiceMediaItem({
   // Just the identity, no decorative brackets: "artist - title".
   final artistText = lyricsOn ? '$artist - $songTitle' : artist;
 
+  // A configured car layout replaces the fixed two-line mapping. Bluetooth
+  // AVRCP and Android Auto read title/artist/album, so those are the three
+  // available lines; an empty line is left empty instead of being filled with
+  // an unrelated field.
+  final configured = carLines != null && carLines.isNotEmpty;
+  final displayTitle = configured
+      ? (carLines[0].trim().isEmpty ? songTitle : carLines[0].trim())
+      : titleText;
+  final displayArtist = configured
+      ? (carLines.length > 1 ? carLines[1].trim() : '')
+      : artistText;
+  final displayAlbum = configured
+      ? (carLines.length > 2 ? carLines[2].trim() : '')
+      : album;
+
   return MediaItem(
     id: id,
-    title: titleText,
-    artist: artistText,
-    album: album,
+    title: displayTitle,
+    artist: displayArtist,
+    album: displayAlbum,
     // A content:// URI is what audio_service reads asynchronously (and, on
     // Android 10+, through `loadThumbnail` at [mediaBroadcastThumbnailSide]).
     // A file:// URI is only published when no content URI could be resolved,
@@ -82,9 +98,9 @@ MediaItem buildServiceMediaItem({
         ? Uri.tryParse(fileArtUri)
         : null,
     duration: duration,
-    displayTitle: titleText,
-    displaySubtitle: artistText,
-    displayDescription: album,
+    displayTitle: displayTitle,
+    displaySubtitle: displayArtist,
+    displayDescription: displayAlbum,
     extras: <String, dynamic>{
       // audio_service loads this file and puts the bitmap straight into the
       // session metadata; a head unit then gets the image itself. Only the
