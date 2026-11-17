@@ -24,7 +24,9 @@ class CachedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isNotStreamSource) {
+    // A local file is already on disk; WebDAV songs can be cached like any
+    // streamed source, so their rows keep the mark.
+    if (sourceType == .local) {
       return const SizedBox.shrink();
     }
     return ValueListenableBuilder(

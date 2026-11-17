@@ -1300,11 +1300,12 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     // LAN direct plays from the server and leaves the cache alone, so no
     // prefetch is started (and none already running is kept).
-    if (lanDirectActive) {
+    if (isStreamSource && lanDirectActive) {
       _cancelNextCacheIfNotCurrent();
       return;
     }
-    if (isNotStreamSource || playQueue.isEmpty || currentIndex < 0) {
+    // Local files are already on disk; WebDAV caches like a stream source.
+    if (sourceType == .local || playQueue.isEmpty || currentIndex < 0) {
       _cancelNextCacheIfNotCurrent();
       return;
     }
@@ -1511,11 +1512,11 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     // LAN direct neither reads nor fills the cache.
-    if (lanDirectActive) {
+    if (isStreamSource && lanDirectActive) {
       return;
     }
     final generation = ++_cacheFlowGeneration;
-    if (isNotStreamSource) {
+    if (sourceType == .local) {
       return;
     }
 
@@ -1526,7 +1527,7 @@ class MyAudioHandler extends BaseAudioHandler {
         return;
       }
       // The switch can be turned on during the delay.
-      if (lanDirectActive) {
+      if (isStreamSource && lanDirectActive) {
         return;
       }
       try {
@@ -1597,7 +1598,7 @@ class MyAudioHandler extends BaseAudioHandler {
             _playedDuration.inSeconds / _player.state.duration.inSeconds;
         if (times > 0.5 &&
             autoCacheSongsNotifier.value &&
-            !lanDirectActive) {
+            !(isStreamSource && lanDirectActive)) {
           library.tryAddCache(currentSongNotifier.value!);
         }
         // Past two thirds of the track it is a finished listen: the play count,
@@ -1733,7 +1734,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
 
     try {
-      if (currentSong.cacheExist && !lanDirectActive) {
+      if (currentSong.cacheExist && !(isStreamSource && lanDirectActive)) {
         await _player.open(
           Media(currentSong.cachePath!, start: start),
           play: isPlayingNotifier.value,
@@ -1841,6 +1842,7 @@ class MyAudioHandler extends BaseAudioHandler {
         final tmpPath = await covertToRedirectPathIfNeed(song.path!);
         if (tmpPath == null) {
           headers = webdavClient?.headers;
+          resource = WebDavClient.encodeRemoteUrl(song.path!);
         } else {
           resource = tmpPath;
         }

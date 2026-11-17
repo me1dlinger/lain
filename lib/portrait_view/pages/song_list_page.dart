@@ -1026,7 +1026,7 @@ extension _SongListPage on _SongListState {
           // "all songs" one: the artist, album, folder and playlist pages are
           // local libraries too, and the scraper works from any of them.
           includeEdit: sourceType == .local,
-          includeCacheInfo: isStreamSource,
+          includeCacheInfo: isStreamSource || sourceType == .webdav,
           playlist: playlist,
           useDialog: false,
         );

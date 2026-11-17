@@ -717,6 +717,7 @@ class Library {
           cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
           await tmp.rename(song.cachePath!);
           song.cacheExist = true;
+          changeNotifier.value++;
           unawaited(enforceCacheLimit(protectedSongId: song.id));
         }
       }
@@ -964,6 +965,9 @@ class Library {
         final tmpPath = await covertToRedirectPathIfNeed(path);
         if (tmpPath == null) {
           headers = webdavClient?.headers;
+          // The id is a decoded URL; the tag reader parses it as a URL, so a
+          // `#` or `?` in a file name has to be encoded first.
+          readPath = WebDavClient.encodeRemoteUrl(path);
         } else {
           readPath = tmpPath;
         }
@@ -1104,9 +1108,11 @@ class Library {
             created = pathAndCreated.remove(path);
           } else {
             if (webdavClient != null) {
-              modified = pathAndModified.remove(
-                path.substring(webdavClient!.cleanBaseUrl.length),
+              final relative = path.substring(
+                webdavClient!.cleanBaseUrl.length,
               );
+              modified = pathAndModified.remove(relative);
+              created = pathAndCreated.remove(relative);
             }
           }
 
@@ -1130,7 +1136,12 @@ class Library {
           } else if (Platform.isIOS) {
             id = convertIOSPath(path);
           }
-          tasks.add(pool.withResource(() => syncOne(id, path, entry.value)));
+          final created = pathAndCreated.remove(entry.key);
+          tasks.add(
+            pool.withResource(
+              () => syncOne(id, path, entry.value, created: created),
+            ),
+          );
         }
 
         await Future.wait(tasks);
@@ -1138,6 +1149,17 @@ class Library {
         await pool.close();
 
         id2Song.removeWhere((id, song) => !validId.contains(id));
+
+        if (sourceType == .webdav) {
+          // "Added time" is not stored in the metadata database; keep the
+          // server's creationdate in the same file the stream sources use so a
+          // restart still sorts by it.
+          await serverCreatedTimes.ensureLoaded();
+          for (final song in songList) {
+            serverCreatedTimes.record(song.id, song.created);
+          }
+          unawaited(serverCreatedTimes.flush());
+        }
 
         for (final folder in folderList) {
           await folder.sync();

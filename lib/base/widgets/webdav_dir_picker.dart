@@ -25,16 +25,18 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
 
   Future<List<String>> listDirectories(String path) async {
     try {
-      await webdavClient!.ping();
+      if (!await webdavClient!.ping()) {
+        return [];
+      }
     } catch (e) {
       return [];
     }
 
     final files = await webdavClient!.list(path);
-    // Keep only directories
+    // Keep only directories, named relative to the configured base.
     final directories = files
         .where((f) => f.isDirectory)
-        .map((f) => f.path.substring(webdavClient!.initialPath.length))
+        .map((f) => webdavClient!.relativePath(f.path))
         .toList();
     return directories;
   }

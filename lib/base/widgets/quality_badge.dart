@@ -132,7 +132,7 @@ class SongBadges extends StatelessWidget {
             ),
           );
         }
-        if (isStreamSource && song.cacheExist) {
+        if (song.cacheExist) {
           items.add(
             Tooltip(
               message: AppLocalizations.of(context).cached,

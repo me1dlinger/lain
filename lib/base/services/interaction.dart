@@ -1176,7 +1176,7 @@ void showSongOptions({
                   },
                 ),
 
-                if (isStreamSource)
+                if (isStreamSource || sourceType == .webdav)
                   _optionItem(
                     leading: Icon(Icons.download_rounded),
                     text: l10n.download,
@@ -1229,7 +1229,8 @@ void showSongOptions({
                     },
                   ),
 
-                if (includeCacheInfo && isStreamSource)
+                if (includeCacheInfo &&
+                    (isStreamSource || sourceType == .webdav))
                   _optionItem(
                     leading: Icon(Icons.offline_pin_outlined),
                     text: l10n.viewCache,

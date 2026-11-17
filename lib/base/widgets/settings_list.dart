@@ -249,8 +249,11 @@ class _SettingsListState extends State<SettingsList> {
               sliverBox(_settingsHeader(context, l10n)),
             for (final category in order)
               // A local library has no downloads, and its covers/lyrics are
-              // not something the cache page is needed for.
-              if (isStreamSource || category != SettingsCategory.cacheDownloads)
+              // not something the cache page is needed for. WebDAV can cache
+              // and download like a streamed source.
+              if (isStreamSource ||
+                  sourceType == .webdav ||
+                  category != SettingsCategory.cacheDownloads)
                 sliverBox(
                   paddingIfNeed(
                     isLandscape,
@@ -353,8 +356,10 @@ class _SettingsListState extends State<SettingsList> {
             streamFormatListTile(context, l10n),
             useServerRandomListTile(l10n),
             if (sourceType == .navidrome) playbackReportListTile(l10n),
-            cacheStorageStatsListTile(context, l10n),
           ],
+          // WebDAV caches to disk too, so the cache dashboard applies to it.
+          if (isStreamSource || sourceType == .webdav)
+            cacheStorageStatsListTile(context, l10n),
           if (Platform.isIOS && viewModeNotifier.value != .bigPicture)
             premiumFeaturesListTile(context, l10n),
         ];
@@ -418,20 +423,24 @@ class _SettingsListState extends State<SettingsList> {
             Icons.music_note_rounded,
             autoCacheSongsNotifier,
           ),
-          autoCacheListTile(
-            l10n.autoCachePlaylists,
-            Icons.queue_music_rounded,
-            autoCachePlaylistsNotifier,
-          ),
-          autoCacheListTile(
-            l10n.autoCacheArtists,
-            Icons.person_outline_rounded,
-            autoCacheArtistsNotifier,
-          ),
+          // WebDAV has no server-side playlist covers/artist images to warm,
+          // and no transcode quality to choose.
+          if (isStreamSource) ...[
+            autoCacheListTile(
+              l10n.autoCachePlaylists,
+              Icons.queue_music_rounded,
+              autoCachePlaylistsNotifier,
+            ),
+            autoCacheListTile(
+              l10n.autoCacheArtists,
+              Icons.person_outline_rounded,
+              autoCacheArtistsNotifier,
+            ),
+          ],
           songCacheListTile(context, l10n),
           cacheGroupListTile(context, l10n),
           downloadsListTile(context, l10n),
-          downloadQualityListTile(context, l10n),
+          if (isStreamSource) downloadQualityListTile(context, l10n),
           downloadMobileDataListTile(l10n),
           cacheDirListTile(context, l10n),
           downloadDirListTile(context, l10n),
@@ -702,7 +711,8 @@ class _SettingsListState extends State<SettingsList> {
           return const SizedBox.shrink();
         }
         final cached =
-            offlineUseCachedLibraryNotifier.value && isStreamSource;
+            offlineUseCachedLibraryNotifier.value &&
+            (isStreamSource || sourceType == .webdav);
         return ListTile(
           leading: Icon(
             cached ? Icons.offline_pin_rounded : Icons.folder_rounded,
@@ -766,7 +776,8 @@ class _SettingsListState extends State<SettingsList> {
     AppLocalizations l10n,
   ) async {
     final cached =
-        offlineUseCachedLibraryNotifier.value && isStreamSource;
+        offlineUseCachedLibraryNotifier.value &&
+            (isStreamSource || sourceType == .webdav);
     if (sourceType == .local) {
       // Coming back to the cached library needs a server; the one the user was
       // on is remembered, because switching to the local library cleared it.

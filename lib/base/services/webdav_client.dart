@@ -15,11 +15,16 @@ class WebDavFile {
   final bool isDirectory;
   final DateTime? modified;
 
+  /// The server's `creationdate`, used as the song's "added time"; null when
+  /// the server does not report one.
+  final DateTime? created;
+
   WebDavFile({
     required this.path,
     required this.name,
     required this.isDirectory,
     this.modified,
+    this.created,
   });
 }
 
@@ -43,13 +48,17 @@ class WebDavClient {
     required this.username,
     required this.password,
   }) {
-    _initialPath = Uri.parse(baseUrl).path;
-    _initialPath = Uri.decodeFull(_initialPath);
-
-    _cleanBaseUrl = baseUrl.substring(0, baseUrl.length - _initialPath.length);
-
-    if (_initialPath.endsWith('/')) {
-      _initialPath = _initialPath.substring(0, _initialPath.length - 1);
+    // The stored address may carry a path (a mount point) and it may contain
+    // percent-encoded Chinese or spaces. Slicing the encoded base URL by the
+    // *decoded* path length - as this used to - cut it mid-escape, so every
+    // request went to a broken URL and a WebDAV source showed nothing.
+    final uri = Uri.tryParse(baseUrl);
+    _initialPath = _normalizeBasePath(
+      uri == null ? '' : _decodePath(uri.path),
+    );
+    _cleanBaseUrl = uri == null ? baseUrl.trim() : _originOf(uri);
+    if (_cleanBaseUrl.endsWith('/')) {
+      _cleanBaseUrl = _cleanBaseUrl.substring(0, _cleanBaseUrl.length - 1);
     }
 
     dio = Dio(
@@ -68,6 +77,89 @@ class WebDavClient {
 
   String get initialPath => _initialPath;
 
+  /// Scheme, credentials and host of [uri], without any path: this is what a
+  /// song's id is prefixed with, and hrefs the server sends already carry the
+  /// base path.
+  static String _originOf(Uri uri) {
+    if (uri.scheme.isEmpty || uri.host.isEmpty) {
+      return uri.toString();
+    }
+    final buffer = StringBuffer('${uri.scheme}://');
+    if (uri.userInfo.isNotEmpty) {
+      buffer.write('${uri.userInfo}@');
+    }
+    buffer.write(uri.host);
+    if (uri.hasPort) {
+      buffer.write(':${uri.port}');
+    }
+    return buffer.toString();
+  }
+
+  static String _decodePath(String path) {
+    try {
+      return Uri.decodeFull(path);
+    } catch (_) {
+      return path;
+    }
+  }
+
+  /// Percent-encodes a decoded path segment by segment.
+  ///
+  /// The app keeps paths decoded (they come from `Uri.decodeFull`), but a name
+  /// such as `Track #1` or `What?` would then make Dio read `#` or `?` as URL
+  /// syntax and request the wrong resource - the collection failed and its
+  /// whole subtree disappeared from the scan.
+  static String _encodePath(String path) {
+    if (path.isEmpty || path == '/') {
+      return path.isEmpty ? '' : '/';
+    }
+    final leading = path.startsWith('/') ? '/' : '';
+    final trailing = path.length > 1 && path.endsWith('/') ? '/' : '';
+    final segments = path
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .map(Uri.encodeComponent)
+        .join('/');
+    return '$leading$segments$trailing';
+  }
+
+  /// Encodes the path part of a decoded absolute URL, leaving its scheme and
+  /// host untouched. Used wherever a song's stored URL goes to a URL parser
+  /// (lofty, http, the relay): a name containing `#` or `?` would otherwise be
+  /// read as URL syntax and the request would hit the wrong resource.
+  static String encodeRemoteUrl(String url) {
+    final schemeEnd = url.indexOf('://');
+    if (schemeEnd < 0) {
+      return url;
+    }
+    final originEnd = url.indexOf('/', schemeEnd + 3);
+    if (originEnd < 0) {
+      return url;
+    }
+    final origin = url.substring(0, originEnd);
+    return '$origin${_encodePath(url.substring(originEnd))}';
+  }
+
+  /// The base path without its trailing slash; the root is the empty string.
+  static String _normalizeBasePath(String path) {
+    var value = path;
+    if (value == '/') {
+      return '';
+    }
+    while (value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
+  static String _withoutTrailingSlash(String path) {
+    var value = path;
+    while (value.length > 1 && value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
   void _applyAuth() {
     dio.options.headers['authorization'] =
         'Basic ${base64Encode(utf8.encode('$username:$password'))}';
@@ -84,6 +176,57 @@ class WebDavClient {
       logger.output('[WebDav] Decode uri error: $e');
       return value;
     }
+  }
+
+  /// Turns a path the app holds (decoded, relative to the server's base path,
+  /// and with or without a leading slash) into the absolute path a request
+  /// needs. An absolute href the server already sent is kept as it is.
+  String _fullPath(String remotePath) {
+    var path = _safeDecodeUri(remotePath.trim());
+    if (path.isEmpty) {
+      path = '/';
+    }
+    if (!path.startsWith('/')) {
+      path = '/$path';
+    }
+    if (_initialPath.isEmpty) {
+      return path;
+    }
+    if (path == _initialPath || path.startsWith('$_initialPath/')) {
+      return path;
+    }
+    return '$_initialPath$path';
+  }
+
+  /// The opposite of [_fullPath]: a decoded href as a path relative to the
+  /// configured base.
+  String relativePath(String absolutePath) {
+    final path = _safeDecodeUri(absolutePath);
+    if (_initialPath.isEmpty) {
+      return path;
+    }
+    if (path == _initialPath) {
+      return '/';
+    }
+    if (path.startsWith('$_initialPath/')) {
+      return path.substring(_initialPath.length);
+    }
+    return path;
+  }
+
+  /// The path of the configured base (a mount point), or `/` at the root.
+  String get _rootPath => _initialPath.isEmpty ? '/' : _initialPath;
+
+  /// WebDAV dates are RFC 8594 / HTTP dates on most servers (`Tue, 31 Mar
+  /// 2026 10:36:13 GMT`), while some send ISO 8601. Accept both.
+  static DateTime? _parseDate(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    try {
+      return HttpDate.parse(value).toLocal();
+    } catch (_) {}
+    return DateTime.tryParse(value);
   }
 
   Future<T?> _safeRequest<T>(
@@ -121,9 +264,9 @@ class WebDavClient {
 
   Future<bool> ping() async {
     final result = await _safeRequest(
-      'ping $_initialPath',
+      'ping $_rootPath',
       () => dio.request(
-        _initialPath,
+        _encodePath(_rootPath),
         options: Options(method: 'PROPFIND', headers: {'Depth': '0'}),
       ),
       (response) {
@@ -136,15 +279,41 @@ class WebDavClient {
   }
 
   Future<List<WebDavFile>> list(String remotePath) async {
-    remotePath = initialPath + remotePath;
-    if (!remotePath.endsWith('/')) {
-      remotePath += '/';
+    return await _listAbsolute(_fullPath(remotePath)) ?? [];
+  }
+
+  /// Lists one collection by its absolute (decoded) path, retrying a failed
+  /// request twice: a NAS behind a proxy does answer the occasional 502, and
+  /// dropping that one collection used to lose a whole album from the scan.
+  /// Null means every attempt failed.
+  Future<List<WebDavFile>?> _listAbsolute(String absolutePath) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final result = await _listAbsoluteOnce(absolutePath);
+      if (result != null) {
+        return result;
+      }
+      if (attempt < 2) {
+        await Future<void>.delayed(
+          Duration(milliseconds: 400 * (attempt + 1)),
+        );
+      }
     }
+    return null;
+  }
+
+  /// Lists one collection by its absolute (decoded) path. The caller has
+  /// already resolved the base path, so hrefs are used as they arrive.
+  Future<List<WebDavFile>?> _listAbsoluteOnce(String absolutePath) async {
+    var decodedPath = absolutePath;
+    if (!decodedPath.endsWith('/')) {
+      decodedPath += '/';
+    }
+    final requestPath = _encodePath(decodedPath);
 
     final result = await _safeRequest(
-      'list $remotePath',
+      'list $decodedPath',
       () => dio.request(
-        remotePath,
+        requestPath,
         data: '''
 <?xml version="1.0" encoding="utf-8"?>
 <d:propfind xmlns:d="DAV:">
@@ -157,13 +326,18 @@ class WebDavClient {
         ),
       ),
       (response) {
-        final document = XmlDocument.parse(response.data);
+        final data = response.data;
+        if (data is! String) {
+          return <WebDavFile>[];
+        }
+        final document = XmlDocument.parse(data);
 
         final responses = document
             .findAllElements('*')
             .where((e) => e.name.local == 'response');
 
         final result = <WebDavFile>[];
+        final selfPath = _withoutTrailingSlash(decodedPath);
 
         for (final item in responses) {
           try {
@@ -171,9 +345,9 @@ class WebDavClient {
                 .whereType<XmlElement>()
                 .firstWhere((e) => e.name.local == 'href');
 
-            String href = _safeDecodeUri(hrefElement.innerText);
-
-            if (remotePath == href) {
+            final href = _safeDecodeUri(hrefElement.innerText);
+            final cleanPath = _withoutTrailingSlash(href);
+            if (cleanPath == selfPath) {
               continue;
             }
 
@@ -185,20 +359,10 @@ class WebDavClient {
                 .findAllElements('*')
                 .where((e) => e.name.local == 'getlastmodified')
                 .firstOrNull;
-
-            DateTime? modified;
-
-            if (modifiedElement != null) {
-              try {
-                modified = HttpDate.parse(modifiedElement.innerText).toLocal();
-              } catch (e) {
-                logger.output('[WebDav] Parse modified time error: $e');
-              }
-            }
-
-            final cleanPath = href.endsWith('/')
-                ? href.substring(0, href.length - 1)
-                : href;
+            final createdElement = item
+                .findAllElements('*')
+                .where((e) => e.name.local == 'creationdate')
+                .firstOrNull;
 
             final name = p.basename(cleanPath);
             result.add(
@@ -206,7 +370,8 @@ class WebDavClient {
                 path: href,
                 name: name,
                 isDirectory: isDir,
-                modified: modified,
+                modified: _parseDate(modifiedElement?.innerText),
+                created: _parseDate(createdElement?.innerText),
               ),
             );
           } catch (e) {
@@ -218,25 +383,63 @@ class WebDavClient {
       },
     );
 
-    return result ?? [];
+    return result;
   }
 
   Stream<WebDavFile> listStream(
     String remotePath, {
     bool recursive = false,
   }) async* {
-    final files = await list(remotePath);
-
+    final files = await listRecursive(remotePath, recursive: recursive);
     for (final file in files) {
       yield file;
+    }
+  }
 
-      if (recursive && file.isDirectory) {
-        yield* listStream(
-          file.path.substring(webdavClient!.initialPath.length),
-          recursive: true,
-        );
+  /// Walks [remotePath] and, when [recursive], every collection under it.
+  ///
+  /// The old walk asked one directory at a time and awaited the answer, so a
+  /// music tree of thousands of collections took many minutes before the first
+  /// song could appear. A few requests run at once instead; a collection that
+  /// fails is skipped rather than aborting the whole scan.
+  Future<List<WebDavFile>> listRecursive(
+    String remotePath, {
+    bool recursive = true,
+    int concurrency = 8,
+  }) async {
+    final all = <WebDavFile>[];
+    final seen = <String>{};
+    var queue = <String>[_fullPath(remotePath)];
+
+    while (queue.isNotEmpty) {
+      final batch = <String>[];
+      while (queue.isNotEmpty && batch.length < concurrency) {
+        final path = queue.removeAt(0);
+        if (!seen.add(_withoutTrailingSlash(path))) {
+          continue;
+        }
+        batch.add(path);
+      }
+      if (batch.isEmpty) {
+        continue;
+      }
+      final pages = await Future.wait(batch.map(_listAbsolute));
+      for (final page in pages) {
+        if (page == null) {
+          continue;
+        }
+        all.addAll(page);
+        if (!recursive) {
+          continue;
+        }
+        for (final file in page) {
+          if (file.isDirectory) {
+            queue.add(file.path);
+          }
+        }
       }
     }
+    return all;
   }
 
   Future<List<String>> listSubDirectories(String root) async {
@@ -266,16 +469,28 @@ class WebDavClient {
     }
   }
 
+  /// A full URL is used as it is (song ids are full URLs); a path the app
+  /// holds is resolved against the configured base.
+  String _requestPath(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      // The stored URL is decoded; encode it again before a URL parser sees
+      // names containing `#` or `?`.
+      return encodeRemoteUrl(path);
+    }
+    return _encodePath(_fullPath(path));
+  }
+
   Future<bool> download({
     required String remotePath,
     required String localPath,
     ProgressCallback? onReceiveProgress,
     CancelToken? cancelToken,
   }) async {
+    final path = _requestPath(remotePath);
     return _boolRequest(
-      'download $remotePath',
+      'download $path',
       () => dio.download(
-        remotePath,
+        path,
         localPath,
         onReceiveProgress: onReceiveProgress,
         cancelToken: cancelToken,
@@ -295,7 +510,7 @@ class WebDavClient {
       'upload $localPath',
 
       () => dio.put(
-        remotePath,
+        _requestPath(remotePath),
         data: file.openRead(),
         options: Options(headers: {Headers.contentLengthHeader: length}),
         onSendProgress: onSendProgress,
@@ -307,12 +522,18 @@ class WebDavClient {
     return _boolRequest(
       'mkdir $remotePath',
 
-      () => dio.request(remotePath, options: Options(method: 'MKCOL')),
+      () => dio.request(
+        _requestPath(remotePath),
+        options: Options(method: 'MKCOL'),
+      ),
     );
   }
 
   Future<bool> delete(String remotePath) async {
-    return _boolRequest('delete $remotePath', () => dio.delete(remotePath));
+    return _boolRequest(
+      'delete $remotePath',
+      () => dio.delete(_requestPath(remotePath)),
+    );
   }
 
   String _buildDestinationUrl(String destination) {
@@ -330,7 +551,7 @@ class WebDavClient {
     return _boolRequest(
       'move ${source}to $destination',
       () => dio.request(
-        source,
+        _requestPath(source),
         options: Options(
           method: 'MOVE',
           headers: {'Destination': _buildDestinationUrl(destination)},
@@ -344,10 +565,10 @@ class WebDavClient {
     required String destination,
   }) async {
     return _boolRequest(
-      'copy ${source}to $destination',
+      'copy $source to $destination',
 
       () => dio.request(
-        source,
+        _requestPath(source),
         options: Options(
           method: 'COPY',
           headers: {'Destination': _buildDestinationUrl(destination)},

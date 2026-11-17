@@ -15,6 +15,7 @@ import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
 import 'package:lain/base/services/stream_client.dart';
+import 'package:lain/base/services/webdav_client.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/path.dart';
@@ -254,7 +255,8 @@ class DownloadManager {
   /// on mobile data with the setting off it waits for Wi-Fi.
   Future<bool> startDownload(MyAudioMetadata song) async {
     final client = streamClient;
-    if (client == null) {
+    // WebDAV has no StreamClient, but its files download just the same.
+    if (client == null && (sourceType != .webdav || webdavClient == null)) {
       return false;
     }
     await ensureLoaded();
@@ -288,9 +290,10 @@ class DownloadManager {
   Future<void> _runTask(DownloadTask task) async {
     final l10n = getAppLocalizations();
     final client = streamClient;
+    final webdav = sourceType == .webdav ? webdavClient : null;
     final song = library.id2Song[task.songId];
 
-    if (client == null || song == null) {
+    if (song == null || (client == null && webdav == null)) {
       task.state = DownloadTaskState.failed;
       _publishTasks();
       await _saveQueue();
@@ -341,14 +344,21 @@ class DownloadManager {
       _taskPaths[task.songId] = path;
 
       final quality = downloadQualityNotifier.value;
-      final ok = quality == StreamQuality.original
-          ? await client.downloadOriginal(
+      final ok = webdav != null
+          ? await webdav.download(
+              remotePath: song.path ?? '',
+              localPath: path,
+              cancelToken: token,
+              onReceiveProgress: reportProgress,
+            )
+          : quality == StreamQuality.original
+          ? await client!.downloadOriginal(
               song.id,
               path,
               cancelToken: token,
               onProgress: reportProgress,
             )
-          : await client.downloadSong(
+          : await client!.downloadSong(
               song.id,
               path,
               cancelToken: token,

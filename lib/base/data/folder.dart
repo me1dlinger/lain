@@ -120,17 +120,27 @@ class Folder {
   Future<void> setFileAndModified() async {
     final scanSubdirectories = folderScansSubdirectories(id);
     if (isWebdav) {
-      await for (final file in webdavClient!.listStream(
+      final files = await webdavClient!.listRecursive(
         path,
         recursive: scanSubdirectories,
-      )) {
-        if (!file.isDirectory) {
-          final ext = extension(file.path).toLowerCase();
+      );
+      for (final file in files) {
+        if (file.isDirectory) {
+          continue;
+        }
+        final ext = extension(file.path).toLowerCase();
 
-          if (!_loftySupportedExts.contains(ext)) {
-            continue;
-          }
-          pathAndModified.addEntries([MapEntry(file.path, file.modified!)]);
+        if (!_loftySupportedExts.contains(ext)) {
+          continue;
+        }
+        // A server may leave getlastmodified out for one entry. Dropping that
+        // file would lose a song; a zero time means "unknown", and the file is
+        // still read and stored.
+        pathAndModified[file.path] =
+            file.modified ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final created = file.created ?? file.modified;
+        if (created != null) {
+          pathAndCreated[file.path] = created;
         }
       }
     } else {

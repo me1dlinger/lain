@@ -139,7 +139,7 @@ class Loader {
       library.cachedOnly =
           offlineModeNotifier.value &&
           offlineUseCachedLibraryNotifier.value &&
-          isStreamSource;
+          (isStreamSource || sourceType == .webdav);
 
       if (!library.cachedOnly && isStreamSource && streamClient != null) {
         if (!File(getSyncedFilePath(sourceType)).existsSync()) {

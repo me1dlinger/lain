@@ -392,12 +392,16 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
       return false;
     }
     try {
-      await webdavClient!.ping();
-    } catch (e) {
-      if (!context.mounted) {
+      if (!await webdavClient!.ping()) {
+        if (context.mounted) {
+          showCenterMessage('Can not connect to WebDAV');
+        }
         return false;
       }
-      showCenterMessage('Can not connect to WebDAV');
+    } catch (e) {
+      if (context.mounted) {
+        showCenterMessage('Can not connect to WebDAV');
+      }
       return false;
     }
     return true;

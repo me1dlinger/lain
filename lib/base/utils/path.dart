@@ -146,7 +146,12 @@ String getSyncedFilePath(SourceType sourceType) {
 final _httpClient = http.Client();
 
 Future<String?> covertToRedirectPathIfNeed(String path) async {
-  final request = http.Request('HEAD', Uri.parse(path))
+  // A decoded name with `#` or `?` would otherwise end the path at that
+  // character and the HEAD request would look at the wrong resource.
+  final request = http.Request(
+    'HEAD',
+    Uri.parse(WebDavClient.encodeRemoteUrl(path)),
+  )
     ..followRedirects = false
     ..headers.addAll(webdavClient?.headers ?? {});
 

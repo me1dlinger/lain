@@ -252,7 +252,7 @@ Future<void> _loadPicture(MyPicture picture) async {
           final tmpPath = await covertToRedirectPathIfNeed(picture.id);
           if (tmpPath == null) {
             bytes = await readPictureAsync(
-              picture.id,
+              WebDavClient.encodeRemoteUrl(picture.id),
               headers: webdavClient?.headers,
             );
           } else {
