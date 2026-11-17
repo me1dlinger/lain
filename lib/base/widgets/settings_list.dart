@@ -40,6 +40,7 @@ import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/share_card_settings_page.dart';
 import 'package:lain/base/widgets/audio_quality_dashboard.dart';
 import 'package:lain/base/widgets/car_display_settings_page.dart';
+import 'package:lain/base/widgets/debug_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
@@ -449,6 +450,20 @@ class _SettingsListState extends State<SettingsList> {
             title: Text(l10n.feedback),
             onTap: () {
               launchUrl(Uri.parse('https://github.com/me1dlinger/lain/issues'));
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.bug_report_outlined,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.debug),
+            onTap: () {
+              pushSettingsPage<void>(
+                context,
+                settingsPageRoute<void>(() => const DebugPage()),
+              );
             },
           ),
           viewLogListTile(context, l10n),

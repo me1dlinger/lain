@@ -2455,4 +2455,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pcInspector => 'PC inspector';
+
+  @override
+  String get debug => 'Debug';
+
+  @override
+  String get currentBroadcast => 'Current broadcast';
 }

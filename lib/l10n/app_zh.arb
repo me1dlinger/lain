@@ -1021,5 +1021,7 @@
   "carPreviewBuiltin": "内置",
   "carPreviewLive": "实时",
   "carNoSong": "当前没有播放歌曲",
-  "pcInspector": "PC 检查服务"
+  "pcInspector": "PC 检查服务",
+  "debug": "调试",
+  "currentBroadcast": "当前广播"
 }

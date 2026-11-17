@@ -2412,4 +2412,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pcInspector => 'PC 检查服务';
+
+  @override
+  String get debug => '调试';
+
+  @override
+  String get currentBroadcast => '当前广播';
 }

@@ -21,6 +21,8 @@ class BroadcastInspector {
   String? _coverPath;
   bool _started = false;
 
+  Map<String, Object?> get state => Map.unmodifiable(_state);
+
   void update({
     required String title,
     required String artist,

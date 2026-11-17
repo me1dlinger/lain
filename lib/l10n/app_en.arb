@@ -1091,5 +1091,7 @@
   "carPreviewBuiltin": "Built-in",
   "carPreviewLive": "Live",
   "carNoSong": "Nothing is playing",
-  "pcInspector": "PC inspector"
+  "pcInspector": "PC inspector",
+  "debug": "Debug",
+  "currentBroadcast": "Current broadcast"
 }

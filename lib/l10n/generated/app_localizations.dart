@@ -4729,6 +4729,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PC inspector'**
   String get pcInspector;
+
+  /// No description provided for @debug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get debug;
+
+  /// No description provided for @currentBroadcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Current broadcast'**
+  String get currentBroadcast;
 }
 
 class _AppLocalizationsDelegate
