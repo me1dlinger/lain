@@ -220,6 +220,27 @@ class NavidromeClient extends StreamClient {
     final subsonicVersion = ping['version']?.toString();
     final openSubsonic = ping['openSubsonic'] == true;
 
+    // What this server implements beyond the base Subsonic API. The extension
+    // list is the server's own answer, so showing it is a capability report
+    // rather than a guess from the app version.
+    final extensions = <String>[];
+    if (openSubsonic) {
+      final extensionResponse = await safeRequest(
+        '/rest/getOpenSubsonicExtensions.view',
+      );
+      final raw = extensionResponse?['openSubsonicExtensions'];
+      if (raw is List) {
+        for (final item in raw) {
+          if (item is Map) {
+            final name = item['name']?.toString();
+            if (name != null && name.isNotEmpty && !extensions.contains(name)) {
+              extensions.add(name);
+            }
+          }
+        }
+      }
+    }
+
     // The scan status reports how many songs the library has, whether a scan
     // is running, and when the last one finished.
     int? songCount;
@@ -325,6 +346,7 @@ class NavidromeClient extends StreamClient {
       totalDuration: totalDuration,
       scanning: scanning,
       lastScan: lastScan,
+      extensions: extensions,
     );
     return stats;
   }

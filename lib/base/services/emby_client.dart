@@ -754,6 +754,14 @@ class EmbyClient extends StreamClient {
       lastScan: lastScan,
       activeStreams: activeStreams,
       transcodeStreams: transcodeStreams,
+      extensions: const [
+        'lyrics',
+        'playbackReport',
+        'similarArtists',
+        'favorites',
+        'libraryScan',
+        'playlists',
+      ],
     );
   }
 

@@ -2479,4 +2479,230 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currentBroadcast => 'Current broadcast';
+
+  @override
+  String get rediscovery => 'Long time no see';
+
+  @override
+  String get searchAll => 'All';
+
+  @override
+  String get searchTopResult => 'Top result';
+
+  @override
+  String get searchRecent => 'Recent searches';
+
+  @override
+  String get searchClearRecent => 'Clear';
+
+  @override
+  String get searchTrySearching => 'Try searching for';
+
+  @override
+  String get searchBrowse => 'Browse';
+
+  @override
+  String get searchIdleHint =>
+      'Songs, albums, artists and playlists - all in one place';
+
+  @override
+  String get searchShowAll => 'Show all';
+
+  @override
+  String searchCountSongs(int count) {
+    return '$count songs';
+  }
+
+  @override
+  String get prefetchNextSong => 'Pre-cache the next song';
+
+  @override
+  String get settingsDataBackup => 'Data and backup';
+
+  @override
+  String get backupData => 'Backup';
+
+  @override
+  String get backupExport => 'Export backup';
+
+  @override
+  String get backupImport => 'Restore from a file';
+
+  @override
+  String get backupSettings => 'Settings';
+
+  @override
+  String get backupServers => 'Servers and accounts';
+
+  @override
+  String get backupPlaylists => 'Playlists and favorites';
+
+  @override
+  String get backupStatistics => 'Listening statistics';
+
+  @override
+  String get backupPrivacy =>
+      'Server passwords are not included; enter them again after restoring.';
+
+  @override
+  String get backupSaved => 'Backup saved';
+
+  @override
+  String get backupRestoreConfirm =>
+      'Restore this backup? Settings, servers, playlists and statistics will be replaced.';
+
+  @override
+  String get backupRestoreDone => 'Restored. Restart Lain to apply everything.';
+
+  @override
+  String get backupInvalid => 'This is not a Lain backup file';
+
+  @override
+  String get backupRollback =>
+      'The previous data was copied to a rollback file';
+
+  @override
+  String get settingsGroupGeneral => 'General';
+
+  @override
+  String get settingsGroupPlayback => 'Playback';
+
+  @override
+  String get settingsGroupLibrary => 'Library';
+
+  @override
+  String get settingsGroupMore => 'More';
+
+  @override
+  String get settingsSearchHint => 'Search settings';
+
+  @override
+  String get settingsNoResults => 'No matching settings';
+
+  @override
+  String get showInFolder => 'Show in folder';
+
+  @override
+  String get removeFromLibrary => 'Remove from library';
+
+  @override
+  String get removeFromLibraryConfirm =>
+      'Remove this song from the library? The audio file is not deleted.';
+
+  @override
+  String get removedFromLibrary => 'Removed from the library';
+
+  @override
+  String get deleteFile => 'Delete file';
+
+  @override
+  String get deleteFileConfirm =>
+      'Permanently delete this audio file? This cannot be undone.';
+
+  @override
+  String get fileDeleted => 'File deleted';
+
+  @override
+  String get noFileManager => 'No file manager could open the folder';
+
+  @override
+  String get showInFolderFailed => 'Could not open the folder';
+
+  @override
+  String get audioOutput => 'Audio output';
+
+  @override
+  String get audioRoute => 'Current route';
+
+  @override
+  String get audioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get audioRouteUsb => 'USB audio';
+
+  @override
+  String get audioRouteWired => 'Wired headphones';
+
+  @override
+  String get audioRouteSpeaker => 'Speaker';
+
+  @override
+  String get audioRouteEarpiece => 'Earpiece';
+
+  @override
+  String get audioRouteHdmi => 'HDMI';
+
+  @override
+  String get audioRouteDock => 'Dock';
+
+  @override
+  String get audioRouteHearingAid => 'Hearing aid';
+
+  @override
+  String get audioRouteLine => 'Line output';
+
+  @override
+  String get audioRouteOther => 'Audio device';
+
+  @override
+  String get audioOutputSampleRate => 'Output sample rate';
+
+  @override
+  String get audioOutputBuffer => 'Output buffer';
+
+  @override
+  String get audioOutputLatency => 'Buffer latency';
+
+  @override
+  String get audioSourceFormat => 'Source format';
+
+  @override
+  String get audioSourceSampleRate => 'Source sample rate';
+
+  @override
+  String get audioOutputDevices => 'Connected output devices';
+
+  @override
+  String get audioOutputNote =>
+      'Android reports the output rate and buffer. The Bluetooth codec itself is negotiated by the system and is not exposed to apps.';
+
+  @override
+  String get audioOutputUnavailable =>
+      'This platform does not report output details';
+
+  @override
+  String get audioNoSongPlaying => 'Nothing is playing';
+
+  @override
+  String get serverCapabilities => 'Server capabilities';
+
+  @override
+  String get capLyrics => 'Lyrics by song id';
+
+  @override
+  String get capSimilarSongs => 'Sonic similarity';
+
+  @override
+  String get capTranscodeOffset => 'Transcode offset';
+
+  @override
+  String get capFormPost => 'Form post';
+
+  @override
+  String get capApiKey => 'API key auth';
+
+  @override
+  String get capPlaybackReport => 'Playback reporting';
+
+  @override
+  String get capSimilarArtists => 'Similar artists';
+
+  @override
+  String get capFavorites => 'Album and artist favorites';
+
+  @override
+  String get capLibraryScan => 'Library scan';
+
+  @override
+  String get capPlaylists => 'Server playlists';
 }

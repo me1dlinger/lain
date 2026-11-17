@@ -137,6 +137,10 @@ Future<void> main() async {
         lightHoverFocusColorNotifier,
       ]),
       builder: (context, child) {
+        final themeBrightness = mainPageThemeNotifier.value == .dark
+            ? Brightness.dark
+            : Brightness.light;
+        final themeScheme = grayColorScheme(themeBrightness);
         if (!immersiveWideLayoutNotifier.value) {
           WidgetsBinding.instance.addPersistentFrameCallback((_) {
             SystemChrome.setSystemUIOverlayStyle(
@@ -156,6 +160,9 @@ Future<void> main() async {
           navigatorKey: globalNavigatorKey,
           title: 'Lain',
           theme: ThemeData(
+            brightness: themeBrightness,
+            colorScheme: themeScheme,
+            primaryColor: themeScheme.primary,
             focusColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(20),

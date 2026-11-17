@@ -34,6 +34,7 @@ import 'package:lain/base/widgets/settings_page_route.dart';
 import 'package:lain/base/widgets/library_organize_page.dart';
 import 'package:lain/base/widgets/song_list.dart';
 import 'package:lain/base/widgets/song_info.dart';
+import 'package:lain/base/services/local_song_actions.dart';
 import 'package:lain/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:lain/big_picture_view/panels/big_single_artist_panel.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
@@ -499,6 +500,14 @@ ValueNotifier<bool> vibrationOnNoitifier = ValueNotifier(true);
 void tryVibrate() {
   if (vibrationOnNoitifier.value) {
     HapticFeedback.heavyImpact();
+  }
+}
+
+/// A softer tick for a list that is being rearranged: the pickup and the drop
+/// should be felt without the weight of a button press.
+void tryVibrateLight() {
+  if (vibrationOnNoitifier.value) {
+    HapticFeedback.lightImpact();
   }
 }
 
@@ -1268,6 +1277,71 @@ void showSongOptions({
                           () => LibraryOrganizePage(songs: [song]),
                         ),
                       );
+                    },
+                  ),
+                  _optionItem(
+                    leading: Icon(Icons.folder_open_rounded),
+                    text: l10n.showInFolder,
+                    onTap: () async {
+                      final pageContext = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).context;
+                      Navigator.pop(context);
+                      final opened = await localSongActions.showInFolder(song);
+                      if (!opened && pageContext.mounted) {
+                        showCenterMessage(l10n.showInFolderFailed);
+                      }
+                    },
+                  ),
+                  _optionItem(
+                    leading: Icon(Icons.playlist_remove_rounded),
+                    text: l10n.removeFromLibrary,
+                    onTap: () async {
+                      final pageContext = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).context;
+                      Navigator.pop(context);
+                      if (!pageContext.mounted) {
+                        return;
+                      }
+                      final confirmed = await showConfirmDialog(
+                        pageContext,
+                        l10n.removeFromLibraryConfirm,
+                      );
+                      if (!confirmed) {
+                        return;
+                      }
+                      await localSongActions.removeFromLibrary(song);
+                      showCenterMessage(l10n.removedFromLibrary);
+                    },
+                  ),
+                  _optionItem(
+                    leading: Icon(Icons.delete_forever_rounded),
+                    text: l10n.deleteFile,
+                    onTap: () async {
+                      final pageContext = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).context;
+                      Navigator.pop(context);
+                      if (!pageContext.mounted) {
+                        return;
+                      }
+                      final confirmed = await showConfirmDialog(
+                        pageContext,
+                        l10n.deleteFileConfirm,
+                      );
+                      if (!confirmed) {
+                        return;
+                      }
+                      try {
+                        await localSongActions.deleteFile(song);
+                        showCenterMessage(l10n.fileDeleted);
+                      } catch (e) {
+                        showCenterMessage('${l10n.operationFailed}: $e');
+                      }
                     },
                   ),
                 ],

@@ -3,9 +3,15 @@ package com.meidlinger.lain
 import com.ryanheise.audioservice.AudioServiceActivity
 
 import android.content.Intent
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.os.storage.StorageManager
+import android.provider.DocumentsContract
 import android.hardware.input.InputManager
 import android.os.Handler
 import android.os.Looper
@@ -83,6 +89,72 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                         result.success(false)
                     }
                 }
+                "getAudioOutputInfo" -> {
+                    try {
+                        val manager = getSystemService(AUDIO_SERVICE) as AudioManager
+                        val rate = manager.getProperty(
+                            AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE
+                        )?.toIntOrNull()
+                        val frames = manager.getProperty(
+                            AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER
+                        )?.toIntOrNull()
+                        val devices = manager.getDevices(
+                            AudioManager.GET_DEVICES_OUTPUTS
+                        ).map { device ->
+                            mapOf(
+                                "type" to device.type,
+                                "name" to (
+                                    device.productName?.toString()
+                                        ?: device.type.toString()
+                                )
+                            )
+                        }
+                        result.success(
+                            mapOf(
+                                "sampleRate" to rate,
+                                "framesPerBuffer" to frames,
+                                "devices" to devices
+                            )
+                        )
+                    } catch (e: Exception) {
+                        result.success(null)
+                    }
+                }
+                "showInFolder" -> {
+                    val path = call.argument<String>("path")
+                    if (path.isNullOrEmpty()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val folder = File(path).parentFile ?: File(path)
+                        val uri = folderDocumentUri(folder)
+                        val view = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(
+                                uri,
+                                DocumentsContract.Document.MIME_TYPE_DIR
+                            )
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        try {
+                            startActivity(view)
+                            result.success(true)
+                            return@setMethodCallHandler
+                        } catch (_: Exception) {
+                            // Some devices have no handler for a folder URI;
+                            // the document picker still opens at the folder.
+                        }
+                        val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            type = "*/*"
+                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(picker)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
                 "getFileCreatedTimes" -> {
                     val paths = call.argument<List<String>>("paths")
                     if (paths == null) {
@@ -107,6 +179,32 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    // The DocumentsUI id of a folder on shared storage: "primary:Music/..."
+    // for internal storage, "<uuid>:Music/..." for an SD card. This is what
+    // lets "show in folder" open the system file browser at the right place.
+    private fun folderDocumentUri(folder: File): Uri {
+        val storage = getSystemService(StorageManager::class.java)
+        val volume = try {
+            storage?.getStorageVolume(folder)
+        } catch (_: Exception) {
+            null
+        }
+        val root = volume?.directory ?: Environment.getExternalStorageDirectory()
+        val relative = try {
+            folder.canonicalFile.relativeTo(root.canonicalFile).path
+        } catch (_: Exception) {
+            folder.name
+        }
+        val prefix = when {
+            volume == null || volume.isPrimary -> "primary"
+            else -> volume.uuid ?: "primary"
+        }
+        return DocumentsContract.buildDocumentUri(
+            "com.android.externalstorage.documents",
+            "$prefix:$relative"
+        )
     }
 
     private fun isCellularData(): Boolean {

@@ -319,6 +319,13 @@ class MyAudioHandler extends BaseAudioHandler {
   MyAudioHandler() {
     // avoid reading .lrc files
     (_player.platform as NativePlayer).setProperty('sub-auto', 'no');
+    // A speed change must not transpose the music: mpv's scaletempo filter
+    // keeps the pitch while it changes the tempo. Set explicitly because the
+    // bundled libmpv builds do not all ship the same default.
+    (_player.platform as NativePlayer).setProperty(
+      'audio-pitch-correction',
+      'yes',
+    );
     if (_player.state.volume > 0) {
       _volumeTarget = _player.state.volume;
     }
@@ -617,8 +624,78 @@ class MyAudioHandler extends BaseAudioHandler {
         processingState: stop ? .idle : .ready,
         speed: _player.state.rate,
         updatePosition: postion ?? _player.state.position,
+        queueIndex: _serviceQueueIndex,
       ),
     );
+  }
+
+  /// Where the published queue window starts in [playQueue], and the index
+  /// inside that window. Android MediaSession queue ids are positions in the
+  /// published list, so both a car's queue and its "skip to item" call are
+  /// mapped through these.
+  int _queueWindowStart = 0;
+  int? _serviceQueueIndex;
+  String? _queueWindowSignature;
+
+  /// Publishes a window of the queue around the current song.
+  ///
+  /// A MediaSession queue is what a head unit browses and what gives it the
+  /// "7 of 1286" position; a whole 1000+ song queue as one Binder payload is
+  /// more than the link can carry, so only 200 items either side of the
+  /// current one are sent. The track number/count extras still describe the
+  /// full queue, so the unit reports the real position rather than the window.
+  void _publishQueueWindow() {
+    if (playQueue.isEmpty) {
+      if (_queueWindowSignature != null) {
+        _queueWindowSignature = null;
+        _serviceQueueIndex = null;
+        queue.add(const <MediaItem>[]);
+      }
+      return;
+    }
+    if (currentIndex < 0 || currentIndex >= playQueue.length) {
+      return;
+    }
+    const window = 200;
+    var start = currentIndex - window ~/ 2;
+    var end = start + window;
+    if (start < 0) {
+      start = 0;
+      end = math.min(window, playQueue.length);
+    }
+    if (end > playQueue.length) {
+      end = playQueue.length;
+      start = math.max(0, playQueue.length - window);
+    }
+    final current = playQueue[currentIndex];
+    final signature =
+        '${playQueue.length}|$start|$end|$currentIndex|${current.id}|'
+        '${playQueue.first.id}|${playQueue.last.id}|'
+        '${playQueue[start].id}|${playQueue[end - 1].id}';
+    _serviceQueueIndex = currentIndex - start;
+    if (signature == _queueWindowSignature) {
+      return;
+    }
+    _queueWindowSignature = signature;
+    _queueWindowStart = start;
+
+    final items = <MediaItem>[];
+    for (var i = start; i < end; i++) {
+      final song = playQueue[i];
+      items.add(
+        buildServiceMediaItem(
+          id: song.id,
+          songTitle: getTitle(song),
+          artist: getArtist(song),
+          album: getAlbum(song),
+          duration: song.duration,
+          trackNumber: i + 1,
+          trackCount: playQueue.length,
+        ),
+      );
+    }
+    queue.add(items);
+    updatePlaybackState();
   }
 
   void _prepare() {
@@ -1041,6 +1118,9 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = -1;
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
+    _queueWindowSignature = null;
+    _serviceQueueIndex = null;
+    queue.add(const <MediaItem>[]);
     saveAllStates();
 
     if (isMobile) {
@@ -1199,6 +1279,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (current != null && current.cacheExist) {
       _cacheNextSong();
     }
+    _publishQueueWindow();
   }
 
   /// Resolves right after [_prepare] has run, so code that needs the handler's
@@ -1294,7 +1375,7 @@ class MyAudioHandler extends BaseAudioHandler {
   /// the switch happens. Only the latest prefetch is kept: quick skipping
   /// cancels the one that no longer matters instead of piling up downloads.
   void _cacheNextSong() {
-    if (!autoCacheSongsNotifier.value) {
+    if (!prefetchNextSongNotifier.value) {
       _cancelNextCacheIfNotCurrent();
       return;
     }
@@ -2065,6 +2146,12 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// Re-publishes the MediaSession queue after the app reordered or removed a
+  /// row. The audio itself did not change, so no metadata update is needed.
+  void refreshQueueWindow() {
+    _publishQueueWindow();
+  }
+
   /// A different server address is in use now. The artwork files themselves are
   /// local, so the snapshot only has to be re-published.
   void _onServerAddressChanged() {
@@ -2560,6 +2647,7 @@ class MyAudioHandler extends BaseAudioHandler {
       kind: kind,
       immediate: kind == MediaUpdateKind.track,
     );
+    _publishQueueWindow();
   }
 
   @override
@@ -2750,6 +2838,19 @@ class MyAudioHandler extends BaseAudioHandler {
 
     currentIndex = (currentIndex + playQueue.length - 1) % playQueue.length;
     await load();
+  }
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    final target = _queueWindowStart + index;
+    if (target < 0 || target >= playQueue.length) {
+      return;
+    }
+    currentIndex = target;
+    await load();
+    if (!isPlayingNotifier.value) {
+      play();
+    }
   }
 
   void togglePlay() {

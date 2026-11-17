@@ -58,6 +58,11 @@ class ServerLibraryStats {
   /// Whether the source can start a library scan on request.
   final bool canScan;
 
+  /// What the server says it can do: OpenSubsonic extension names for
+  /// Navidrome, a fixed set of endpoints for Emby. Empty when it reports
+  /// nothing.
+  final List<String> extensions;
+
   const ServerLibraryStats({
     required this.latency,
     required this.sourceType,
@@ -79,6 +84,7 @@ class ServerLibraryStats {
     this.activeStreams,
     this.transcodeStreams,
     this.canScan = true,
+    this.extensions = const [],
   });
 }
 

@@ -20,6 +20,9 @@ import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/utils/source_type.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
+import 'package:lain/base/widgets/alphabet_index.dart';
+import 'package:lain/base/widgets/morph_icon.dart';
+import 'package:lain/base/widgets/rediscovery_stats.dart';
 import 'package:lain/base/data/folder.dart';
 import 'package:lain/base/data/history.dart';
 import 'package:lain/base/data/library.dart';
@@ -99,6 +102,7 @@ class SongList extends StatefulWidget {
   final Album? album;
   final Folder? folder;
   final bool isFrequently;
+  final bool isRediscovery;
   final bool isRecently;
   final bool isRecentlyAdded;
   final bool isRandom;
@@ -131,6 +135,7 @@ class SongList extends StatefulWidget {
     this.folder,
     this.songListOverride,
     this.isFrequently = false,
+    this.isRediscovery = false,
     this.isRecently = false,
     this.isRecentlyAdded = false,
     this.isRandom = false,
@@ -156,6 +161,7 @@ class _SongListState extends State<SongList> {
 
   bool isLibrary = false;
   bool isFrequently = false;
+  bool isRediscovery = false;
   bool isRecently = false;
   bool isRecentlyAdded = false;
   bool isRandom = false;
@@ -246,6 +252,8 @@ class _SongListState extends State<SongList> {
         ? l10n.favorites
         : isFrequently
         ? l10n.frequently
+        : isRediscovery
+        ? l10n.rediscovery
         : isRecently
         ? l10n.recently
         : isRecentlyAdded
@@ -298,6 +306,61 @@ class _SongListState extends State<SongList> {
       group.sort((a, b) => (a.track ?? 9999).compareTo(b.track ?? 9999));
     }
     return [for (final entry in groups.entries) (entry.key, entry.value)];
+  }
+
+  /// The first letter of a song's sort key - pinyin for a Chinese title - so
+  /// the edge index matches the order the list is actually in.
+  String alphabetLetterOf(MyAudioMetadata song) {
+    final value = song.compareTitle.trim().toUpperCase();
+    if (value.isEmpty) {
+      return '#';
+    }
+    final first = value[0];
+    return first.codeUnitAt(0) >= 65 && first.codeUnitAt(0) <= 90
+        ? first
+        : '#';
+  }
+
+  List<String> alphabetLettersOf(List<MyAudioMetadata> songs) {
+    final seen = <String>{};
+    final letters = <String>[];
+    for (final song in songs) {
+      final letter = alphabetLetterOf(song);
+      if (seen.add(letter)) {
+        letters.add(letter);
+      }
+    }
+    letters.sort((a, b) {
+      if (a == '#') {
+        return 1;
+      }
+      if (b == '#') {
+        return -1;
+      }
+      return a.compareTo(b);
+    });
+    return letters;
+  }
+
+  /// Jumping by fraction is close enough for a quick index: the list keeps its
+  /// fixed row height, and the header only shifts the very first letters.
+  void jumpToAlphabetLetter(String letter, List<MyAudioMetadata> songs) {
+    if (!scrollController.hasClients || songs.isEmpty) {
+      return;
+    }
+    final index = songs.indexWhere(
+      (song) => alphabetLetterOf(song) == letter,
+    );
+    if (index < 0) {
+      return;
+    }
+    final max = scrollController.position.maxScrollExtent;
+    final target = (max * index / songs.length).clamp(0.0, max);
+    scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   /// Top of [song]'s row in the artist view, or -1 when it is not shown: the
@@ -681,6 +744,7 @@ class _SongListState extends State<SongList> {
     album = widget.album;
     folder = widget.folder;
     isFrequently = widget.isFrequently;
+    isRediscovery = widget.isRediscovery;
     isRecently = widget.isRecently;
     isRecentlyAdded = widget.isRecentlyAdded;
     isRandom = widget.isRandom;
@@ -733,6 +797,9 @@ class _SongListState extends State<SongList> {
     } else if (isFrequently) {
       songList = history.frequentlySongList;
       history.frequentlyChangeNotifier.addListener(updateSongList);
+    } else if (isRediscovery) {
+      songList = history.rediscoverySongList;
+      history.rediscoveryChangeNotifier.addListener(updateSongList);
     } else if (isRecently) {
       songList = history.recentlySongList;
       history.recentlyChangeNotifier.addListener(updateSongList);

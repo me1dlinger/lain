@@ -27,6 +27,7 @@ import 'package:lain/layer/frequently_layer.dart';
 import 'package:lain/layer/recently_added_layer.dart';
 import 'package:lain/layer/random_songs_layer.dart';
 import 'package:lain/layer/recently_layer.dart';
+import 'package:lain/layer/rediscovery_layer.dart';
 import 'package:lain/layer/settings_layer.dart';
 import 'package:lain/layer/single_album_layer.dart';
 import 'package:lain/layer/single_artist_layer.dart';
@@ -149,6 +150,8 @@ class LayersManager {
         return FrequentlyLayer(key: GlobalKey());
       } else if (label == 'recently') {
         return RecentlyLayer(key: GlobalKey());
+      } else if (label == 'rediscovery') {
+        return RediscoveryLayer(key: GlobalKey());
       } else if (label == 'recentlyAdded') {
         return RecentlyAddedLayer(key: GlobalKey());
       } else if (label == 'randomSongs') {

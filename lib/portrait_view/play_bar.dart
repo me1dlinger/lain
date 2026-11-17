@@ -15,6 +15,16 @@ import 'package:text_scroll/text_scroll.dart';
 class PlayBar extends StatelessWidget {
   const PlayBar({super.key});
 
+  void _openQueue(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return PlayQueueSheet();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -36,7 +46,21 @@ class PlayBar extends StatelessWidget {
               child: child,
             );
           },
-          child: InkWell(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragEnd: (details) {
+              // A quick upward flick is the queue gesture; a slow drag is
+              // left to the page behind, so scrolling near the bar still
+              // works.
+              if ((details.primaryVelocity ?? 0) < -250) {
+                tryVibrateLight();
+                _openQueue(context);
+              }
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                InkWell(
             onTap: () {
               Navigator.push(
                 context,
@@ -107,18 +131,46 @@ class PlayBar extends StatelessWidget {
                     icon: Icon(Icons.playlist_play_rounded, size: 30),
                     onPressed: () {
                       tryVibrate();
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return PlayQueueSheet();
-                        },
-                      );
+                      _openQueue(context);
                     },
                   ),
                 ),
 
                 const SizedBox(width: 15),
+              ],
+            ),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 2,
+                  child: StreamBuilder<Duration>(
+                    stream: audioHandler.getPositionStream(),
+                    builder: (context, snapshot) {
+                      final duration = audioHandler.getCurrentDuration();
+                      final position = snapshot.data ?? Duration.zero;
+                      if (duration <= Duration.zero) {
+                        return const SizedBox.shrink();
+                      }
+                      final value =
+                          (position.inMilliseconds / duration.inMilliseconds)
+                              .clamp(0.0, 1.0);
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: value,
+                          minHeight: 2,
+                          backgroundColor: colorManager
+                              .getSpecificTextColor()
+                              .withAlpha(28),
+                          valueColor: AlwaysStoppedAnimation(
+                            colorManager.getSpecificHighlightTextColor(),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),

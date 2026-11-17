@@ -536,6 +536,22 @@ class Config {
     await HomeWidget.updateWidget(iOSName: 'PlaylistsWidget');
   }
 
+  /// The server list for a backup file. Credentials are deliberately left
+  /// out: a backup is a plain file the user may copy anywhere, and a password
+  /// belongs in the platform's secure storage, not next to the addresses. The
+  /// servers come back after a restore and ask for their password again.
+  Future<Map<String, Object?>> exportBackup() async {
+    final entries = <Map<String, Object?>>[];
+    for (final server in servers) {
+      entries.add(server.toJson());
+    }
+    return {
+      'sourceType': sourceType.name,
+      'activeServerId': activeServerId,
+      'servers': entries,
+    };
+  }
+
   Future<void> save() async {
     // The password of every server lives in secure storage, keyed by the
     // server's id; when that write fails the plaintext stays in config.json for

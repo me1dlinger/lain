@@ -16,6 +16,7 @@ enum HomeButton { artists, albums, songs, playlists, favorites, listeningReport 
 enum HomeShelf {
   albums,
   frequently,
+  rediscovery,
   recentlyAdded,
   recently,
   playlists,

@@ -337,6 +337,42 @@ extension _SongListPage on _SongListState {
                       artistRowOffsetOf(song, currentSongListNotifier.value),
           ),
         ),
+
+        if (isLibrary)
+          Positioned(
+            right: 1,
+            top: 150,
+            bottom: 190,
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                currentSongListNotifier,
+                sortTypeNotifier,
+                textController,
+              ]),
+              builder: (context, child) {
+                final songs = currentSongListNotifier.value;
+                final sortType = sortTypeNotifier.value;
+                // Only the two title orders are alphabetical. Time, play
+                // count, album and artist orders have no first letter to
+                // index, so the strip stays out of their way.
+                if (textController.text.isNotEmpty ||
+                    songs.length < 40 ||
+                    (sortType != 1 && sortType != 2)) {
+                  return const SizedBox.shrink();
+                }
+                final letters = alphabetLettersOf(songs);
+                if (letters.length < 2) {
+                  return const SizedBox.shrink();
+                }
+                return AlphabetIndex(
+                  letters: sortType == 2 ? letters.reversed.toList() : letters,
+                  color: colorManager.getSpecificTextColor(),
+                  onSelected: (letter) =>
+                      jumpToAlphabetLetter(letter, songs),
+                );
+              },
+            ),
+          ),
       ],
     );
   }
@@ -654,9 +690,10 @@ extension _SongListPage on _SongListState {
               tryVibrate();
               toggleEntityFavorite(target);
             },
-            icon: Icon(
-              starred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              color: starred ? Colors.red : colorManager.getSpecificTextColor(),
+            icon: MorphFavoriteIcon(
+              active: starred,
+              size: 24,
+              inactiveColor: colorManager.getSpecificTextColor(),
             ),
           ),
         );
@@ -975,6 +1012,10 @@ extension _SongListPage on _SongListState {
           subtitle: Row(
             children: [
               SongBadges(song: song),
+              if (isRediscovery) ...[
+                RediscoveryStats(song: song),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: Text(
                   "${getArtist(song)} - ${getAlbum(song)}",

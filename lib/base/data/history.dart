@@ -13,11 +13,20 @@ final history = History();
 
 class History {
   static const _historyLimit = 200;
+  static const _rediscoveryLimit = 100;
+
+  /// A song only counts as "long time no see" when it was played this often
+  /// and has been resting for at least this long. Both keep a song that was
+  /// played once, or last week, out of the shelf.
+  static const _rediscoveryMinPlays = 2;
+  static const _rediscoveryMinDays = 30;
 
   final List<MyAudioMetadata> frequentlySongList = [];
   final List<MyAudioMetadata> recentlySongList = [];
+  final List<MyAudioMetadata> rediscoverySongList = [];
   final frequentlyChangeNotifier = ValueNotifier(0);
   final recentlyChangeNotifier = ValueNotifier(0);
+  final rediscoveryChangeNotifier = ValueNotifier(0);
 
   Future<void> load() async {
     // Rebuilt from the library every time; loading twice must not duplicate.
@@ -36,6 +45,7 @@ class History {
       );
       _trim(recentlySongList);
       recentlyChangeNotifier.value++;
+      _rebuildRediscovery();
       return;
     }
 
@@ -66,6 +76,38 @@ class History {
 
     frequentlyChangeNotifier.value++;
     recentlyChangeNotifier.value++;
+    _rebuildRediscovery();
+  }
+
+  /// Songs that were played again and again but have been left alone for a
+  /// while - the ones worth meeting again. Ordered by how strongly both hold:
+  /// a long rest and a high play count each raise a song's place.
+  void _rebuildRediscovery() {
+    final now = DateTime.now();
+    final candidates = <MyAudioMetadata>[];
+    for (final song in library.songList) {
+      final last = song.lastPlayed;
+      if (last == null || song.playCount < _rediscoveryMinPlays) {
+        continue;
+      }
+      if (now.difference(last).inDays < _rediscoveryMinDays) {
+        continue;
+      }
+      candidates.add(song);
+    }
+    int score(MyAudioMetadata song) {
+      final days = now.difference(song.lastPlayed!).inDays;
+      return days * (10 + song.playCount);
+    }
+
+    candidates.sort((a, b) {
+      final byScore = score(b).compareTo(score(a));
+      return byScore != 0 ? byScore : a.lastPlayed!.compareTo(b.lastPlayed!);
+    });
+    rediscoverySongList
+      ..clear()
+      ..addAll(candidates.take(_rediscoveryLimit));
+    rediscoveryChangeNotifier.value++;
   }
 
   void _trim(List<MyAudioMetadata> songs) {
@@ -132,6 +174,7 @@ class History {
       }
     }
 
+    _rebuildRediscovery();
     layersManager.updateBackground();
   }
 
@@ -145,5 +188,7 @@ class History {
   void clear() {
     frequentlySongList.clear();
     recentlySongList.clear();
+    rediscoverySongList.clear();
+    rediscoveryChangeNotifier.value++;
   }
 }

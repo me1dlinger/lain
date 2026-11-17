@@ -7,6 +7,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/play_queue_sheet.dart';
+import 'package:lain/base/widgets/morph_icon.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -96,9 +97,10 @@ Widget playOrPauseButton(double size, {Color? iconColor}) {
     icon: ValueListenableBuilder(
       valueListenable: isPlayingNotifier,
       builder: (_, isPlaying, _) {
-        return Icon(
-          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+        return MorphPlayPauseIcon(
+          playing: isPlaying,
           size: size,
+          color: iconColor,
         );
       },
     ),

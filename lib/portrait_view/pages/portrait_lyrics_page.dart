@@ -19,6 +19,7 @@ import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/buttons.dart';
+import 'package:lain/base/widgets/morph_icon.dart';
 import 'package:lain/base/widgets/breathing_cover.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/vinyl_disc.dart';
@@ -1062,10 +1063,13 @@ class FavoriteButton extends StatelessWidget {
               },
               icon: Transform.scale(
                 scale: 1.1,
-                child: Icon(
-                  value ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: value ? Colors.red : null,
+                child: MorphFavoriteIcon(
+                  active: value,
                   size: 25,
+                  activeColor: Colors.red,
+                  inactiveColor: lyricsPageForegroundColor.value,
+                  activeIcon: Icons.star_rounded,
+                  inactiveIcon: Icons.star_outline_rounded,
                 ),
               ),
             );

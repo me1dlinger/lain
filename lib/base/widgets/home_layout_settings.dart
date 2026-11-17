@@ -75,6 +75,7 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
                         label: (shelf) => switch (shelf) {
                           HomeShelf.albums => l10n.albums,
                           HomeShelf.frequently => l10n.frequently,
+                          HomeShelf.rediscovery => l10n.rediscovery,
                           HomeShelf.recentlyAdded => l10n.recentlyAdded,
                           HomeShelf.recently => l10n.recently,
                           HomeShelf.playlists => l10n.playlists,

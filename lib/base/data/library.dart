@@ -9,6 +9,7 @@ import 'package:drift/drift.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/database.dart';
+import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
 import 'package:lain/base/extensions/metadata_extension.dart';
@@ -145,6 +146,12 @@ class Library {
   List<Folder> folderList = [];
   final folderListChangeNotifier = ValueNotifier(0);
 
+  /// Local files the listener took out of the library. The file stays on
+  /// disk, so a later scan would find it again; this set is what keeps it out
+  /// until the user adds the folder anew or clears the exclusion.
+  final Set<String> _excludedSongIds = {};
+  File? _excludedSongsFile;
+
   bool canModify = false;
 
   /// Newest songs first, by the creation time of a local file or the `created`
@@ -167,6 +174,23 @@ class Library {
         "${getFolderConfigPath(sourceType)}/folder_id_list.json",
       );
       initFile(_folderIdListFile!, true);
+      _excludedSongsFile = File(
+        "${getFolderConfigPath(sourceType)}/excluded_songs.json",
+      );
+      initFile(_excludedSongsFile!, false);
+      try {
+        final json = readJsonMapFileSync(_excludedSongsFile!);
+        final ids = json['ids'];
+        if (ids is List) {
+          for (final id in ids) {
+            if (id is String && id.isNotEmpty) {
+              _excludedSongIds.add(id);
+            }
+          }
+        }
+      } catch (_) {
+        // A missing exclusion file simply excludes nothing.
+      }
     }
   }
 
@@ -253,6 +277,9 @@ class Library {
       }
 
       for (final row in rows) {
+        if (sourceType == .local && _excludedSongIds.contains(row.id)) {
+          continue;
+        }
         final song = row.toMetadata();
         id2Song.putIfAbsent(row.id, () => song);
         songList.add(song);
@@ -944,6 +971,32 @@ class Library {
     }
   }
 
+  /// Takes a local song out of the library without touching its file. The id
+  /// is remembered, so a scan of the same folder does not put it back.
+  Future<void> removeSongFromLibrary(MyAudioMetadata song) async {
+    if (sourceType == .local) {
+      _excludedSongIds.add(song.id);
+      try {
+        _excludedSongsFile?.writeAsStringSync(
+          jsonEncode({'ids': _excludedSongIds.toList()}),
+        );
+      } catch (e) {
+        logger.output('[library] save exclusions: $e');
+      }
+    }
+    final db = _metadataDB;
+    if (db != null) {
+      await (db.delete(
+        db.metadataItems,
+      )..where((t) => t.id.equals(song.id))).go();
+    }
+    songList.remove(song);
+    id2Song.remove(song.id);
+    artistAlbumManager.updateNotifier.value++;
+    changeNotifier.value++;
+    layersManager.updateBackground();
+  }
+
   void _syncNotify() {
     changeNotifier.value++;
     layersManager.updateBackground();
@@ -955,6 +1008,9 @@ class Library {
     DateTime modified, {
     DateTime? created,
   }) async {
+    if (sourceType == .local && _excludedSongIds.contains(id)) {
+      return null;
+    }
     MyAudioMetadata? song = library.id2Song[id];
 
     if ((song?.modified?.difference(modified).inSeconds.abs() ?? 2) > 1) {

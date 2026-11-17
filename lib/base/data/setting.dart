@@ -254,6 +254,8 @@ class Setting {
         json['preferFastestAddress'] as bool? ?? true;
     autoCacheSongsNotifier.value =
         json['autoCacheSongs'] as bool? ?? true;
+    prefetchNextSongNotifier.value =
+        json['prefetchNextSong'] as bool? ?? true;
     autoCachePlaylistsNotifier.value =
         json['autoCachePlaylists'] as bool? ?? true;
     autoCacheArtistsNotifier.value =
@@ -434,6 +436,7 @@ class Setting {
         'preferFastestAddress': preferFastestAddressNotifier.value,
 
         'autoCacheSongs': autoCacheSongsNotifier.value,
+        'prefetchNextSong': prefetchNextSongNotifier.value,
         'autoCachePlaylists': autoCachePlaylistsNotifier.value,
         'autoCacheArtists': autoCacheArtistsNotifier.value,
         'cacheDir': cacheDirNotifier.value,

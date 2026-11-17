@@ -4,6 +4,32 @@ import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/utils/contrast_color_generator.dart';
 import 'package:lain/layer/lyrics_page_layer.dart';
 
+
+/// The app's Material colour scheme. It is deliberately neutral: grey and
+/// black instead of Material's default purple seed, with the light/dark pair
+/// following the current page theme. Every default control - buttons, progress
+/// indicators, switches, focus rings - inherits from it, so a new page cannot
+/// introduce the old violet accent by accident.
+ColorScheme grayColorScheme(Brightness brightness) {
+  final dark = brightness == Brightness.dark;
+  final seed = ColorScheme.fromSeed(
+    seedColor: Colors.grey,
+    brightness: brightness,
+  );
+  final primary = dark ? Colors.grey.shade300 : Colors.grey.shade900;
+  return seed.copyWith(
+    primary: primary,
+    onPrimary: dark ? Colors.black : Colors.white,
+    primaryContainer: dark ? Colors.grey.shade800 : Colors.grey.shade200,
+    onPrimaryContainer: dark ? Colors.grey.shade100 : Colors.grey.shade900,
+    secondary: dark ? Colors.grey.shade400 : Colors.grey.shade700,
+    onSecondary: dark ? Colors.black : Colors.white,
+    surface: dark ? Colors.grey.shade900 : Colors.white,
+    onSurface: dark ? Colors.grey.shade200 : Colors.grey.shade900,
+    outline: dark ? Colors.grey.shade600 : Colors.grey.shade400,
+  );
+}
+
 final colorManager = ColorManager();
 
 MyPicture? backgroundPicture;

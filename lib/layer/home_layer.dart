@@ -23,6 +23,7 @@ import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/my_navigator.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
 import 'package:lain/base/widgets/play_next_button.dart';
+import 'package:lain/base/widgets/rediscovery_stats.dart';
 import 'package:lain/base/widgets/stats_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/landscape_view/title_bar.dart';
@@ -48,6 +49,7 @@ class HomeLayer extends StatefulWidget {
 class HomeLayerState extends State<HomeLayer> {
   final albumsSC = ScrollController();
   final frequentlySC = ScrollController();
+  final rediscoverySC = ScrollController();
   final recentlySC = ScrollController();
   final recentlyAddedSC = ScrollController();
   final playlistsSC = ScrollController();
@@ -55,6 +57,7 @@ class HomeLayerState extends State<HomeLayer> {
 
   final albumsDisplayIconNotifier = ValueNotifier(false);
   final frequentlyDisplayIconNotifier = ValueNotifier(false);
+  final rediscoveryDisplayIconNotifier = ValueNotifier(false);
   final recentlyDisplayIconNotifier = ValueNotifier(false);
   final recentlyAddedDisplayIconNotifier = ValueNotifier(false);
   final playlistsDisplayIconNotifier = ValueNotifier(false);
@@ -62,6 +65,7 @@ class HomeLayerState extends State<HomeLayer> {
 
   final albumsChangeNotifier = ValueNotifier(0);
   final frequentlyChangeNotifier = ValueNotifier(0);
+  final rediscoveryChangeNotifier = ValueNotifier(0);
   final recentlyChangeNotifier = ValueNotifier(0);
   final recentlyAddedChangeNotifier = ValueNotifier(0);
   final playlistsChangeNotifier = ValueNotifier(0);
@@ -93,6 +97,7 @@ class HomeLayerState extends State<HomeLayer> {
       for (final scrollController in [
         albumsSC,
         frequentlySC,
+        rediscoverySC,
         recentlySC,
         playlistsSC,
         randomSC,
@@ -103,6 +108,7 @@ class HomeLayerState extends State<HomeLayer> {
       }
       albumsChangeNotifier.value++;
       frequentlyChangeNotifier.value++;
+      rediscoveryChangeNotifier.value++;
       recentlyChangeNotifier.value++;
       playlistsChangeNotifier.value++;
       randomChangeNotifier.value++;
@@ -117,6 +123,7 @@ class HomeLayerState extends State<HomeLayer> {
     searchChangeNotifier.dispose();
     albumsSC.dispose();
     frequentlySC.dispose();
+    rediscoverySC.dispose();
     recentlySC.dispose();
     playlistsSC.dispose();
     randomSC.dispose();
@@ -427,6 +434,65 @@ class HomeLayerState extends State<HomeLayer> {
             scrollController: recentlyAddedSC,
             displayIconNotifier: recentlyAddedDisplayIconNotifier,
             changeNotifier: recentlyAddedChangeNotifier,
+            iconTop: 67,
+          ),
+
+          SizedBox(height: 15),
+        ];
+      case HomeShelf.rediscovery:
+        if (history.rediscoverySongList.isEmpty) {
+          return const [];
+        }
+        return [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(width: 20),
+              GestureDetector(
+                onTap: () {
+                  layersManager.switchRootLayer('rediscovery');
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    children: [
+                      Text(
+                        l10n.rediscovery,
+                        style: .new(fontWeight: .bold, fontSize: 20),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+
+          mouseRegionForScroll(
+            child: ListenableBuilder(
+              listenable: Listenable.merge([
+                history.rediscoveryChangeNotifier,
+                searchChangeNotifier,
+              ]),
+              builder: (context, child) {
+                final list = filterSongList(
+                  history.rediscoverySongList,
+                  searchValue,
+                );
+                if (list.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return songListView(
+                  list,
+                  rediscoverySC,
+                  showRediscoveryStats: true,
+                );
+              },
+            ),
+            scrollController: rediscoverySC,
+            displayIconNotifier: rediscoveryDisplayIconNotifier,
+            changeNotifier: rediscoveryChangeNotifier,
             iconTop: 67,
           ),
 
@@ -875,8 +941,9 @@ class HomeLayerState extends State<HomeLayer> {
 
   Widget songListView(
     List<MyAudioMetadata> songList,
-    ScrollController scrollController,
-  ) {
+    ScrollController scrollController, {
+    bool showRediscoveryStats = false,
+  }) {
     // One column fills a phone's width, so the per-song overflow button ends up
     // on the right edge (as in the song lists) instead of roughly mid-screen;
     // wider screens keep the multi-column shelf.
@@ -957,6 +1024,8 @@ class HomeLayerState extends State<HomeLayer> {
                                     overflow: .ellipsis,
                                   ),
                                 ),
+                                if (showRediscoveryStats)
+                                  RediscoveryStats(song: song, fontSize: 10),
                               ],
                             ),
                           ),

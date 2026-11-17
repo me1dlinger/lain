@@ -41,6 +41,8 @@ import 'package:lain/base/widgets/share_card_settings_page.dart';
 import 'package:lain/base/widgets/audio_quality_dashboard.dart';
 import 'package:lain/base/widgets/car_display_settings_page.dart';
 import 'package:lain/base/widgets/debug_page.dart';
+import 'package:lain/base/widgets/backup_page.dart';
+import 'package:lain/base/widgets/audio_output_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
@@ -218,11 +220,135 @@ class SettingsList extends StatefulWidget {
 
 class _SettingsListState extends State<SettingsList> {
   double? iconSize;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     iconSize = widget.iconSize;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _categoryMatches(
+    SettingsCategory category,
+    AppLocalizations l10n,
+    String query,
+  ) {
+    if (query.isEmpty) {
+      return true;
+    }
+    final haystack = <String>[
+      settingsCategoryTitle(l10n, category),
+      settingsGroupTitle(l10n, settingsCategoryGroup(category)),
+      category.name,
+      ...settingsCategoryKeywords(category),
+    ];
+    for (final value in haystack) {
+      if (value.toLowerCase().contains(query)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// The order is persisted, so an old file or a bad merge could repeat an
+  /// entry; the menu shows each category once.
+  List<SettingsCategory> _uniqueOrder(List<SettingsCategory> order) {
+    final seen = <SettingsCategory>{};
+    return [
+      for (final category in order)
+        if (seen.add(category)) category,
+    ];
+  }
+
+  Widget _settingsSearchField(BuildContext context, AppLocalizations l10n) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+      child: Container(
+        height: 38,
+        decoration: BoxDecoration(
+          color: textColor.withAlpha(14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 12),
+            Icon(Icons.search_rounded, size: 18, color: textColor.withAlpha(150)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.search,
+                style: TextStyle(fontSize: 14, color: textColor),
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: l10n.settingsSearchHint,
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: textColor.withAlpha(125),
+                  ),
+                ),
+              ),
+            ),
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: textColor.withAlpha(150),
+                ),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {});
+                },
+              ),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _groupHeader(AppLocalizations l10n, SettingsGroup group) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 3),
+      child: Text(
+        settingsGroupTitle(l10n, group),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: .3,
+          color: textColor.withAlpha(135),
+        ),
+      ),
+    );
+  }
+
+  Widget _noSettingsResults(AppLocalizations l10n) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+      child: Column(
+        children: [
+          Icon(Icons.search_off_rounded, size: 38, color: textColor.withAlpha(70)),
+          const SizedBox(height: 10),
+          Text(
+            l10n.settingsNoResults,
+            style: TextStyle(fontSize: 13, color: textColor.withAlpha(140)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -243,23 +369,53 @@ class _SettingsListState extends State<SettingsList> {
     return ValueListenableBuilder<List<SettingsCategory>>(
       valueListenable: settingsCategoryOrderNotifier,
       builder: (context, order, child) {
+        final query = _searchController.text.trim().toLowerCase();
+        final filtered = _uniqueOrder(order)
+            .where((category) => _categoryMatches(category, l10n, query))
+            .toList();
+        final categorySlivers = <Widget>[];
+        final grouped = <SettingsGroup, List<SettingsCategory>>{};
+        for (final category in filtered) {
+          // A local library has no downloads, and its covers/lyrics are
+          // not something the cache page is needed for. WebDAV can cache
+          // and download like a streamed source.
+          if (!isStreamSource &&
+              sourceType != .webdav &&
+              category == SettingsCategory.cacheDownloads) {
+            continue;
+          }
+          grouped
+              .putIfAbsent(settingsCategoryGroup(category), () => [])
+              .add(category);
+        }
+        // The headings keep a fixed order; the user's order is applied inside
+        // each heading, so moving a category does not reshuffle the page.
+        for (final group in SettingsGroup.values) {
+          final categories = grouped[group];
+          if (categories == null || categories.isEmpty) {
+            continue;
+          }
+          categorySlivers.add(sliverBox(_groupHeader(l10n, group)));
+          for (final category in categories) {
+            categorySlivers.add(
+              sliverBox(
+                paddingIfNeed(
+                  isLandscape,
+                  _categoryListTile(context, l10n, category),
+                ),
+              ),
+            );
+          }
+        }
         return CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             if (isLandscape || viewModeNotifier.value == .bigPicture)
               sliverBox(_settingsHeader(context, l10n)),
-            for (final category in order)
-              // A local library has no downloads, and its covers/lyrics are
-              // not something the cache page is needed for. WebDAV can cache
-              // and download like a streamed source.
-              if (isStreamSource ||
-                  sourceType == .webdav ||
-                  category != SettingsCategory.cacheDownloads)
-                sliverBox(
-                  paddingIfNeed(
-                    isLandscape,
-                    _categoryListTile(context, l10n, category),
-                  ),
-                ),
+            sliverBox(_settingsSearchField(context, l10n)),
+            if (query.isNotEmpty && categorySlivers.isEmpty)
+              sliverBox(_noSettingsResults(l10n)),
+            ...categorySlivers,
             if (!isLandscape) sliverBox(const SizedBox(height: 100)),
             if (viewModeNotifier.value == .bigPicture)
               sliverBox(const SizedBox(height: 75)),
@@ -313,6 +469,13 @@ class _SettingsListState extends State<SettingsList> {
           pushSettingsPage<void>(
             context,
             settingsPageRoute<void>(() => const StatsPage()),
+          );
+          return;
+        }
+        if (category == SettingsCategory.dataBackup) {
+          pushSettingsPage<void>(
+            context,
+            settingsPageRoute<void>(() => const BackupPage()),
           );
           return;
         }
@@ -401,6 +564,21 @@ class _SettingsListState extends State<SettingsList> {
           playbackSpeedListTile(context, l10n),
           audioFadeListTile(l10n),
           playbackModeListTile(context, l10n),
+          ListTile(
+            leading: Icon(
+              Icons.speaker_rounded,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.audioOutput),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              pushSettingsPage<void>(
+                context,
+                settingsPageRoute<void>(() => const AudioOutputPage()),
+              );
+            },
+          ),
           if (isMobile && !isTV) vibrationListTile(l10n),
           if (isMobile) sleepTimerListTile(context, l10n, iconSize: iconSize),
           commentSettingsListTile(context, l10n),
@@ -422,6 +600,11 @@ class _SettingsListState extends State<SettingsList> {
             l10n.autoCacheSongs,
             Icons.music_note_rounded,
             autoCacheSongsNotifier,
+          ),
+          autoCacheListTile(
+            l10n.prefetchNextSong,
+            Icons.skip_next_rounded,
+            prefetchNextSongNotifier,
           ),
           // WebDAV has no server-side playlist covers/artist images to warm,
           // and no transcode quality to choose.
@@ -448,6 +631,23 @@ class _SettingsListState extends State<SettingsList> {
         ];
       case SettingsCategory.listeningReport:
         return [listeningReportListTile(context, l10n)];
+      case SettingsCategory.dataBackup:
+        return [
+          ListTile(
+            leading: Icon(
+              Icons.backup_rounded,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.backupData),
+            onTap: () {
+              pushSettingsPage<void>(
+                context,
+                settingsPageRoute<void>(() => const BackupPage()),
+              );
+            },
+          ),
+        ];
       case SettingsCategory.helpFeedback:
         return [
           ListTile(
@@ -777,7 +977,7 @@ class _SettingsListState extends State<SettingsList> {
   ) async {
     final cached =
         offlineUseCachedLibraryNotifier.value &&
-            (isStreamSource || sourceType == .webdav);
+        (isStreamSource || sourceType == .webdav);
     if (sourceType == .local) {
       // Coming back to the cached library needs a server; the one the user was
       // on is remembered, because switching to the local library cleared it.

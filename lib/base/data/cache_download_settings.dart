@@ -11,6 +11,11 @@ final autoCacheSongsNotifier = ValueNotifier<bool>(true);
 final autoCachePlaylistsNotifier = ValueNotifier<bool>(true);
 final autoCacheArtistsNotifier = ValueNotifier<bool>(true);
 
+/// Downloads the queue's next track before it is needed, so a skip starts
+/// instantly even on a slow connection. Independent of
+/// [autoCacheSongsNotifier]: it only warms the one track that is about to play.
+final prefetchNextSongNotifier = ValueNotifier<bool>(true);
+
 /// Where cached audio, covers and lyrics live. Empty means the app's own
 /// support directory (`<support>/<source>/{caches,pictures,lyrics}`); a value
 /// here is used as the root and the source folder is still created inside it.

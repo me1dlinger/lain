@@ -337,8 +337,81 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
             if (stats.canScan) _scanNowRow(l10n, textColor, stats),
           ],
         ),
+        if (stats.extensions.isNotEmpty) ...[
+          appleSectionTitle(l10n.serverCapabilities),
+          AppleFormSection(
+            divided: false,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final capability in stats.extensions)
+                      _capabilityChip(
+                        _capabilityLabel(l10n, capability),
+                        textColor,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
+  }
+
+  Widget _capabilityChip(String label, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: textColor.withAlpha(14),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: textColor.withAlpha(28)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12, color: textColor.withAlpha(200)),
+      ),
+    );
+  }
+
+  /// OpenSubsonic extension names are technical; the known ones get the same
+  /// wording as the app's own features, unknown ones are split into words so
+  /// a new server extension is still readable.
+  String _capabilityLabel(AppLocalizations l10n, String name) {
+    switch (name) {
+      case 'songLyrics':
+      case 'lyrics':
+        return l10n.capLyrics;
+      case 'sonicSimilarity':
+        return l10n.capSimilarSongs;
+      case 'transcodeOffset':
+        return l10n.capTranscodeOffset;
+      case 'formPost':
+        return l10n.capFormPost;
+      case 'apiKeyAuthentication':
+        return l10n.capApiKey;
+      case 'playbackReport':
+        return l10n.capPlaybackReport;
+      case 'similarArtists':
+        return l10n.capSimilarArtists;
+      case 'favorites':
+        return l10n.capFavorites;
+      case 'libraryScan':
+        return l10n.capLibraryScan;
+      case 'playlists':
+        return l10n.capPlaylists;
+      default:
+        return name
+            .replaceAllMapped(
+              RegExp(r'(?<!^)([A-Z])'),
+              (match) => ' ${match.group(1)}',
+            )
+            .toLowerCase();
+    }
   }
 
   Widget _scanNowRow(

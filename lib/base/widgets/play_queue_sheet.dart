@@ -140,6 +140,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                 child: ReorderableListView.builder(
                   scrollController: scrollController,
                   itemExtent: 54,
+                  buildDefaultDragHandles: false,
                   onReorderItem: (oldIndex, newIndex) {
                     if (oldIndex == audioHandler.currentIndex) {
                       audioHandler.currentIndex = newIndex;
@@ -152,19 +153,48 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                     }
                     final item = playQueue.removeAt(oldIndex);
                     playQueue.insert(newIndex, item);
+                    audioHandler.refreshQueueWindow();
                     audioHandler.saveAllStates();
                   },
                   onReorderStart: (_) {
                     tryVibrate();
                   },
                   onReorderEnd: (_) {
-                    tryVibrate();
+                    tryVibrateLight();
                   },
                   proxyDecorator:
                       (Widget child, int index, Animation<double> animation) {
-                        return Material(
-                          color: Colors.transparent,
-                          child: child,
+                        return AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, _) {
+                            final lift = Curves.easeOutBack.transform(
+                              animation.value.clamp(0.0, 1.0),
+                            );
+                            return Transform.scale(
+                              scale: 1 + 0.035 * lift,
+                              alignment: Alignment.centerLeft,
+                              child: Material(
+                                color: Colors.transparent,
+                                elevation: 16 * animation.value,
+                                shadowColor: Colors.black.withAlpha(95),
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: colorManager
+                                        .getSpecificOpaqueBgColor()
+                                        .withAlpha(238),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: specificHighlightText.withAlpha(
+                                        (52 * animation.value).round(),
+                                      ),
+                                    ),
+                                  ),
+                                  child: child,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                   itemCount: playQueue.length,
@@ -234,7 +264,24 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                           audioHandler.play();
                         },
 
-                        trailing: IconButton(
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 12,
+                                ),
+                                child: Icon(
+                                  Icons.drag_indicator_rounded,
+                                  size: 20,
+                                  color: specificIconColor.withAlpha(150),
+                                ),
+                              ),
+                            ),
+                            IconButton(
                           color: specificIconColor,
 
                           onPressed: () async {
@@ -255,9 +302,12 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                                 await audioHandler.load();
                               }
                             }
+                            audioHandler.refreshQueueWindow();
                             audioHandler.saveAllStates();
                           },
                           icon: Icon(Icons.clear_rounded, size: 20),
+                            ),
+                          ],
                         ),
                       ),
                     );

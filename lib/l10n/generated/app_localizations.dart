@@ -4777,6 +4777,438 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current broadcast'**
   String get currentBroadcast;
+
+  /// No description provided for @rediscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Long time no see'**
+  String get rediscovery;
+
+  /// No description provided for @searchAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get searchAll;
+
+  /// No description provided for @searchTopResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Top result'**
+  String get searchTopResult;
+
+  /// No description provided for @searchRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get searchRecent;
+
+  /// No description provided for @searchClearRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get searchClearRecent;
+
+  /// No description provided for @searchTrySearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching for'**
+  String get searchTrySearching;
+
+  /// No description provided for @searchBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse'**
+  String get searchBrowse;
+
+  /// No description provided for @searchIdleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs, albums, artists and playlists - all in one place'**
+  String get searchIdleHint;
+
+  /// No description provided for @searchShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all'**
+  String get searchShowAll;
+
+  /// No description provided for @searchCountSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs'**
+  String searchCountSongs(int count);
+
+  /// No description provided for @prefetchNextSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-cache the next song'**
+  String get prefetchNextSong;
+
+  /// No description provided for @settingsDataBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Data and backup'**
+  String get settingsDataBackup;
+
+  /// No description provided for @backupData.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get backupData;
+
+  /// No description provided for @backupExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get backupExport;
+
+  /// No description provided for @backupImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from a file'**
+  String get backupImport;
+
+  /// No description provided for @backupSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get backupSettings;
+
+  /// No description provided for @backupServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Servers and accounts'**
+  String get backupServers;
+
+  /// No description provided for @backupPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists and favorites'**
+  String get backupPlaylists;
+
+  /// No description provided for @backupStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening statistics'**
+  String get backupStatistics;
+
+  /// No description provided for @backupPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Server passwords are not included; enter them again after restoring.'**
+  String get backupPrivacy;
+
+  /// No description provided for @backupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved'**
+  String get backupSaved;
+
+  /// No description provided for @backupRestoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup? Settings, servers, playlists and statistics will be replaced.'**
+  String get backupRestoreConfirm;
+
+  /// No description provided for @backupRestoreDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored. Restart Lain to apply everything.'**
+  String get backupRestoreDone;
+
+  /// No description provided for @backupInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a Lain backup file'**
+  String get backupInvalid;
+
+  /// No description provided for @backupRollback.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous data was copied to a rollback file'**
+  String get backupRollback;
+
+  /// No description provided for @settingsGroupGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGroupGeneral;
+
+  /// No description provided for @settingsGroupPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback'**
+  String get settingsGroupPlayback;
+
+  /// No description provided for @settingsGroupLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get settingsGroupLibrary;
+
+  /// No description provided for @settingsGroupMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get settingsGroupMore;
+
+  /// No description provided for @settingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get settingsSearchHint;
+
+  /// No description provided for @settingsNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching settings'**
+  String get settingsNoResults;
+
+  /// No description provided for @showInFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in folder'**
+  String get showInFolder;
+
+  /// No description provided for @removeFromLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from library'**
+  String get removeFromLibrary;
+
+  /// No description provided for @removeFromLibraryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this song from the library? The audio file is not deleted.'**
+  String get removeFromLibraryConfirm;
+
+  /// No description provided for @removedFromLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from the library'**
+  String get removedFromLibrary;
+
+  /// No description provided for @deleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file'**
+  String get deleteFile;
+
+  /// No description provided for @deleteFileConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete this audio file? This cannot be undone.'**
+  String get deleteFileConfirm;
+
+  /// No description provided for @fileDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'File deleted'**
+  String get fileDeleted;
+
+  /// No description provided for @noFileManager.
+  ///
+  /// In en, this message translates to:
+  /// **'No file manager could open the folder'**
+  String get noFileManager;
+
+  /// No description provided for @showInFolderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the folder'**
+  String get showInFolderFailed;
+
+  /// No description provided for @audioOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio output'**
+  String get audioOutput;
+
+  /// No description provided for @audioRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Current route'**
+  String get audioRoute;
+
+  /// No description provided for @audioRouteBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth'**
+  String get audioRouteBluetooth;
+
+  /// No description provided for @audioRouteUsb.
+  ///
+  /// In en, this message translates to:
+  /// **'USB audio'**
+  String get audioRouteUsb;
+
+  /// No description provided for @audioRouteWired.
+  ///
+  /// In en, this message translates to:
+  /// **'Wired headphones'**
+  String get audioRouteWired;
+
+  /// No description provided for @audioRouteSpeaker.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker'**
+  String get audioRouteSpeaker;
+
+  /// No description provided for @audioRouteEarpiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Earpiece'**
+  String get audioRouteEarpiece;
+
+  /// No description provided for @audioRouteHdmi.
+  ///
+  /// In en, this message translates to:
+  /// **'HDMI'**
+  String get audioRouteHdmi;
+
+  /// No description provided for @audioRouteDock.
+  ///
+  /// In en, this message translates to:
+  /// **'Dock'**
+  String get audioRouteDock;
+
+  /// No description provided for @audioRouteHearingAid.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearing aid'**
+  String get audioRouteHearingAid;
+
+  /// No description provided for @audioRouteLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line output'**
+  String get audioRouteLine;
+
+  /// No description provided for @audioRouteOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio device'**
+  String get audioRouteOther;
+
+  /// No description provided for @audioOutputSampleRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Output sample rate'**
+  String get audioOutputSampleRate;
+
+  /// No description provided for @audioOutputBuffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Output buffer'**
+  String get audioOutputBuffer;
+
+  /// No description provided for @audioOutputLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Buffer latency'**
+  String get audioOutputLatency;
+
+  /// No description provided for @audioSourceFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Source format'**
+  String get audioSourceFormat;
+
+  /// No description provided for @audioSourceSampleRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Source sample rate'**
+  String get audioSourceSampleRate;
+
+  /// No description provided for @audioOutputDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected output devices'**
+  String get audioOutputDevices;
+
+  /// No description provided for @audioOutputNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Android reports the output rate and buffer. The Bluetooth codec itself is negotiated by the system and is not exposed to apps.'**
+  String get audioOutputNote;
+
+  /// No description provided for @audioOutputUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This platform does not report output details'**
+  String get audioOutputUnavailable;
+
+  /// No description provided for @audioNoSongPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is playing'**
+  String get audioNoSongPlaying;
+
+  /// No description provided for @serverCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Server capabilities'**
+  String get serverCapabilities;
+
+  /// No description provided for @capLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics by song id'**
+  String get capLyrics;
+
+  /// No description provided for @capSimilarSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonic similarity'**
+  String get capSimilarSongs;
+
+  /// No description provided for @capTranscodeOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcode offset'**
+  String get capTranscodeOffset;
+
+  /// No description provided for @capFormPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Form post'**
+  String get capFormPost;
+
+  /// No description provided for @capApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key auth'**
+  String get capApiKey;
+
+  /// No description provided for @capPlaybackReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback reporting'**
+  String get capPlaybackReport;
+
+  /// No description provided for @capSimilarArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar artists'**
+  String get capSimilarArtists;
+
+  /// No description provided for @capFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Album and artist favorites'**
+  String get capFavorites;
+
+  /// No description provided for @capLibraryScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Library scan'**
+  String get capLibraryScan;
+
+  /// No description provided for @capPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Server playlists'**
+  String get capPlaylists;
 }
 
 class _AppLocalizationsDelegate

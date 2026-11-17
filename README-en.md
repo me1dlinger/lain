@@ -29,11 +29,15 @@ Currently supports:
 - Classic Bluetooth offers four cover variants for compatibility testing: bitmap, bitmap + content URI, original large image, and bitmap + relay/server URI.
 - Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title".
 - On the LAN the phone can serve the artwork to the head unit directly.
+- The media session publishes a 200-song queue window around the current track, so a head unit can browse and pick from the queue. The position still uses the full queue (for example 7/1286), not a number inside the window.
 
 ### Playback
 - Play modes: tap cycles list loop and shuffle; a long press enters repeat one. The queue marks the repeating song.
 - Replay gain can be off, per track or per album, using the loudness tags in the files so a mixed library keeps a steady level.
 - Playback speed is selectable from 0.5x to 2.0x and applies to the running player immediately.
+- Changing speed keeps the pitch, so music does not turn into a fast or slow chipmunk voice.
+- New Pre-cache the next song switch: the next track is written to the cache before the current one ends, so a streamed track change does not wait for buffering.
+- Settings > Playback adds an audio output page: route type (Bluetooth/speaker/USB/wired/HDMI), the system output sample rate, buffer and latency, plus the current song's format, bitrate and source sample rate.
 - Fade in and out is a separate switch: the volume ramps up on start and down on pause or a track change.
 - Audio focus offers exclusive, smart ducking and mix: exclusive pauses and does not resume by itself; ducking restores the original volume when the interruption ends.
 - The queue supports drag reordering, play next, add to queue, reverse and a full queue page; clearing it shows an undo bar that restores and resumes it.
@@ -44,6 +48,12 @@ Currently supports:
 - Multiple servers, each with public and LAN addresses and its own certificate option, including Feiniu; addresses fail over and are masked by default.
 - New server status page: state, address and latency, speed-first selection, server information and library statistics, with a button to start a library scan on the server.
 - Global search across songs, albums, artists and playlists.
+- Search 2.0: one search over the whole library with a top-result card, song/album/artist/playlist filters and counts, matched-text highlighting, pinyin and English-initial matching, recent searches and suggestions; results arrive in a short stagger and a song starts from its cover.
+- New Long time no see shelf on the home page: songs that were played over and over but have rested for a while, ordered by play count and time away; it can be hidden or moved in the home layout.
+- Every song list gains an A-Z edge index: groups follow the pinyin initial, tapping or dragging a letter jumps there, and a bubble names the letter under the finger.
+- Local song menus add Show in folder, Remove from library and Delete file. Removing only deletes the database row and remembers the exclusion; the file stays. Deleting a file asks for confirmation.
+- The server status page adds Server capabilities: it reads the OpenSubsonic extension list and shows what the server really supports (lyrics, similar songs, transcode offset and more); Emby lists its own available endpoints.
+- Settings adds Data and backup: settings, server addresses, playlists and favorites, and listening statistics can be exported to and restored from one JSON file. A rollback copy is written before a restore, and server passwords are never included.
 - Album and artist pages with sorting, albums first, track numbers and album descriptions; artist artwork is decided consistently from the server and the cache.
 - Artist pages add top songs and similar artists; album pages add More from this artist; detail headers use a scroll parallax.
 - Song lists remember their sort order; recently added, play-count sorting and quality tags are available.
@@ -77,6 +87,10 @@ Currently supports:
 ### Interface
 - Light, dark and vivid themes; song rows can show HR/SQ/HQ quality tags with a separate vivid palette.
 - Settings and home layout support long-press drag reordering; comment and lyric settings are grouped more clearly.
+- The settings home has a search field for categories by keyword, grouped under General, Playback, Library and More; duplicated entries in an old saved order are dropped.
+- Queue rows now have an explicit drag handle: the row lifts, scales up and casts a shadow when picked up, with a spring-back drop and light haptic feedback.
+- The collapsed play bar has a thin progress line at its bottom; a quick upward flick on the bar opens the play queue.
+- Play/pause and favorite icons morph: the play button rotates and scales into pause, and the favorite star springs with a colour transition.
 - Server and metadata forms share the app's grouped-card style; the lyrics page has one font control.
 - Song and collection lists show skeleton placeholders while loading, so the layout does not jump.
 - The cover crossfades on a track change, and album, artist and playlist rows share their cover with the detail page.

@@ -2436,4 +2436,222 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currentBroadcast => '当前广播';
+
+  @override
+  String get rediscovery => '久别重逢';
+
+  @override
+  String get searchAll => '全部';
+
+  @override
+  String get searchTopResult => '最佳结果';
+
+  @override
+  String get searchRecent => '最近搜索';
+
+  @override
+  String get searchClearRecent => '清除';
+
+  @override
+  String get searchTrySearching => '试试搜索';
+
+  @override
+  String get searchBrowse => '快速浏览';
+
+  @override
+  String get searchIdleHint => '歌曲、专辑、艺术家、歌单，一次搜遍';
+
+  @override
+  String get searchShowAll => '查看全部';
+
+  @override
+  String searchCountSongs(int count) {
+    return '$count 首';
+  }
+
+  @override
+  String get prefetchNextSong => '预缓存下一首';
+
+  @override
+  String get settingsDataBackup => '数据与备份';
+
+  @override
+  String get backupData => '备份';
+
+  @override
+  String get backupExport => '导出备份';
+
+  @override
+  String get backupImport => '从文件恢复';
+
+  @override
+  String get backupSettings => '设置';
+
+  @override
+  String get backupServers => '服务器与账号';
+
+  @override
+  String get backupPlaylists => '歌单与收藏';
+
+  @override
+  String get backupStatistics => '听歌统计';
+
+  @override
+  String get backupPrivacy => '备份不包含服务器密码，恢复后需要重新输入';
+
+  @override
+  String get backupSaved => '备份已保存';
+
+  @override
+  String get backupRestoreConfirm => '恢复这个备份？设置、服务器、歌单和统计都会被替换。';
+
+  @override
+  String get backupRestoreDone => '恢复完成，重启临音后全部生效';
+
+  @override
+  String get backupInvalid => '这不是有效的临音备份文件';
+
+  @override
+  String get backupRollback => '恢复前的数据已另存为回滚文件';
+
+  @override
+  String get settingsGroupGeneral => '通用';
+
+  @override
+  String get settingsGroupPlayback => '播放';
+
+  @override
+  String get settingsGroupLibrary => '音乐库';
+
+  @override
+  String get settingsGroupMore => '更多';
+
+  @override
+  String get settingsSearchHint => '搜索设置';
+
+  @override
+  String get settingsNoResults => '没有匹配的设置';
+
+  @override
+  String get showInFolder => '在文件夹中显示';
+
+  @override
+  String get removeFromLibrary => '移出曲库';
+
+  @override
+  String get removeFromLibraryConfirm => '从曲库移除这首歌？音频文件不会被删除。';
+
+  @override
+  String get removedFromLibrary => '已移出曲库';
+
+  @override
+  String get deleteFile => '删除文件';
+
+  @override
+  String get deleteFileConfirm => '永久删除这个音频文件？此操作无法撤销。';
+
+  @override
+  String get fileDeleted => '文件已删除';
+
+  @override
+  String get noFileManager => '没有可用的文件管理器';
+
+  @override
+  String get showInFolderFailed => '无法打开文件夹';
+
+  @override
+  String get audioOutput => '音频输出';
+
+  @override
+  String get audioRoute => '当前输出';
+
+  @override
+  String get audioRouteBluetooth => '蓝牙';
+
+  @override
+  String get audioRouteUsb => 'USB 音频';
+
+  @override
+  String get audioRouteWired => '有线耳机';
+
+  @override
+  String get audioRouteSpeaker => '扬声器';
+
+  @override
+  String get audioRouteEarpiece => '听筒';
+
+  @override
+  String get audioRouteHdmi => 'HDMI';
+
+  @override
+  String get audioRouteDock => '底座';
+
+  @override
+  String get audioRouteHearingAid => '助听器';
+
+  @override
+  String get audioRouteLine => '线路输出';
+
+  @override
+  String get audioRouteOther => '音频设备';
+
+  @override
+  String get audioOutputSampleRate => '输出采样率';
+
+  @override
+  String get audioOutputBuffer => '输出缓冲';
+
+  @override
+  String get audioOutputLatency => '缓冲延迟';
+
+  @override
+  String get audioSourceFormat => '源格式';
+
+  @override
+  String get audioSourceSampleRate => '源采样率';
+
+  @override
+  String get audioOutputDevices => '已连接的输出设备';
+
+  @override
+  String get audioOutputNote => '输出采样率与缓冲由 Android 提供；蓝牙编码本身由系统协商，应用无法读取。';
+
+  @override
+  String get audioOutputUnavailable => '当前平台不提供输出信息';
+
+  @override
+  String get audioNoSongPlaying => '暂无播放';
+
+  @override
+  String get serverCapabilities => '服务器能力';
+
+  @override
+  String get capLyrics => '按歌曲 ID 获取歌词';
+
+  @override
+  String get capSimilarSongs => '音色相似推荐';
+
+  @override
+  String get capTranscodeOffset => '转码定位';
+
+  @override
+  String get capFormPost => '表单提交';
+
+  @override
+  String get capApiKey => 'API Key 登录';
+
+  @override
+  String get capPlaybackReport => '播放进度上报';
+
+  @override
+  String get capSimilarArtists => '相似艺术家';
+
+  @override
+  String get capFavorites => '专辑与艺术家收藏';
+
+  @override
+  String get capLibraryScan => '音乐库扫描';
+
+  @override
+  String get capPlaylists => '服务器歌单';
 }
