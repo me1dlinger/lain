@@ -2452,4 +2452,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get carNoSong => 'Nothing is playing';
+
+  @override
+  String get pcInspector => 'PC inspector';
 }

@@ -4723,6 +4723,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing is playing'**
   String get carNoSong;
+
+  /// No description provided for @pcInspector.
+  ///
+  /// In en, this message translates to:
+  /// **'PC inspector'**
+  String get pcInspector;
 }
 
 class _AppLocalizationsDelegate

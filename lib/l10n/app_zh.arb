@@ -1020,5 +1020,6 @@
   "carTabLyrics": "歌词",
   "carPreviewBuiltin": "内置",
   "carPreviewLive": "实时",
-  "carNoSong": "当前没有播放歌曲"
+  "carNoSong": "当前没有播放歌曲",
+  "pcInspector": "PC 检查服务"
 }

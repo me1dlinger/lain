@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
@@ -8,6 +9,7 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/broadcast_inspector.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/apple_form.dart';
@@ -268,6 +270,33 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
         },
       ),
       _relayTile(context, l10n),
+      Builder(
+        builder: (context) {
+          final base = streamRelay.lanBaseUrl;
+          if (base == null) {
+            return const SizedBox.shrink();
+          }
+          final host = Uri.tryParse(base)?.host;
+          if (host == null || host.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final url = 'http://$host:${BroadcastInspector.httpPort}';
+          return ListTile(
+            leading: Icon(
+              Icons.monitor_heart_outlined,
+              size: 24,
+              color: colorManager.getSpecificIconColor(),
+            ),
+            title: Text(l10n.pcInspector),
+            subtitle: Text(url),
+            trailing: const Icon(Icons.copy_all_outlined, size: 18),
+            onTap: () async {
+              await Clipboard.setData(ClipboardData(text: url));
+              showCenterMessage(l10n.copied);
+            },
+          );
+        },
+      ),
       appleSectionTitle(l10n.classicCoverMode),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),

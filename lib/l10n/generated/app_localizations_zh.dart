@@ -2409,4 +2409,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get carNoSong => '当前没有播放歌曲';
+
+  @override
+  String get pcInspector => 'PC 检查服务';
 }

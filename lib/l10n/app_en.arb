@@ -1090,5 +1090,6 @@
   "carTabLyrics": "Lyrics",
   "carPreviewBuiltin": "Built-in",
   "carPreviewLive": "Live",
-  "carNoSong": "Nothing is playing"
+  "carNoSong": "Nothing is playing",
+  "pcInspector": "PC inspector"
 }
