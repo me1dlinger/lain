@@ -1572,6 +1572,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanCompleted => '已完成';
 
   @override
+  String get activeStreams => '正在播放';
+
+  @override
+  String get transcoding => '转码';
+
+  @override
+  String get serverOs => '运行系统';
+
+  @override
+  String get systemUpdate => '系统更新';
+
+  @override
+  String get updateAvailable => '有可用更新';
+
+  @override
+  String get upToDate => '已是最新';
+
+  @override
   String get hoursUnit => '小时';
 
   @override

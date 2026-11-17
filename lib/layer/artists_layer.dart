@@ -104,6 +104,7 @@ class _ArtistsLayerState extends CollectionListState {
         (l10n.sortBySize, 3),
         (l10n.sortByPlayCount, 4),
         (l10n.sortByFavorite, 5),
+        (l10n.sortByAddedTime, 6),
       ];
     };
 

@@ -12,10 +12,10 @@ import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/server_stats.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
-import 'package:lain/base/services/navidrome_client.dart';
 import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
@@ -650,9 +650,10 @@ class HomeLayerState extends State<HomeLayer> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
             child:
-                sourceType == SourceType.navidrome &&
-                    streamClient is NavidromeClient
-                ? _statsShelf(context, streamClient as NavidromeClient)
+                (sourceType == SourceType.navidrome ||
+                    sourceType == SourceType.emby) &&
+                    streamClient != null
+                ? _statsShelf(context, streamClient!)
                 : _localStatsShelf(context),
           ),
           SizedBox(height: 15),
@@ -660,11 +661,11 @@ class HomeLayerState extends State<HomeLayer> {
     }
   }
 
-  /// The library statistics card as Navidrome reports it: its values are the
-  /// client's cached snapshot, so the card does not hammer the server every
-  /// time the home page is rebuilt.
-  Widget _statsShelf(BuildContext context, NavidromeClient client) {
-    return FutureBuilder<NavidromeLibraryStats?>(
+  /// The library statistics card as the stream source reports it: its values
+  /// are the client's cached snapshot, so the card does not hammer the server
+  /// every time the home page is rebuilt.
+  Widget _statsShelf(BuildContext context, StreamClient client) {
+    return FutureBuilder<ServerLibraryStats?>(
       future: client.libraryStats(),
       builder: (context, snapshot) {
         final stats = snapshot.data;

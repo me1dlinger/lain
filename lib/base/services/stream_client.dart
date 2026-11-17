@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/server_stats.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 
@@ -270,4 +271,13 @@ abstract class StreamClient {
 
   /// The most played songs, most played first, or null when unsupported.
   Future<List<MyAudioMetadata>?> getMostPlayedSongs(int count) async => null;
+
+  /// A snapshot of the server and its library for the stats card and the
+  /// server status page, or null when the source has no such endpoint.
+  Future<ServerLibraryStats?> libraryStats({bool forceRefresh = false}) async =>
+      null;
+
+  /// Asks the server to rescan its library. False when the source cannot, or
+  /// the server refused.
+  Future<bool> startScan() async => false;
 }

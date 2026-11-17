@@ -6,11 +6,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/server_stats.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/stream_quality.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/stream_client.dart';
+
 
 class NavidromeClient extends StreamClient {
   NavidromeClient({
@@ -143,6 +145,7 @@ class NavidromeClient extends StreamClient {
 
   /// Asks the server to rescan its library. Subsonic limits this to an admin
   /// account, so a non-admin login reports the server's refusal.
+  @override
   Future<bool> startScan() async {
     final response = await safeRequest(
       '/rest/startScan.view',
@@ -153,7 +156,7 @@ class NavidromeClient extends StreamClient {
 
   /// The fetch in flight, so the home card and the status page asking at the
   /// same time share one pass over the server instead of racing.
-  Future<NavidromeLibraryStats?>? _libraryStatsFuture;
+  Future<ServerLibraryStats?>? _libraryStatsFuture;
 
   /// Library-wide size and duration, summed once per client; see
   /// [_fetchLibraryStats].
@@ -165,7 +168,8 @@ class NavidromeClient extends StreamClient {
   ///
   /// The total size and duration need one pass over every song, so the result
   /// is cached per client; pass [forceRefresh] to redo the whole snapshot.
-  Future<NavidromeLibraryStats?> libraryStats({bool forceRefresh = false}) {
+  @override
+  Future<ServerLibraryStats?> libraryStats({bool forceRefresh = false}) {
     if (forceRefresh) {
       _libraryStatsFuture = null;
     }
@@ -201,7 +205,7 @@ class NavidromeClient extends StreamClient {
     }
   }
 
-  Future<NavidromeLibraryStats?> _fetchLibraryStats() async {
+  Future<ServerLibraryStats?> _fetchLibraryStats() async {
     // The ping doubles as the latency measure and reports what the server is.
     final stopwatch = Stopwatch()..start();
     final ping = await safeRequest('/rest/ping.view');
@@ -300,8 +304,9 @@ class NavidromeClient extends StreamClient {
       }
     }
 
-    final stats = NavidromeLibraryStats(
+    final stats = ServerLibraryStats(
       latency: stopwatch.elapsed,
+      sourceType: 'navidrome',
       serverType: (serverType == null || serverType.isEmpty)
           ? null
           : serverType,
@@ -1111,90 +1116,6 @@ class NavidromeClient extends StreamClient {
     );
   }
 }
-
-/// Snapshot of a Navidrome server and its library, for the home stats card
-/// and the server status page.
-///
-/// Every field is what the server reported; a value the server does not give
-/// stays null and the pages show a dash for it.
-class NavidromeLibraryStats {
-  /// How long the ping took, measured while the snapshot was fetched.
-  final Duration latency;
-
-  /// The server software behind the Subsonic API, e.g. `navidrome`.
-  final String? serverType;
-
-  /// The server's own version, e.g. `0.6.4.1 (285dc4f3)`.
-  final String? serverVersion;
-
-  /// The Subsonic API version the server speaks, e.g. `1.16.1`.
-  final String? subsonicVersion;
-
-  /// Whether the server answered with the OpenSubsonic flag.
-  final bool openSubsonic;
-
-  /// Songs visible through the Subsonic API (the scan count).
-  final int? songCount;
-
-  final int? artistCount;
-  final int? albumCount;
-  final int? folderCount;
-
-  /// Sum of every song's file size, in bytes.
-  final int? totalSize;
-
-  /// Sum of every song's duration, in seconds.
-  final int? totalDuration;
-
-  /// Whether a scan was running when the snapshot was taken.
-  final bool? scanning;
-
-  /// When the last scan finished.
-  final DateTime? lastScan;
-
-  const NavidromeLibraryStats({
-    required this.latency,
-    this.serverType,
-    this.serverVersion,
-    this.subsonicVersion,
-    this.openSubsonic = false,
-    this.songCount,
-    this.artistCount,
-    this.albumCount,
-    this.folderCount,
-    this.totalSize = 0,
-    this.totalDuration = 0,
-    this.scanning,
-    this.lastScan,
-  });
-}
-
-/// `108.4 GB`-style formatting of a byte count for the stats display.
-String formatLibrarySize(int bytes) {
-  if (bytes <= 0) {
-    return '0';
-  }
-  final gb = bytes / (1024 * 1024 * 1024);
-  if (gb >= 1) {
-    return gb >= 100
-        ? gb.round().toString()
-        : gb.toStringAsFixed(gb >= 10 ? 1 : 2);
-  }
-  final mb = bytes / (1024 * 1024);
-  return mb >= 1 ? '${mb.round()} MB' : '${(bytes / 1024).round()} KB';
-}
-
-/// `273.4`-style hour value of a duration in seconds; larger libraries are
-/// shown in whole days plus hours instead, with the unit chosen by the
-/// caller through [inDays].
-String formatLibraryDuration(int seconds, {required bool inDays}) {
-  if (inDays) {
-    return '${seconds ~/ 86400}';
-  }
-  final hours = seconds / 3600;
-  return hours >= 100 ? hours.round().toString() : hours.toStringAsFixed(1);
-}
-
 
 /// Formats milliseconds as `MM:SS.mmm`, the timestamp shape the LRC parser
 /// understands for both line and angle-bracket word timestamps.

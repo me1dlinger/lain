@@ -1603,6 +1603,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanCompleted => 'Completed';
 
   @override
+  String get activeStreams => 'Active streams';
+
+  @override
+  String get transcoding => 'Transcoding';
+
+  @override
+  String get serverOs => 'System';
+
+  @override
+  String get systemUpdate => 'System update';
+
+  @override
+  String get updateAvailable => 'Update available';
+
+  @override
+  String get upToDate => 'Up to date';
+
+  @override
   String get hoursUnit => 'h';
 
   @override

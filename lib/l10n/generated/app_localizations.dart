@@ -3134,6 +3134,42 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get scanCompleted;
 
+  /// No description provided for @activeStreams.
+  ///
+  /// In en, this message translates to:
+  /// **'Active streams'**
+  String get activeStreams;
+
+  /// No description provided for @transcoding.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcoding'**
+  String get transcoding;
+
+  /// No description provided for @serverOs.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get serverOs;
+
+  /// No description provided for @systemUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'System update'**
+  String get systemUpdate;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailable;
+
+  /// No description provided for @upToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to date'**
+  String get upToDate;
+
   /// No description provided for @hoursUnit.
   ///
   /// In en, this message translates to:

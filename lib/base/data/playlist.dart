@@ -337,11 +337,11 @@ class Playlist {
 
   MyPicture? _serverCover;
 
-  /// The server's own artwork for this playlist, if it has any: Navidrome keeps
-  /// it under the playlist's id, so it downloads like any other cover. The
-  /// favourited-songs list is built locally and has no id at all.
+  /// The server's own artwork for this playlist, if it has any: both Navidrome
+  /// and Emby keep it under the playlist's id, so it downloads like any other
+  /// cover. The favourited-songs list is built locally and has no id at all.
   MyPicture? get serverCover {
-    if (sourceType != .navidrome) {
+    if (sourceType != .navidrome && sourceType != .emby) {
       return null;
     }
     final coverId = id;

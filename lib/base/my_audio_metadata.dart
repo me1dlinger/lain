@@ -204,7 +204,9 @@ class MyAudioMetadata {
     );
     final createdText = song['created'] is String
         ? DateTime.tryParse(song['created'])
-        : null;
+        : _parseEmbyDate(song['DateCreated']);
+    final userData = song['UserData'] is Map ? song['UserData'] as Map : const {};
+    final lastPlayedText = _parseEmbyDate(userData['LastPlayedDate']);
 
     final item = library.id2Song.putIfAbsent(song['Id'], () {
       final mediaSources = (song['MediaSources'] as List?) ?? [];
@@ -226,25 +228,29 @@ class MyAudioMetadata {
 
           title: song['Name'],
 
-          artist:
-              (song['ArtistItems'] as List?)?.map((a) => a['Name']).join('/') ??
+          artist: _namedList(song['ArtistItems']) ??
               (song['Artists'] as List?)?.join('/'),
 
           album: song['Album'],
 
-          albumArtist: song['AlbumArtist'],
+          // Emby gives both the display string and the structured list; the
+          // list keeps multi-artist albums readable.
+          albumArtist:
+              _namedList(song['AlbumArtists']) ?? song['AlbumArtist'],
 
           genre: (song['Genres'] as List?)?.join('/'),
 
-          year: song['ProductionYear'],
+          year: _asInt(song['ProductionYear']),
 
-          track: song['IndexNumber'],
+          track: _asInt(song['IndexNumber']),
 
-          disc: song['ParentIndexNumber'],
+          disc: _asInt(song['ParentIndexNumber']),
 
-          bitrate: audioStream?['BitRate'] ?? primarySource?['Bitrate'],
+          // Emby reports the audio bitrate in bits per second, while the rest
+          // of the app (and the song info page) uses kbps.
+          bitrate: _kbps(audioStream?['BitRate'] ?? primarySource?['Bitrate']),
 
-          samplerate: audioStream?['SampleRate'],
+          samplerate: _asInt(audioStream?['SampleRate']),
 
           duration: song['RunTimeTicks'] != null
               ? Duration(microseconds: song['RunTimeTicks'] ~/ 10)
@@ -255,13 +261,13 @@ class MyAudioMetadata {
 
         id: song['Id'],
 
-        playCount: song['UserData']?['PlayCount'] as int? ?? 0,
+        playCount: _asInt(userData['PlayCount']) ?? 0,
 
-        lastPlayed: song['UserData']?['LastPlayedDate'] != null
-            ? DateTime.parse(song['UserData']['LastPlayedDate'])
-            : DateTime.fromMillisecondsSinceEpoch(0),
+        // An unplayed song has no last-played time; epoch zero made it look
+        // played in 1970 in the song info page.
+        lastPlayed: lastPlayedText,
 
-        size: ((primarySource?['Size'] ?? song['Size']) as num?)?.toInt(),
+        size: _asInt(primarySource?['Size'] ?? song['Size']),
 
         albumId: song['AlbumId']?.toString(),
 
@@ -276,6 +282,10 @@ class MyAudioMetadata {
     item.created ??= createdText ?? created;
     return item;
   }
+
+  /// Parses an Emby timestamp (seven fractional digits, which Dart's own
+  /// parser refuses); null for the placeholder dates Emby uses for "never".
+  static DateTime? parseEmbyDate(Object? value) => _parseEmbyDate(value);
 
   @override
   String toString() {
@@ -313,6 +323,71 @@ class MyAudioMetadata {
     copy.isFavoriteNotifier.value = isFavoriteNotifier.value;
     return copy;
   }
+}
+
+/// Emby's timestamps carry seven fractional digits (100 ns ticks), which Dart
+/// refuses to parse - it accepts at most six. Trim the fraction before parsing
+/// and treat the zero/placeholder dates Emby sends for "never" as null.
+DateTime? _parseEmbyDate(Object? value) {
+  if (value is! String || value.isEmpty) {
+    return null;
+  }
+  var text = value;
+  final dot = text.indexOf('.');
+  if (dot >= 0) {
+    var end = dot + 1;
+    while (end < text.length) {
+      final code = text.codeUnitAt(end);
+      if (code < 48 || code > 57) {
+        break;
+      }
+      end++;
+    }
+    if (end - dot - 1 > 6) {
+      text = text.substring(0, dot + 7) + text.substring(end);
+    }
+  }
+  final date = DateTime.tryParse(text);
+  if (date == null || date.year <= 1) {
+    return null;
+  }
+  return date;
+}
+
+/// The names of an Emby `ArtistItems` / `AlbumArtists` list, joined the same
+/// way the other sources join multiple names.
+String? _namedList(Object? value) {
+  if (value is! List) {
+    return null;
+  }
+  final names = [
+    for (final item in value)
+      if (item is Map && '${item['Name'] ?? ''}'.isNotEmpty)
+        '${item['Name']}',
+  ];
+  return names.isEmpty ? null : names.join('/');
+}
+
+int? _asInt(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.round();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
+}
+
+/// Emby reports bitrates in bps; the app displays kbps.
+int? _kbps(Object? value) {
+  final bps = _asInt(value);
+  if (bps == null || bps <= 0) {
+    return null;
+  }
+  return bps > 10000 ? bps ~/ 1000 : bps;
 }
 
 /// fnOS reports epoch milliseconds for createdAt / updatedAt, but seconds are

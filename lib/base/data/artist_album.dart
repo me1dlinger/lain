@@ -325,8 +325,8 @@ Future<void> prefetchArtistInfo() async {
 /// fetches them again. Returns whether the server now reports an artist image;
 /// when it does not, the album cover is used instead.
 Future<bool> refreshArtistCache(Artist artist) async {
-  // Only Navidrome has an artist image to fetch again.
-  if (sourceType != .navidrome) {
+  // Only a server source has an artist image to fetch again.
+  if (sourceType != .navidrome && sourceType != .emby) {
     return false;
   }
   final key = artistKey(artist.name);
@@ -358,7 +358,8 @@ Future<bool> refreshArtistCache(Artist artist) async {
   failedArtistPictures.remove(key);
   await saveArtistInfoCache();
 
-  if (artistId == null || sourceType != .navidrome) {
+  if (artistId == null ||
+      (sourceType != .navidrome && sourceType != .emby)) {
     artist.changeNotifier.value++;
     artistAlbumManager.updateNotifier.value++;
     return false;
@@ -370,7 +371,7 @@ Future<bool> refreshArtistCache(Artist artist) async {
   // (and, for NetEase, replaces the default-image URL with a proxy).
   var imageUrl = info?.imageUrl;
   var serverHasImage = info?.hasImage ?? false;
-  if (sourceType == .navidrome) {
+  if (sourceType == .navidrome || sourceType == .emby) {
     // One call to the server's own artist API gives both the real image URL
     // and whether the server actually has an image. That second flag decides
     // whether the cover-art endpoint is safe to use: for an imageAbsent artist
@@ -406,7 +407,7 @@ Future<void> loadArtistInfoIfNeed(Artist artist) async {
   if (cached != null && (cached.biography ?? '').isNotEmpty) {
     return;
   }
-  if (sourceType != .navidrome) {
+  if (sourceType != .navidrome && sourceType != .emby) {
     return;
   }
   final id = artist.sourceId;
@@ -421,7 +422,7 @@ Future<void> loadArtistInfoIfNeed(Artist artist) async {
   // external URL and let the native API replace it when it has one.
   var imageUrl = cached?.imageUrl;
   var serverHasImage = cached?.hasImage ?? false;
-  if (sourceType == .navidrome) {
+  if (sourceType == .navidrome || sourceType == .emby) {
     final native = await streamClient?.getArtistImageInfo(id);
     if (native != null) {
       imageUrl = native.imageUrl ?? imageUrl;
@@ -510,10 +511,10 @@ class ArtistAlbumManager {
   }
 
   /// Marks albums and artists as favourites, from the server's starred lists on
-  /// a Navidrome server and from the local store on a local library. Feiniu and
-  /// Emby have no album/artist favourite here, so nothing is marked.
+  /// a Navidrome or Emby server and from the local store on a local library.
+  /// Feiniu has no album/artist favourite here, so nothing is marked.
   Future<void> applyFavorites() async {
-    if (sourceType == .navidrome) {
+    if (sourceType == .navidrome || sourceType == .emby) {
       final albumIds =
           await streamClient?.getStarredIds(isArtist: false) ?? const {};
       for (final album in albumList) {
@@ -586,6 +587,10 @@ class ArtistAlbumManager {
           return a.playCount.compareTo(b.playCount);
         case 5: // favourites: starred first, most recently starred first
           return _starredRank(a).compareTo(_starredRank(b));
+        case 6: // added time (oldest song of the artist)
+          final at = a.createdAt?.millisecondsSinceEpoch ?? 0;
+          final bt = b.createdAt?.millisecondsSinceEpoch ?? 0;
+          return at.compareTo(bt);
         default: // name
           return a.compareName.compareTo(b.compareName);
       }

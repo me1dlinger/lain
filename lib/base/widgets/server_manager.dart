@@ -193,9 +193,10 @@ class _ServerListPageState extends State<ServerListPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // The status page speaks Navidrome's own API, so only a
-              // Navidrome server gets the entry.
-              if (server.type == SourceType.navidrome)
+              // The status page reads Navidrome's or Emby's own API; the
+              // other sources have no such snapshot.
+              if (server.type == SourceType.navidrome ||
+                  server.type == SourceType.emby)
                 ListTile(
                   title: Text(l10n.serverStatus),
                   onTap: () => Navigator.pop(dialogContext, 'status'),

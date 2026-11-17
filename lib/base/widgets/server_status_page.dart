@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/music_server.dart';
+import 'package:lain/base/data/server_stats.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/emby_client.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/navidrome_client.dart';
 import 'package:lain/base/services/stream_client.dart';
@@ -11,8 +13,8 @@ import 'package:lain/base/widgets/my_divider.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 
-/// Server status of a Navidrome source: whether it answers and how fast, what
-/// it runs, and what its library holds.
+/// Server status of a stream source (Navidrome or Emby): whether it answers
+/// and how fast, what it runs, and what its library holds.
 ///
 /// The active server is asked through the live client - the one the app plays
 /// from - so its failover state is the truth; another server gets a temporary
@@ -27,8 +29,8 @@ class ServerStatusPage extends StatefulWidget {
 }
 
 class _ServerStatusPageState extends State<ServerStatusPage> {
-  NavidromeClient? _ownClient;
-  NavidromeLibraryStats? _stats;
+  StreamClient? _ownClient;
+  ServerLibraryStats? _stats;
   bool _loading = true;
   bool _reachable = false;
   bool _scanRequested = false;
@@ -41,19 +43,28 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
   static const _red = Color(0xFFFF3B30);
   static const _blue = Color(0xFF007AFF);
 
-  NavidromeClient get _client {
+  StreamClient get _client {
     final active = widget.server.id == config.activeServerId;
-    if (active && streamClient is NavidromeClient) {
-      return streamClient as NavidromeClient;
+    final live = streamClient;
+    if (active &&
+        ((widget.server.type == .emby && live is EmbyClient) ||
+            (widget.server.type == .navidrome && live is NavidromeClient))) {
+      return live!;
     }
     if (_ownClient != null) {
       return _ownClient!;
     }
-    final client = NavidromeClient(
-      baseUrl: widget.server.currentUrl,
-      username: widget.server.username,
-      password: widget.server.password,
-    );
+    final StreamClient client = widget.server.type == .emby
+        ? EmbyClient(
+            baseUrl: widget.server.currentUrl,
+            username: widget.server.username,
+            password: widget.server.password,
+          )
+        : NavidromeClient(
+            baseUrl: widget.server.currentUrl,
+            username: widget.server.username,
+            password: widget.server.password,
+          );
     final other = widget.server.addresses
         .firstWhere((url) => url != client.baseUrl, orElse: () => '');
     if (other.isNotEmpty) {
@@ -242,22 +253,39 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
         AppleFormSection(
           divided: false,
           children: [
-            _infoRow(l10n.serverType, stats.serverType ?? 'navidrome', textColor),
+            _infoRow(
+              l10n.serverType,
+              stats.serverType ?? widget.server.type.name,
+              textColor,
+            ),
+            if (stats.serverName != null)
+              _infoRow(l10n.serverName, stats.serverName!, textColor),
             _infoRow(
               l10n.serverVersion,
               stats.serverVersion ?? '—',
               textColor,
             ),
-            _infoRow(
-              l10n.subsonicApiVersion,
-              stats.subsonicVersion ?? '—',
-              textColor,
-            ),
-            _infoRow(
-              l10n.openSubsonic,
-              stats.openSubsonic ? l10n.supported : l10n.notSupported,
-              textColor,
-            ),
+            if (stats.sourceType == 'emby') ...[
+              if (stats.operatingSystem != null)
+                _infoRow(l10n.serverOs, stats.operatingSystem!, textColor),
+              if (stats.hasUpdate != null)
+                _infoRow(
+                  l10n.systemUpdate,
+                  stats.hasUpdate! ? l10n.updateAvailable : l10n.upToDate,
+                  textColor,
+                ),
+            ] else ...[
+              _infoRow(
+                l10n.subsonicApiVersion,
+                stats.subsonicVersion ?? '—',
+                textColor,
+              ),
+              _infoRow(
+                l10n.openSubsonic,
+                stats.openSubsonic ? l10n.supported : l10n.notSupported,
+                textColor,
+              ),
+            ],
           ],
         ),
         appleSectionTitle(l10n.mediaStats),
@@ -288,13 +316,25 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
                     ),
               textColor,
             ),
+            if (stats.activeStreams != null)
+              _infoRow(
+                l10n.activeStreams,
+                '${stats.activeStreams}',
+                textColor,
+              ),
+            if (stats.transcodeStreams != null)
+              _infoRow(
+                l10n.transcoding,
+                '${stats.transcodeStreams}',
+                textColor,
+              ),
             _infoRow(
               l10n.scanStatus,
               stats.scanning == true ? l10n.scanning : l10n.scanCompleted,
               textColor,
             ),
             _infoRow(l10n.lastScanTime, _formatDateTime(stats.lastScan), textColor),
-            _scanNowRow(l10n, textColor, stats),
+            if (stats.canScan) _scanNowRow(l10n, textColor, stats),
           ],
         ),
       ],
@@ -304,7 +344,7 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
   Widget _scanNowRow(
     AppLocalizations l10n,
     Color textColor,
-    NavidromeLibraryStats stats,
+    ServerLibraryStats stats,
   ) {
     final scanning = stats.scanning == true || _scanRequested;
     return InkWell(
@@ -430,7 +470,7 @@ class _ServerStatusPageState extends State<ServerStatusPage> {
   Widget _linkRow(
     AppLocalizations l10n,
     Color textColor,
-    NavidromeLibraryStats stats,
+    ServerLibraryStats stats,
   ) {
     final url = _client.baseUrl;
     return Padding(

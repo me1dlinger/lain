@@ -52,6 +52,15 @@ enum StreamFormat {
     StreamFormat.ogg => 'vorbis',
   };
 
+  /// What Emby expects for `Container=` when transcoding. Without it the
+  /// server may pick its own container and the stream's content type can
+  /// disagree with the requested codec.
+  String get embyContainer => switch (this) {
+    StreamFormat.aac => 'aac',
+    StreamFormat.mp3 => 'mp3',
+    StreamFormat.ogg => 'ogg',
+  };
+
   String get display => name.toUpperCase();
 
   static StreamFormat fromName(Object? name) =>
