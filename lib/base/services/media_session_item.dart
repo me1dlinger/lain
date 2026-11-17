@@ -51,6 +51,8 @@ MediaItem buildServiceMediaItem({
   String? artCacheFile,
   String? fetchableArtUri,
   List<String>? carLines,
+  int? trackNumber,
+  int? trackCount,
 }) {
   // A blank line is not a lyric, and with broadcasting off the line is not
   // published at all: the head unit gets the track's own metadata and nothing
@@ -112,6 +114,13 @@ MediaItem buildServiceMediaItem({
         'android.media.metadata.LYRIC': line,
         'android.media.metadata.LYRICS': line,
       },
+      // AVRCP/Android Auto read the queue position from these two media
+      // metadata keys. Without them a car shows the track as 1/1 even when the
+      // app's queue has hundreds of songs.
+      if (trackNumber != null && trackNumber > 0)
+        'android.media.metadata.TRACK_NUMBER': trackNumber,
+      if (trackCount != null && trackCount > 0)
+        'android.media.metadata.NUM_TRACKS': trackCount,
       if (fetchableArtUri != null && fetchableArtUri.isNotEmpty) ...{
         'android.media.metadata.DISPLAY_ICON_URI': fetchableArtUri,
         'android.media.metadata.ALBUM_ART_URI': fetchableArtUri,

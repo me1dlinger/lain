@@ -12,6 +12,8 @@ void main() {
     String? fileArtUri,
     String? artCacheFile,
     String? fetchableArtUri,
+    int? trackNumber,
+    int? trackCount,
   }) {
     return buildServiceMediaItem(
       id: 'song-1',
@@ -24,6 +26,8 @@ void main() {
       fileArtUri: fileArtUri,
       artCacheFile: artCacheFile,
       fetchableArtUri: fetchableArtUri,
+      trackNumber: trackNumber,
+      trackCount: trackCount,
     );
   }
 
@@ -123,6 +127,22 @@ void main() {
     final result = item(artCacheFile: '/data/user/0/app/covers/abc');
 
     expect(result.extras?['artCacheFile'], '/data/user/0/app/covers/abc');
+  });
+
+  test('the queue position is published as AVRCP track metadata', () {
+    final result = item(trackNumber: 7, trackCount: 1286);
+
+    expect(result.extras?['android.media.metadata.TRACK_NUMBER'], 7);
+    expect(result.extras?['android.media.metadata.NUM_TRACKS'], 1286);
+  });
+
+  test('no queue position means no track keys', () {
+    final result = item();
+
+    expect(result.extras?.containsKey('android.media.metadata.TRACK_NUMBER'),
+        isFalse);
+    expect(result.extras?.containsKey('android.media.metadata.NUM_TRACKS'),
+        isFalse);
   });
 
   test('no local cover means no bitmap source', () {

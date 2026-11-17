@@ -2518,6 +2518,8 @@ class MyAudioHandler extends BaseAudioHandler {
               artCacheFile: bitmapPath,
               fetchableArtUri: fetchUri,
               carLines: carLines,
+              trackNumber: currentIndex >= 0 ? currentIndex + 1 : null,
+              trackCount: playQueue.isEmpty ? null : playQueue.length,
             ),
           );
 
