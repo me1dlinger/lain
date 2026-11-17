@@ -479,59 +479,67 @@ class _CarPreview extends StatelessWidget {
             const SizedBox(height: 14),
             _previewCover(hasSong ? active : null, textColor),
             const SizedBox(height: 14),
-            if (live && !hasSong)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 26),
-                child: Text(
-                  l10n.carNoSong,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: textColor.withAlpha(150),
-                  ),
-                ),
-              )
-            else
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.08),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Column(
-                  key: ValueKey(lines.join('-')),
-                  children: [
-                    for (var i = 0; i < lines.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(
-                          lines[i].isEmpty ? '—' : lines[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: i == 0 ? 18 : 14,
-                            fontWeight: i == 0
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: i == 0
-                                ? textColor
-                                : textColor.withAlpha(190),
-                          ),
+            // Reserve the three-line height for every layout. Switching
+            // between two and three lines then changes only the text, not the
+            // height of the page below the preview.
+            SizedBox(
+              height: 100,
+              child: Center(
+                child: live && !hasSong
+                    ? Text(
+                        l10n.carNoSong,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textColor.withAlpha(150),
+                        ),
+                      )
+                    : AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.08),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Column(
+                          key: ValueKey(lines.join('-')),
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < lines.length; i++)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Text(
+                                  lines[i].isEmpty ? '—' : lines[i],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: i == 0 ? 18 : 14,
+                                    fontWeight: i == 0
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: i == 0
+                                        ? textColor
+                                        : textColor.withAlpha(190),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
               ),
+            ),
           ],
         ),
       ),
