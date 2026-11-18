@@ -1178,5 +1178,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "broadcastCover": "Broadcast cover"
 }

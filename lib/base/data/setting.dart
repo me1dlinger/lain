@@ -249,6 +249,8 @@ class Setting {
 
     controlCenterLyricsNotifier.value =
         json['controlCenterLyrics'] as bool? ?? false;
+    broadcastCoverNotifier.value =
+        json['broadcastCover'] as bool? ?? true;
 
     preferFastestAddressNotifier.value =
         json['preferFastestAddress'] as bool? ?? true;
@@ -432,6 +434,7 @@ class Setting {
         'recursiveScan': recursiveScanNotifier.value,
 
         'controlCenterLyrics': controlCenterLyricsNotifier.value,
+        'broadcastCover': broadcastCoverNotifier.value,
 
         'preferFastestAddress': preferFastestAddressNotifier.value,
 

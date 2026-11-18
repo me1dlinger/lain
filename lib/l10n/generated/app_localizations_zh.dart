@@ -2654,4 +2654,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get capPlaylists => '服务器歌单';
+
+  @override
+  String get broadcastCover => '广播封面';
 }

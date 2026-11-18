@@ -2705,4 +2705,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get capPlaylists => 'Server playlists';
+
+  @override
+  String get broadcastCover => 'Broadcast cover';
 }

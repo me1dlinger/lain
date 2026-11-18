@@ -31,6 +31,7 @@ class _LyricsPageLayerState extends State<LyricsPageLayer> {
     layersManager.backgroundChangeNotifier.value++;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(Duration(milliseconds: 600));
+      layersManager.backgroundChangeNotifier.value++;
       updateHoverFocusColor();
     });
   }
@@ -41,6 +42,7 @@ class _LyricsPageLayerState extends State<LyricsPageLayer> {
     layersManager.backgroundChangeNotifier.value++;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(Duration(milliseconds: 600));
+      layersManager.backgroundChangeNotifier.value++;
       updateHoverFocusColor();
     });
     super.dispose();

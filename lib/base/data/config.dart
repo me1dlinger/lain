@@ -380,37 +380,39 @@ class Config {
     return true;
   }
 
-  /// The address of [server] that answered in the shortest time, or null when
-  /// none answered.
+  /// The address of [server] that answers first, or null when none answers.
+  ///
+  /// Every address is probed at once and the first success wins. Waiting for
+  /// all of them made a phone away from home sit through the LAN timeout
+  /// before using the public address that had answered immediately; the LAN
+  /// address still wins at home because it answers first.
   Future<String?> _fastestAddress(MusicServer server) async {
     final addresses = server.addresses;
     if (addresses.isEmpty) {
       return null;
     }
-    final timings = await Future.wait(
-      addresses.map((address) async {
-        final stopwatch = Stopwatch()..start();
+    final completer = Completer<String?>();
+    var pending = addresses.length;
+    for (final address in addresses) {
+      unawaited(() async {
         final reachable = await _probe(server, address);
-        return (
-          address: address,
-          reachable: reachable,
-          milliseconds: stopwatch.elapsedMilliseconds,
-        );
-      }),
-    );
-    final reachable = [
-      for (final timing in timings)
-        if (timing.reachable) timing,
-    ];
-    if (reachable.isEmpty) {
-      return null;
+        if (reachable) {
+          if (!completer.isCompleted) {
+            completer.complete(address);
+          }
+        } else {
+          pending--;
+          if (pending == 0 && !completer.isCompleted) {
+            completer.complete(null);
+          }
+        }
+      }());
     }
-    reachable.sort((a, b) => a.milliseconds.compareTo(b.milliseconds));
-    return reachable.first.address;
+    return completer.future;
   }
 
-  /// Switches the app to [server]: probes its addresses (LAN first) and only
-  /// connects when one of them answers.
+  /// Switches the app to [server]: probes its addresses together and connects
+  /// to the first one that answers.
   Future<bool> activateServer(MusicServer server) async {
     // Offline mode is the single gate every activation path goes through,
     // including the first-launch source picker and the server editor.
@@ -420,13 +422,10 @@ class Config {
     // Set before probing, so the probe itself accepts the certificate too.
     ignoreServerCert = server.ignoresCert;
 
-    String? reachable;
-    for (final address in server.addresses) {
-      if (await _probe(server, address)) {
-        reachable = address;
-        break;
-      }
-    }
+    // Probe the addresses together. Trying the LAN address first meant a
+    // phone on mobile data waited its full timeout before the public address
+    // - which answers in milliseconds - was even tried.
+    final reachable = await _fastestAddress(server);
     if (reachable == null) {
       return false;
     }

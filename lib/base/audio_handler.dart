@@ -80,6 +80,11 @@ final currentLyricsIndexNotifier = ValueNotifier(-1);
 /// head unit.
 final controlCenterLyricsNotifier = ValueNotifier(false);
 
+/// Whether the media session carries artwork at all. Independent of how the
+/// cover is delivered: turning it off lets a car that struggles with artwork
+/// (or a driver who only wants the text) skip it entirely.
+final broadcastCoverNotifier = ValueNotifier(true);
+
 bool loadingSong = false;
 
 Future<void> initAudioService() async {
@@ -579,6 +584,11 @@ class MyAudioHandler extends BaseAudioHandler {
       final lineText = (current >= 0 && current < lines.length)
           ? lines[current].text
           : null;
+      _mediaLog(
+        'lyric index $current/${lines.length} broadcast='
+        '${controlCenterLyricsNotifier.value} '
+        'line=${lineText == null ? '-' : '"$lineText"'}',
+      );
       if (controlCenterLyricsNotifier.value && lineText != _publishedLyric) {
         updateServiceMediaItem(
           currentSong,
@@ -637,6 +647,15 @@ class MyAudioHandler extends BaseAudioHandler {
   int? _serviceQueueIndex;
   String? _queueWindowSignature;
 
+  /// The artwork the current item was published with. The active item inside
+  /// the MediaSession queue carries a copy too: some head units read the
+  /// queue item rather than the session item, and without this they showed the
+  /// right song with no cover.
+  String? _queueArtSongId;
+  String? _queueArtBitmap;
+  String? _queueArtFileUri;
+  String? _queueArtFetchUri;
+
   /// Publishes a window of the queue around the current song.
   ///
   /// A MediaSession queue is what a head unit browses and what gives it the
@@ -656,7 +675,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (currentIndex < 0 || currentIndex >= playQueue.length) {
       return;
     }
-    const window = 200;
+    const window = 60;
     var start = currentIndex - window ~/ 2;
     var end = start + window;
     if (start < 0) {
@@ -682,6 +701,8 @@ class MyAudioHandler extends BaseAudioHandler {
     final items = <MediaItem>[];
     for (var i = start; i < end; i++) {
       final song = playQueue[i];
+      final isCurrent = i == currentIndex;
+      final hasQueueArt = isCurrent && _queueArtSongId == song.id;
       items.add(
         buildServiceMediaItem(
           id: song.id,
@@ -691,10 +712,17 @@ class MyAudioHandler extends BaseAudioHandler {
           duration: song.duration,
           trackNumber: i + 1,
           trackCount: playQueue.length,
+          artCacheFile: hasQueueArt ? _queueArtBitmap : null,
+          fileArtUri: hasQueueArt ? _queueArtFileUri : null,
+          fetchableArtUri: hasQueueArt ? _queueArtFetchUri : null,
         ),
       );
     }
     queue.add(items);
+    _mediaLog(
+      'queue window $start..$end current=$currentIndex '
+      'art=${_queueArtBitmap != null} relay=${streamRelay.lanBaseUrl ?? '-'}',
+    );
     updatePlaybackState();
   }
 
@@ -2303,6 +2331,10 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     final uri = streamRelay.coverUrlSync(filePath: key);
     _pubFetchArtUri = uri;
+    _mediaLog(
+      'relay cover key=$key uri=${uri ?? 'not-ready'} '
+      'base=${streamRelay.lanBaseUrl ?? '-'} original=$original',
+    );
     if (uri == null) {
       // The LAN address may not be resolved yet (cold start, network change).
       // Publish once it is, without waiting here.
@@ -2528,7 +2560,10 @@ class MyAudioHandler extends BaseAudioHandler {
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
 
-    var bitmapPath = art.smallArtPath;
+    // The smaller broadcast copy is the normal choice, but a local cover
+    // whose thumbnail could not be made still has its original on disk - and
+    // an original image is far better than no artwork at all.
+    var bitmapPath = art.smallArtPath ?? art.coverPath;
     var fileUri = art.fileUri;
     var fetchUri = art.fetchUri;
     switch (classicCoverModeNotifier.value) {
@@ -2547,6 +2582,16 @@ class MyAudioHandler extends BaseAudioHandler {
         // Keep the server/relay URL selected by the cover broadcast mode.
         break;
     }
+
+    if (!broadcastCoverNotifier.value) {
+      bitmapPath = null;
+      fileUri = null;
+      fetchUri = null;
+    }
+    _queueArtSongId = currentSong.id;
+    _queueArtBitmap = bitmapPath;
+    _queueArtFileUri = fileUri;
+    _queueArtFetchUri = fetchUri;
 
     final title = getTitle(currentSong);
     final artist = getArtist(currentSong);
@@ -2638,6 +2683,10 @@ class MyAudioHandler extends BaseAudioHandler {
             ' bitmap=${bitmapPath == null ? 'none' : 'yes'}'
             ' fetch=${fetchUri ?? '-'}'
             ' debug=${debugUri ?? '-'}'
+            ' mode=${_effectiveCoverMode.name}'
+            ' cover=${broadcastCoverNotifier.value}'
+            ' relay=${streamRelay.lanBaseUrl ?? '-'}'
+            ' queue=$currentIndex/${playQueue.length}'
             ' lyric=${line == null ? '-' : '"$line"'}'
             ' lines=${carLines.map((line) => '"$line"').join(' | ')}'
             '${_sinceSwitch()}',

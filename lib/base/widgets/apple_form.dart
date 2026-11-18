@@ -223,6 +223,50 @@ Widget appleSegmented<T>(
   );
 }
 
+/// A small rounded choice pill drawn from the app's own colours instead of
+/// Material's chip surface. On the vivid theme a default chip paints a white
+/// card over the tinted page; this keeps every pill on the same translucent
+/// text colour the rest of the page uses.
+Widget applePill(
+  String label, {
+  bool selected = false,
+  bool showCheck = false,
+  bool compact = false,
+  VoidCallback? onTap,
+}) {
+  final textColor = colorManager.getSpecificTextColor();
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: compact
+          ? const EdgeInsets.symmetric(horizontal: 9, vertical: 5)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: textColor.withAlpha(selected ? 48 : 14),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: textColor.withAlpha(selected ? 0 : 45)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selected && showCheck) ...[
+            Icon(Icons.check_rounded, size: 13, color: textColor),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: compact ? 11 : 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// The app's primary action: a rounded pill in the app's button colour.
 Widget appleFilledButton(
   String label,

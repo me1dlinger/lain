@@ -29,7 +29,7 @@ Currently supports:
 - Classic Bluetooth offers four cover variants for compatibility testing: bitmap, bitmap + content URI, original large image, and bitmap + relay/server URI.
 - Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title".
 - On the LAN the phone can serve the artwork to the head unit directly.
-- The media session publishes a 200-song queue window around the current track, so a head unit can browse and pick from the queue. The position still uses the full queue (for example 7/1286), not a number inside the window.
+- The media session publishes a 60-song queue window around the current track, so a head unit can browse and pick from the queue. The position still uses the full queue (for example 7/1286), not a number inside the window.
 
 ### Playback
 - Play modes: tap cycles list loop and shuffle; a long press enters repeat one. The queue marks the repeating song.

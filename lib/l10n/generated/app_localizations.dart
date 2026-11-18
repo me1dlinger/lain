@@ -5209,6 +5209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server playlists'**
   String get capPlaylists;
+
+  /// No description provided for @broadcastCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Broadcast cover'**
+  String get broadcastCover;
 }
 
 class _AppLocalizationsDelegate

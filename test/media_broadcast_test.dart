@@ -194,6 +194,36 @@ void main() {
       expect(broadcaster.skipCount, 1);
     });
 
+    test('rapid lyric lines do not keep postponing the publish', () async {
+      final session = FakeSession();
+      final broadcaster = MediaBroadcaster(
+        debounce: Duration.zero,
+        lyricGap: const Duration(milliseconds: 120),
+        trackSettle: const Duration(milliseconds: 120),
+      );
+
+      broadcaster.publish(
+        snapshot(session, 'song-1', key: 'track'),
+        kind: MediaUpdateKind.track,
+        immediate: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      for (var i = 0; i < 20; i++) {
+        broadcaster.publish(
+          snapshot(session, 'line-$i', key: 'line-$i'),
+          kind: MediaUpdateKind.lyric,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 15));
+      }
+
+      // Every publish used to re-arm the gap, so a song whose lines change
+      // faster than the gap never delivered anything after its first line.
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      expect(session.delivered.last, 'line-19');
+      expect(broadcaster.publishCount, greaterThan(1));
+    });
+
     test('new artwork for the same song is published under the new id', () async {
       final session = FakeSession();
       final broadcaster = MediaBroadcaster(debounce: Duration.zero);

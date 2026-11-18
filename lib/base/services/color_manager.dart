@@ -44,6 +44,14 @@ ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
 
 final lightHoverFocusColorNotifier = ValueNotifier(false);
 
+/// Leaves the player palette as soon as the player route starts closing, not
+/// when its reverse animation has finished. Pages underneath read this flag in
+/// their colour getters; without it the home hub or a settings page could
+/// repaint with the player's foreground and stay wrong until the next tap.
+void leavePlayerPalette() {
+  displayLyricsPageNotifier.value = false;
+}
+
 void updateHoverFocusColor() {
   if ((displayLyricsPage && lyricsPageThemeNotifier.value == .vivid) ||
       viewModeNotifier.value == .mini) {
@@ -406,7 +414,13 @@ class ColorManager {
   /// look much darker than every other page. Compositing the panel colour onto
   /// the base colour it would normally be drawn over gives the same brightness.
   Color getSpecificOpaqueBgColor() {
-    return Color.alphaBlend(getSpecificBgColor(), getSpecificBgBaseColor());
+    // A pushed page (settings, report, server list) is never the lyrics page,
+    // so it must not take the player palette just because the player was open
+    // for a moment. Using the main-page colours here keeps the page stable even
+    // if it repaints before the lyrics layer has fully gone.
+    final base = backgroundCoverArtColor;
+    final page = isMobile ? pageBackgroundColor.value : panelColor.value;
+    return Color.alphaBlend(page, base);
   }
 
   Color getSpecificTextColor() {

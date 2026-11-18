@@ -152,6 +152,8 @@ class HomeLayerState extends State<HomeLayer> {
         homeButtonHidden,
         homeShelfOrder,
         homeShelfHidden,
+        displayLyricsPageNotifier,
+        layersManager.backgroundChangeNotifier,
       ]),
       builder: (context, child) {
         return ListView(

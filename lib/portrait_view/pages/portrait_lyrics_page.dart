@@ -102,7 +102,13 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
     bool isShort = screenHeight - 400 < screenWidth * 0.85;
 
-    return ValueListenableBuilder(
+    return PopScope<void>(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          leavePlayerPalette();
+        }
+      },
+      child: ValueListenableBuilder(
       valueListenable: canDragNotifier,
       builder: (context, value, child) {
         return GestureDetector(
@@ -175,6 +181,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         },
         child: content(isShort),
       ),
+      ),
     );
   }
 
@@ -206,19 +213,37 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
               fit: StackFit.expand,
               children: [
                 if (lyricsPageThemeNotifier.value == .vivid) ...[
-                  CoverArtWidget(
-                    picture: currentSong?.picture,
-                    color: colorManager
-                        .getSpecificLyricsPageCoverArtBaseColor(),
+                  // An opaque base under the cover and its blur: when the
+                  // artwork is not decoded yet, the player must show its own
+                  // colour instead of letting the page underneath show through
+                  // a BackdropFilter - which read as a grey glass sheet over
+                  // settings before the player arrived.
+                  Positioned.fill(
+                    child: ColoredBox(
+                      color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+                    ),
+                  ),
+                  // Blur the cover itself instead of the page behind it. A
+                  // full-screen BackdropFilter samples the route underneath,
+                  // and on a vivid settings page its layer could survive the
+                  // route pop as a grey sheet until the next repaint. Blurring
+                  // our own cover keeps the same look and cannot outlive the
+                  // player.
+                  Positioned.fill(
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: CoverArtWidget(
+                        picture: currentSong?.picture,
+                        color: colorManager
+                            .getSpecificLyricsPageCoverArtBaseColor(),
+                      ),
+                    ),
                   ),
                   RepaintBoundary(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                      child: AnimatedContainer(
-                        duration: Duration(milliseconds: 300),
-                        curve: Curves.easeInOutCubic,
-                        color: currentCoverArtColor.withAlpha(180),
-                      ),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      color: currentCoverArtColor.withAlpha(180),
                     ),
                   ),
                 ],

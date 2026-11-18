@@ -13,6 +13,7 @@ import 'package:lain/base/data/loader.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/bookmark_service.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/layer/lyrics_page_layer.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/utils/path.dart';
@@ -52,6 +53,7 @@ Widget opaqueSettingsPage({
       layersManager.backgroundChangeNotifier,
       panelColor.valueNotifier,
       pageBackgroundColor.valueNotifier,
+      displayLyricsPageNotifier,
     ]),
     builder: (context, child) {
       return Container(

@@ -118,17 +118,14 @@ class _ShareCardSettingsPageState extends State<ShareCardSettingsPage> {
                   runSpacing: 8,
                   children: [
                     for (final mode in _backgrounds)
-                      ChoiceChip(
-                        label: Text(_backgroundLabel(l10n, mode)),
+                      applePill(
+                        _backgroundLabel(l10n, mode),
                         selected: shareCardBackgroundNotifier.value == mode,
-                        onSelected: (_) {
+                        showCheck: true,
+                        onTap: () {
                           shareCardBackgroundNotifier.value = mode;
                           setting.save();
                         },
-                        labelStyle: TextStyle(fontSize: 12, color: textColor),
-                        backgroundColor: textColor.withAlpha(16),
-                        selectedColor: textColor.withAlpha(48),
-                        side: BorderSide(color: textColor.withAlpha(60)),
                       ),
                   ],
                 ),

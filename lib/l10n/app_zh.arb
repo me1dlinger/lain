@@ -1101,5 +1101,6 @@
   "capSimilarArtists": "相似艺术家",
   "capFavorites": "专辑与艺术家收藏",
   "capLibraryScan": "音乐库扫描",
-  "capPlaylists": "服务器歌单"
+  "capPlaylists": "服务器歌单",
+  "broadcastCover": "广播封面"
 }

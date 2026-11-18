@@ -89,25 +89,34 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (lyricsPageThemeNotifier.value == .vivid) ...[
-                CoverArtWidget(
-                  picture: currentSong?.picture,
-                  color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
-                ),
-                RepaintBoundary(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(
-                      sigmaX: pageWidth * 0.03,
-                      sigmaY: pageHight * 0.03,
+                if (lyricsPageThemeNotifier.value == .vivid) ...[
+                  Positioned.fill(
+                    child: ColoredBox(
+                      color: colorManager
+                          .getSpecificLyricsPageCoverArtBaseColor(),
                     ),
+                  ),
+                  Positioned.fill(
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: pageWidth * 0.03,
+                        sigmaY: pageHight * 0.03,
+                      ),
+                      child: CoverArtWidget(
+                        picture: currentSong?.picture,
+                        color: colorManager
+                            .getSpecificLyricsPageCoverArtBaseColor(),
+                      ),
+                    ),
+                  ),
+                  RepaintBoundary(
                     child: AnimatedContainer(
                       duration: Duration(milliseconds: 300),
                       curve: Curves.easeInOutCubic,
                       color: currentCoverArtColor.withAlpha(180),
                     ),
                   ),
-                ),
-              ],
+                ],
 
               ValueListenableBuilder(
                 valueListenable: lyricsPageBackgroundColor.valueNotifier,

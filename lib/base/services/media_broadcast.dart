@@ -173,7 +173,7 @@ class MediaBroadcaster {
   MediaBroadcaster({
     this.debounce = const Duration(milliseconds: 120),
     this.minGap = const Duration(milliseconds: 300),
-    this.lyricGap = const Duration(seconds: 1),
+    this.lyricGap = const Duration(milliseconds: 800),
     this.trackSettle = const Duration(milliseconds: 1500),
   });
 
@@ -226,6 +226,14 @@ class MediaBroadcaster {
   }) {
     _pending = snapshot;
     _pendingKind = kind;
+
+    // A lyric line that arrives while a timer is already running replaces the
+    // pending snapshot but must not push the timer back. Karaoke-style or
+    // closely spaced lines kept re-arming the gate, so nothing was delivered
+    // until playback paused and the playback state forced a re-read.
+    if (_timer != null && kind == MediaUpdateKind.lyric) {
+      return;
+    }
 
     var wait = immediate ? Duration.zero : debounce;
 

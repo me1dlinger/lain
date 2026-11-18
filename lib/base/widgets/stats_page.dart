@@ -6,6 +6,7 @@ import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/stats.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/album_timeline_page.dart';
 import 'package:lain/base/widgets/annual_report_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
@@ -273,14 +274,10 @@ class _StatsPageState extends State<StatsPage> {
         spacing: 8,
         children: [
           for (final year in years)
-            ChoiceChip(
-              label: Text(year),
+            applePill(
+              year,
               selected: year == current,
-              onSelected: (_) => setState(() => selectedYear = year),
-              labelStyle: TextStyle(fontSize: 13, color: _textColor),
-              backgroundColor: _textColor.withAlpha(16),
-              selectedColor: _textColor.withAlpha(48),
-              side: BorderSide(color: _textColor.withAlpha(60)),
+              onTap: () => setState(() => selectedYear = year),
             ),
         ],
       ),

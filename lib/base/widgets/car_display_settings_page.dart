@@ -84,6 +84,7 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
           relayAddressNotifier,
           classicCoverModeNotifier,
           controlCenterLyricsNotifier,
+          broadcastCoverNotifier,
         ]),
         builder: (context, child) {
           return Column(
@@ -224,6 +225,25 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
     return [
       ListTile(
         leading: Icon(
+          Icons.image_rounded,
+          size: 24,
+          color: colorManager.getSpecificIconColor(),
+        ),
+        title: Text(l10n.broadcastCover),
+        trailing: SizedBox(
+          width: 50,
+          child: MySwitch(
+            valueNotifier: broadcastCoverNotifier,
+            onToggleCallBack: () {
+              setting.save();
+              audioHandler.refreshServiceMediaItem();
+            },
+          ),
+        ),
+      ),
+      if (broadcastCoverNotifier.value) ...[
+      ListTile(
+        leading: Icon(
           Icons.album_rounded,
           size: 24,
           color: colorManager.getSpecificIconColor(),
@@ -276,24 +296,20 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
           runSpacing: 8,
           children: [
             for (final mode in ClassicCoverMode.values)
-              ChoiceChip(
-                label: Text(
-                  _coverLabel(l10n, mode),
-                  style: TextStyle(fontSize: 12, color: textColor),
-                ),
+              applePill(
+                _coverLabel(l10n, mode),
                 selected: classicCoverModeNotifier.value == mode,
-                onSelected: (_) {
+                showCheck: true,
+                onTap: () {
                   classicCoverModeNotifier.value = mode;
                   setting.save();
                   audioHandler.refreshServiceMediaItem();
                 },
-                backgroundColor: textColor.withAlpha(16),
-                selectedColor: textColor.withAlpha(48),
-                side: BorderSide(color: textColor.withAlpha(60)),
               ),
           ],
         ),
       ),
+      ],
     ];
   }
 
@@ -766,14 +782,10 @@ class _LineEditorState extends State<_LineEditor> {
                 runSpacing: 6,
                 children: [
                   for (final token in remaining)
-                    ActionChip(
-                      label: Text(
-                        widget.tokenLabel(token),
-                        style: TextStyle(fontSize: 11, color: textColor),
-                      ),
-                      backgroundColor: textColor.withAlpha(10),
-                      side: BorderSide(color: textColor.withAlpha(45)),
-                      onPressed: () => _change(
+                    applePill(
+                      widget.tokenLabel(token),
+                      compact: true,
+                      onTap: () => _change(
                         tokens: [...widget.line.tokens, token],
                       ),
                     ),
