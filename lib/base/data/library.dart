@@ -17,6 +17,7 @@ import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/file_time.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:lain/base/services/lyric.dart';
+import 'package:lain/base/services/lyric_index.dart';
 import 'package:lain/base/services/media_art.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/services/picture_load_scheduler.dart';
@@ -964,6 +965,7 @@ class Library {
   }
 
   void update() {
+    lyricIndex.schedule();
     changeNotifier.value++;
     layersManager.updateBackground();
     if (isNotStreamSource) {
@@ -990,6 +992,7 @@ class Library {
         db.metadataItems,
       )..where((t) => t.id.equals(song.id))).go();
     }
+    unawaited(lyricIndex.removeSong(song.id));
     songList.remove(song);
     id2Song.remove(song.id);
     artistAlbumManager.updateNotifier.value++;

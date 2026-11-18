@@ -49,8 +49,7 @@ class _VinylDiscState extends State<VinylDisc>
       }
       final animation = ModalRoute.of(context)?.animation;
       _routeAnimation = animation;
-      if (animation == null ||
-          animation.status == AnimationStatus.completed) {
+      if (animation == null || animation.status == AnimationStatus.completed) {
         _routeReady = true;
         _syncRotation();
       } else {
@@ -108,30 +107,23 @@ class _VinylDiscState extends State<VinylDisc>
         children: [
           RotationTransition(
             turns: _rotation,
-            child: CustomPaint(
-              size: Size.square(size),
-              painter: _VinylPainter(),
-              child: Center(
-                child: ClipOval(
-                  child: CoverArtWidget(
-                    size: labelSize,
-                    picture: widget.picture,
-                    useResize: false,
+            // The rotation samples the rendered disc every frame. The default
+            // low filter makes the cover's pixels crawl at shallow angles.
+            filterQuality: FilterQuality.high,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                size: Size.square(size),
+                painter: _VinylPainter(),
+                child: Center(
+                  child: ClipOval(
+                    child: CoverArtWidget(
+                      size: labelSize,
+                      picture: widget.picture,
+                      useResize: false,
+                      filterQuality: FilterQuality.high,
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          // The spindle sits above the rotating label.
-          Container(
-            width: size * 0.032,
-            height: size * 0.032,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFE6E2D8),
-              border: Border.all(
-                color: Colors.black.withValues(alpha: 0.35),
-                width: 1,
               ),
             ),
           ),

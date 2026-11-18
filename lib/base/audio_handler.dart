@@ -13,8 +13,11 @@ import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/loader.dart';
+import 'package:lain/base/data/playback_journal.dart';
 import 'package:lain/base/data/playlist.dart';
+import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/services/background_task_service.dart';
+import 'package:lain/base/services/ab_loop.dart';
 import 'package:lain/base/services/broadcast_inspector.dart';
 import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
@@ -23,6 +26,8 @@ import 'package:lain/base/services/my_window_listener.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/play_queue_logic.dart';
 import 'package:lain/base/services/stream_relay.dart';
+import 'package:lain/base/services/equivalent_track.dart';
+import 'package:lain/base/services/transition_planner.dart';
 import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/base/services/taskbar_service.dart';
 import 'package:lain/base/services/webdav_client.dart';
@@ -331,6 +336,7 @@ class MyAudioHandler extends BaseAudioHandler {
       'audio-pitch-correction',
       'yes',
     );
+    (_player.platform as NativePlayer).setProperty('gapless-audio', 'yes');
     if (_player.state.volume > 0) {
       _volumeTarget = _player.state.volume;
     }
@@ -338,6 +344,10 @@ class MyAudioHandler extends BaseAudioHandler {
     _applyPlaybackSpeed();
     replayGainModeNotifier.addListener(_applyReplayGain);
     playbackSpeedNotifier.addListener(_applyPlaybackSpeed);
+    gaplessPlaybackNotifier.addListener(_onTransitionSettingsChanged);
+    trackTransitionModeNotifier.addListener(_onTransitionSettingsChanged);
+    trackTransitionSecondsNotifier.addListener(_onTransitionSettingsChanged);
+    abLoop.enabled.addListener(_onAbLoopChanged);
 
     if (Platform.isIOS) {
       (_player.platform as NativePlayer).setProperty('audio-exclusive', 'yes');
@@ -354,6 +364,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
     _player.stream.completed.listen((completed) async {
       if (!completed) {
+        return;
+      }
+      final promotedAt = _gaplessPromotedAt;
+      if (promotedAt != null &&
+          DateTime.now().difference(promotedAt) <
+              const Duration(milliseconds: 1800)) {
+        _completionLog('completion right after a gapless hand-off, ignored');
         return;
       }
       final song = currentSongNotifier.value;
@@ -489,6 +506,17 @@ class MyAudioHandler extends BaseAudioHandler {
         return;
       }
 
+      if (_gaplessNext != null) {
+        await _promoteGaplessNext();
+        return;
+      }
+
+      if (_fadeOutRunning) {
+        _completionLog('track ended while its fade was running, '
+            'the fade owns the hand-off');
+        return;
+      }
+
       if (playModeNotifier.value == 2) {
         // Repeat one: the same track from the beginning, the queue untouched.
         // A load flag left behind by an earlier superseded load must not
@@ -506,7 +534,7 @@ class MyAudioHandler extends BaseAudioHandler {
           '(automatic=$_autoAdvanceCount fromEnd=$_completedAdvanceCount)',
         );
         _autoAdvanceCount++;
-        await skipToNext(); // automatically go to next song
+        await skipToNext(automatic: true); // automatically go to next song
       }
     });
 
@@ -522,7 +550,20 @@ class MyAudioHandler extends BaseAudioHandler {
       layersManager.updateBackground();
     });
 
-    _player.stream.position.listen(_updateCurrentLyricIndex);
+    _player.stream.position.listen((position) {
+      _updateCurrentLyricIndex(position);
+      _enforceAbLoop(position);
+      _maybeStartTrackFade(position, _player.state.duration);
+    });
+
+    _player.stream.playlist.listen((playlist) {
+      final expected = _gaplessPlaylistIndex;
+      if (_gaplessNext != null &&
+          expected != null &&
+          playlist.index >= expected) {
+        unawaited(_promoteGaplessNext());
+      }
+    });
 
     // iOS: hold a background task for the whole buffering phase (including
     // mid-song stalls on weak network) so the process is not suspended before
@@ -534,6 +575,48 @@ class MyAudioHandler extends BaseAudioHandler {
       } else {
         _endStallGrace();
       }
+    });
+  }
+
+  void _recordJournalTrack(String reason) {
+    if (_journalSuppressed) {
+      return;
+    }
+    final song = currentSongNotifier.value;
+    if (song == null || _playedDuration <= Duration.zero) {
+      return;
+    }
+    final duration = song.duration ?? _player.state.duration;
+    if (duration <= Duration.zero) {
+      return;
+    }
+    unawaited(
+      playbackJournal.recordTrack(
+        song,
+        played: _playedDuration,
+        duration: duration,
+        endedBy: reason,
+      ),
+    );
+  }
+
+  void _enforceAbLoop(Duration position) {
+    if (!_abLoopActive || _abLoopSeeking) {
+      return;
+    }
+    final b = abLoop.b;
+    final a = abLoop.a;
+    if (b == null || a == null || position < b) {
+      return;
+    }
+    _abLoopSeeking = true;
+    _mediaLog(
+      'A-B loop: ${position.inMilliseconds}ms >= B '
+      '${b.inMilliseconds}ms, back to ${a.inMilliseconds}ms',
+    );
+    unawaited(_player.seek(a));
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      _abLoopSeeking = false;
     });
   }
 
@@ -612,6 +695,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     needPause = false;
     isPlayingNotifier.value = isPlaying;
+    unawaited(playbackJournal.notePlaying(isPlaying));
     if (Platform.isWindows) {
       if (!windowIsClosed) {
         setupTaskbar();
@@ -655,6 +739,28 @@ class MyAudioHandler extends BaseAudioHandler {
   String? _queueArtBitmap;
   String? _queueArtFileUri;
   String? _queueArtFetchUri;
+
+  /// Gapless: the track appended to mpv's playlist, and the position it will
+  /// occupy when mpv advances to it by itself.
+  MyAudioMetadata? _gaplessNext;
+  int? _gaplessNextIndex;
+  int? _gaplessPlaylistIndex;
+  int _gaplessToken = 0;
+  bool _gaplessPromoting = false;
+  DateTime? _gaplessPromotedAt;
+
+  bool get _abLoopActive => abLoop.active;
+  bool _abLoopSeeking = false;
+  bool _journalSuppressed = false;
+  String _trackEndReason = 'switch';
+
+  /// Long track-change fade. A plan is prepared for the pair that is about to
+  /// meet; the outgoing half runs against the last seconds of the current
+  /// track, the incoming half against the start of the next one.
+  TrackTransitionPlan? _transitionPlan;
+  bool _fadeOutRunning = false;
+  int _fadeOutGeneration = 0;
+  double _pendingFadeInSeconds = 0;
 
   /// Publishes a window of the queue around the current song.
   ///
@@ -975,6 +1081,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     playModeNotifier.value = mode;
 
+    _trackEndReason = 'queueChange';
     await audioHandler.load();
     audioHandler.play();
 
@@ -1204,6 +1311,10 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = -1;
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
+    if (!_journalSuppressed) {
+      _recordJournalTrack('stopped');
+      unawaited(playbackJournal.end(reason: 'stopped'));
+    }
 
     if (isMobile) {
       HomeWidgetService.updateNowPlayingWidget();
@@ -1308,6 +1419,9 @@ class MyAudioHandler extends BaseAudioHandler {
       _cacheNextSong();
     }
     _publishQueueWindow();
+    if (!loadingSong) {
+      unawaited(_prepareGaplessNext());
+    }
   }
 
   /// Resolves right after [_prepare] has run, so code that needs the handler's
@@ -1467,6 +1581,288 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     token.cancel('next-track prefetch superseded');
+  }
+
+  /// Whether the queue should be handed to mpv as a real playlist. A long
+  /// fade needs the outgoing song to remain audible while the next one starts,
+  /// so the two can never be active together.
+  bool get _gaplessWanted =>
+      gaplessPlaybackNotifier.value &&
+      trackTransitionModeNotifier.value == TrackTransitionMode.off &&
+      playModeNotifier.value != 2 &&
+      !_abLoopActive &&
+      playQueue.length > 1;
+
+  void _clearGaplessNext() {
+    final index = _gaplessPlaylistIndex;
+    _gaplessToken++;
+    _gaplessNext = null;
+    _gaplessNextIndex = null;
+    _gaplessPlaylistIndex = null;
+    if (index != null &&
+        index > 0 &&
+        _player.state.playlist.medias.length > index) {
+      unawaited(_player.remove(index));
+    }
+  }
+
+  Future<Media?> _mediaForGapless(MyAudioMetadata song) async {
+    if (song.cacheExist && !(isStreamSource && lanDirectActive)) {
+      return Media(song.cachePath!);
+    }
+    try {
+      final source = await _resolvePlaybackUri(song);
+      return Media(
+        source.playbackUrl,
+        httpHeaders: source.playbackHeaders,
+      );
+    } catch (e) {
+      _mediaLog('gapless media for ${song.id} failed: $e');
+      return null;
+    }
+  }
+
+  /// Appends the queue's next track to mpv, so its decoder can hand over
+  /// without closing the audio device. The app still owns the queue and the
+  /// media session; only the sample hand-off happens inside mpv.
+  Future<void> _prepareGaplessNext({bool force = false}) async {
+    if (!_gaplessWanted || loadingSong || _loading || currentIndex < 0) {
+      _clearGaplessNext();
+      return;
+    }
+    final nextIndex = (currentIndex + 1) % playQueue.length;
+    final next = playQueue[nextIndex];
+    if (next.id == currentSongNotifier.value?.id) {
+      _clearGaplessNext();
+      return;
+    }
+    if (!force && _gaplessNext?.id == next.id) {
+      return;
+    }
+    final token = ++_gaplessToken;
+    _clearGaplessNext();
+    try {
+      // The playlist item needs its lyrics and cover ready before mpv can
+      // promote it, because promotion does not reopen the track.
+      await _prefetch(next);
+      if (token != _gaplessToken || !_gaplessWanted) {
+        return;
+      }
+      final media = await _mediaForGapless(next);
+      if (media == null || token != _gaplessToken || !_gaplessWanted) {
+        return;
+      }
+      await _player.add(media);
+      _gaplessNext = next;
+      _gaplessNextIndex = nextIndex;
+      _gaplessPlaylistIndex = _player.state.playlist.medias.length - 1;
+      _mediaLog(
+        'gapless queued ${next.id} at playlist index $_gaplessPlaylistIndex',
+      );
+    } catch (e) {
+      _mediaLog('gapless queue failed for ${next.id}: $e');
+    }
+  }
+
+  /// mpv has moved to the appended item. Adopt it as the current song without
+  /// reopening the player, then append the following one.
+  Future<void> _promoteGaplessNext() async {
+    if (_gaplessPromoting) {
+      return;
+    }
+    final next = _gaplessNext;
+    final nextIndex = _gaplessNextIndex;
+    if (next == null ||
+        nextIndex == null ||
+        next.id == currentSongNotifier.value?.id) {
+      return;
+    }
+    _gaplessPromoting = true;
+    _gaplessNext = null;
+    _gaplessNextIndex = null;
+    _gaplessPlaylistIndex = null;
+    _gaplessPromotedAt = DateTime.now();
+
+    final outgoing = currentSongNotifier.value;
+    if (outgoing != null) {
+      if (_playLastSyncTime != null) {
+        _playedDuration += DateTime.now().difference(_playLastSyncTime!);
+      }
+      final total =
+          outgoing.duration?.inSeconds ?? _player.state.duration.inSeconds;
+      if (total > 0) {
+        final times = _playedDuration.inSeconds / total;
+        if (times > 0.5 &&
+            autoCacheSongsNotifier.value &&
+            !(isStreamSource && lanDirectActive)) {
+          library.tryAddCache(outgoing);
+        }
+        if (times > 0.67) {
+          history.addSongTimes(outgoing, times.round());
+          unawaited(stats.recordPlay(outgoing, _playedDuration));
+        }
+      }
+    }
+    _recordJournalTrack('completed');
+    _playLastSyncTime = DateTime.now();
+    _playedDuration = Duration.zero;
+    _lastCompletionKey = null;
+
+    currentIndex = nextIndex;
+    currentSongNotifier.value = next;
+    if (!_journalSuppressed) {
+      unawaited(
+        playbackJournal.noteSong(next, index: currentIndex).then((_) {
+          return playbackJournal.captureQueue(
+            playQueue,
+            index: currentIndex,
+            playMode: playModeNotifier.value,
+          );
+        }),
+      );
+    }
+    currentLyricsIndexNotifier.value = -1;
+    _lastSwitchAt = DateTime.now();
+    _positionState.writeAsString('0');
+    unawaited(_updateColorsFor(next));
+    if (next.parsedLyrics == null) {
+      unawaited(setParsedLyrics(next));
+    }
+    _mediaLog('gapless promoted ${next.id} at index $currentIndex');
+
+    updateServiceMediaItem(next, kind: MediaUpdateKind.track);
+    updatePlaybackState(postion: Duration.zero);
+    _reportServerProgress(force: true);
+    saveAllStates();
+    if (isMobile) {
+      unawaited(HomeWidgetService.updateNowPlayingWidget());
+      unawaited(HomeWidgetService.reloadPlaylistsWidget());
+    }
+    _updateCurrentLyricIndex(getPosition());
+    _prefetchNeighbours();
+    unawaited(_cacheCurrentThenNext(next));
+    _gaplessPromoting = false;
+    unawaited(_prepareGaplessNext());
+  }
+
+  void _planNextTransition() {
+    _fadeOutGeneration++;
+    _fadeOutRunning = false;
+    _transitionPlan = null;
+    final mode = trackTransitionModeNotifier.value;
+    if (mode == TrackTransitionMode.off ||
+        playQueue.isEmpty ||
+        playModeNotifier.value == 2 ||
+        _abLoopActive ||
+        currentIndex < 0) {
+      return;
+    }
+    final current = currentSongNotifier.value;
+    if (current == null) {
+      return;
+    }
+    final nextIndex = (currentIndex + 1) % playQueue.length;
+    final next = playQueue[nextIndex];
+    if (next.id == current.id) {
+      return;
+    }
+    final seconds = trackTransitionSecondsNotifier.value;
+    if (mode == TrackTransitionMode.fixed) {
+      final half = (seconds / 2).clamp(1.0, 6.0);
+      _transitionPlan = TrackTransitionPlan(
+        outSeconds: half,
+        inSeconds: half,
+        reason: 'fixed ${seconds}s split evenly',
+      );
+    } else {
+      _transitionPlan = planTrackTransition(
+        from: current,
+        to: next,
+        fixedTotalSeconds: seconds,
+      );
+    }
+    _mediaLog(
+      'transition plan out=${_transitionPlan!.outSeconds.toStringAsFixed(1)}s '
+      'in=${_transitionPlan!.inSeconds.toStringAsFixed(1)}s '
+      'mode=${mode.name} (${_transitionPlan!.reason})',
+    );
+  }
+
+  void _cancelTrackFade() {
+    _fadeOutGeneration++;
+    _fadeOutRunning = false;
+  }
+
+  /// Runs the outgoing half of a planned fade when playback reaches its last
+  /// seconds. The incoming half is applied by [load] when the next track
+  /// opens.
+  void _maybeStartTrackFade(Duration position, Duration duration) {
+    final plan = _transitionPlan;
+    if (plan == null ||
+        !isPlayingNotifier.value ||
+        loadingSong ||
+        _loading ||
+        _abLoopActive) {
+      return;
+    }
+    if (duration <= Duration.zero) {
+      return;
+    }
+    final remainingMs = (duration - position).inMilliseconds;
+    final outMs = (plan.outSeconds * 1000).round();
+    if (_fadeOutRunning) {
+      if (remainingMs > outMs + 350) {
+        // The listener seeked back out of the fade window: stop the ramp and
+        // put the level back, instead of leaving the song half silent.
+        _cancelTrackFade();
+        _cancelFade();
+        _restorePlayerVolume();
+      }
+      return;
+    }
+    if (remainingMs > outMs + 350) {
+      return;
+    }
+    if (remainingMs <= 0) {
+      return;
+    }
+    _fadeOutRunning = true;
+    final generation = ++_fadeOutGeneration;
+    final songId = currentSongNotifier.value?.id;
+    final fadeDuration = Duration(milliseconds: remainingMs);
+    unawaited(() async {
+      await _fadeTo(0, duration: fadeDuration, from: _player.state.volume);
+      if (generation != _fadeOutGeneration ||
+          currentSongNotifier.value?.id != songId ||
+          !isPlayingNotifier.value) {
+        return;
+      }
+      _fadeOutRunning = false;
+      _pendingFadeInSeconds = plan.inSeconds;
+      _mediaLog(
+        'track fade out done for ${songId ?? '-'}, opening next with '
+        '${plan.inSeconds.toStringAsFixed(1)}s fade-in',
+      );
+      await skipToNext();
+    }());
+  }
+
+  void _onTransitionSettingsChanged() {
+    _clearGaplessNext();
+    if (_fadeOutRunning) {
+      _cancelFade();
+      _restorePlayerVolume();
+    }
+    _cancelTrackFade();
+    _planNextTransition();
+    unawaited(_prepareGaplessNext());
+  }
+
+  void _onAbLoopChanged() {
+    _clearGaplessNext();
+    _cancelTrackFade();
+    _planNextTransition();
+    unawaited(_prepareGaplessNext());
   }
 
   Future<void> _prefetch(MyAudioMetadata song, {bool lyrics = true}) async {
@@ -1687,6 +2083,9 @@ class MyAudioHandler extends BaseAudioHandler {
     // exactly how a track could show the previous one's cover.
     _broadcast.nextGeneration();
     _loading = true;
+    abLoop.clear();
+    _clearGaplessNext();
+    _cancelTrackFade();
     _loadingIndex = currentIndex;
     _fakeCompleteResumes = 0;
     _lastCompletionKey = null;
@@ -1723,6 +2122,8 @@ class MyAudioHandler extends BaseAudioHandler {
         }
       }
     }
+    _recordJournalTrack(_trackEndReason);
+    _trackEndReason = 'switch';
     _playLastSyncTime = null;
     _playedDuration = Duration.zero;
 
@@ -1746,6 +2147,17 @@ class MyAudioHandler extends BaseAudioHandler {
     // while the phone has already moved on. Losing the cover for a moment is
     // far cheaper than losing the title, the artist and the lyric line.
     currentSongNotifier.value = currentSong;
+    if (!_journalSuppressed && _isCurrentLoad(loadGeneration)) {
+      unawaited(
+        playbackJournal.noteSong(currentSong, index: currentIndex).then((_) {
+          return playbackJournal.captureQueue(
+            playQueue,
+            index: currentIndex,
+            playMode: playModeNotifier.value,
+          );
+        }),
+      );
+    }
 
     currentLyricsIndexNotifier.value = -1;
     _publishedLyric = null;
@@ -1834,7 +2246,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
     // A switch starts silently and ramps up once the new file is open. Opening
     // at full level is what makes a track change click on a head unit.
-    final fadeEnabled = audioFadeNotifier.value;
+    final longFadeIn = _pendingFadeInSeconds;
+    _pendingFadeInSeconds = 0;
+    final fadeEnabled = audioFadeNotifier.value || longFadeIn > 0;
     if (fadeEnabled) {
       _cancelFade();
       _player.setVolume(0);
@@ -1878,7 +2292,17 @@ class MyAudioHandler extends BaseAudioHandler {
       // next track is fetched so the switch can open a local file.
       unawaited(_cacheCurrentThenNext(currentSong));
 
-      if (fadeEnabled && isPlayingNotifier.value) {
+      if (longFadeIn > 0 && isPlayingNotifier.value) {
+        unawaited(
+          _fadeTo(
+            _volumeTarget,
+            from: 0,
+            duration: Duration(
+              milliseconds: (longFadeIn * 1000).round(),
+            ),
+          ),
+        );
+      } else if (fadeEnabled && isPlayingNotifier.value) {
         unawaited(_fadeTo(_volumeTarget, from: 0));
       } else if (!fadeEnabled) {
         _restorePlayerVolume();
@@ -1889,11 +2313,32 @@ class MyAudioHandler extends BaseAudioHandler {
       }
     } catch (error) {
       logger.output('[media] ${currentSong.title} $error');
+      var recovered = false;
+      if (isStreamSource) {
+        final local = await equivalentTrackFinder.findLocal(currentSong);
+        final path = local?.path;
+        if (path != null) {
+          try {
+            await _player.open(
+              Media(path, start: start),
+              play: isPlayingNotifier.value,
+            );
+            recovered = true;
+            _mediaLog('server failed, playing local equivalent $path');
+            if (fadeEnabled && isPlayingNotifier.value) {
+              unawaited(_fadeTo(_volumeTarget, from: 0));
+            }
+          } catch (e) {
+            logger.output('[media] local fallback failed: $e');
+          }
+        }
+      }
       // Leaving home or arriving back changes which of the server's addresses
       // answers; the one baked into the stream URL then fails. Re-probe the
       // server once and, if another address works, reload the same track
       // instead of stopping at an error the listener never asked for.
-      if (!_retriedAfterAddressSwitch &&
+      if (!recovered &&
+          !_retriedAfterAddressSwitch &&
           isStreamSource &&
           await config.reProbeActiveServer()) {
         _retriedAfterAddressSwitch = true;
@@ -1904,8 +2349,10 @@ class MyAudioHandler extends BaseAudioHandler {
         _retriedAfterAddressSwitch = false;
         return;
       }
-      stop();
-      _loading = false;
+      if (!recovered) {
+        stop();
+        _loading = false;
+      }
     }
 
     // A superseded load must not reset the session's position: a zero there
@@ -1935,6 +2382,8 @@ class MyAudioHandler extends BaseAudioHandler {
         kind: MediaUpdateKind.lyric,
       );
     }
+    _planNextTransition();
+    unawaited(_prepareGaplessNext());
   }
 
   /// Turns the track into something the player can open: a cache file, a local
@@ -2736,6 +3185,11 @@ class MyAudioHandler extends BaseAudioHandler {
       playMode: playModeNotifier.value,
     );
     await pause();
+    if (!_journalSuppressed) {
+      _recordJournalTrack('lyricPreview');
+      unawaited(playbackJournal.end(reason: 'preview'));
+    }
+    _journalSuppressed = true;
     _playQueueTmp = [song];
     playQueue = [song];
     currentIndex = 0;
@@ -2752,6 +3206,7 @@ class MyAudioHandler extends BaseAudioHandler {
   /// Leaves the editor's single-song preview and restores the queue and
   /// position that were active before it.
   Future<void> stopLyricPreview(LyricPreviewBookmark bookmark) async {
+    _journalSuppressed = false;
     await pause();
     _playQueueTmp = List<MyAudioMetadata>.of(bookmark.queueTmp);
     playQueue = List<MyAudioMetadata>.of(bookmark.queue);
@@ -2781,7 +3236,9 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     final generation = ++_transportGeneration;
 
-    final fadeEnabled = audioFadeNotifier.value;
+    final longFadeIn = _pendingFadeInSeconds;
+    _pendingFadeInSeconds = 0;
+    final fadeEnabled = audioFadeNotifier.value || longFadeIn > 0;
     if (fadeEnabled) {
       _cancelFade();
       _player.setVolume(0);
@@ -2824,6 +3281,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
+    _cancelTrackFade();
     final generation = ++_transportGeneration;
     if (audioFadeNotifier.value && isPlayingNotifier.value) {
       await _fadeTo(0, duration: const Duration(milliseconds: 180));
@@ -2855,6 +3313,10 @@ class MyAudioHandler extends BaseAudioHandler {
     _positionTimer?.cancel();
     _positionTimer = null;
     _positionState.writeAsString(Duration.zero.inMilliseconds.toString());
+    if (!_journalSuppressed) {
+      _recordJournalTrack('stopped');
+      unawaited(playbackJournal.end(reason: 'stopped'));
+    }
   }
 
   @override
@@ -2869,9 +3331,10 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> skipToNext() async {
+  Future<void> skipToNext({bool automatic = false}) async {
     if (playQueue.isEmpty) return;
 
+    _trackEndReason = automatic ? 'completed' : 'next';
     currentIndex = (currentIndex + 1) % playQueue.length;
     if (_hasAdvancedRecently()) {
       _completionLog(
@@ -2885,6 +3348,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() async {
     if (playQueue.isEmpty) return;
 
+    _trackEndReason = 'previous';
     currentIndex = (currentIndex + playQueue.length - 1) % playQueue.length;
     await load();
   }
@@ -2895,6 +3359,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (target < 0 || target >= playQueue.length) {
       return;
     }
+    _trackEndReason = 'queue';
     currentIndex = target;
     await load();
     if (!isPlayingNotifier.value) {

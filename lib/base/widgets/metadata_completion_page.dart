@@ -6,6 +6,7 @@ import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/metadata_scraper.dart';
+import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/services/metadata_write.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
@@ -50,6 +51,8 @@ class MetadataCompletionPage extends StatefulWidget {
 
 class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
   final Set<String> _selected = {};
+  final _searchController = TextEditingController();
+  bool _showAll = false;
   bool _batchRunning = false;
   bool _batchStop = false;
   (int, int) _batchProgress = (0, 0);
@@ -57,7 +60,7 @@ class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
   /// Every local song that has a file to write to. Songs that already carry
   /// tags are listed as well: the fill-empty / overwrite choice on the page is
   /// what decides whether they are updated, not a filter here.
-  List<MyAudioMetadata> get _candidates {
+  List<MyAudioMetadata> get _allSongs {
     final source = widget.songs ?? library.songList;
     return [
       for (final song in source)
@@ -65,9 +68,31 @@ class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
     ];
   }
 
+  List<MyAudioMetadata> get _missingSongs {
+    return [
+      for (final song in _allSongs)
+        if (songHasMissingTags(song)) song,
+    ];
+  }
+
+  List<MyAudioMetadata> get _visibleSongs {
+    final base = _showAll ? _allSongs : _missingSongs;
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      return base;
+    }
+    return [
+      for (final song in base)
+        if (getTitle(song).toLowerCase().contains(query) ||
+            getArtist(song).toLowerCase().contains(query) ||
+            getAlbum(song).toLowerCase().contains(query))
+          song,
+    ];
+  }
+
   List<MyAudioMetadata> get _selectedSongs {
     final songs = <MyAudioMetadata>[];
-    for (final song in _candidates) {
+    for (final song in _allSongs) {
       if (_selected.contains(song.id)) {
         songs.add(song);
       }
@@ -144,7 +169,7 @@ class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
   Widget build(BuildContext context) {
     assert(isLocalLibrary);
     final l10n = AppLocalizations.of(context);
-    final candidates = _candidates;
+    final candidates = _visibleSongs;
 
     return opaqueSettingsPage(
       context: context,
@@ -161,8 +186,11 @@ class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
             child: Text(l10n.batchSearchSelected),
           ),
       ],
-      body: Column(
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 106),
+        child: Column(
         children: [
+          _searchField(context, l10n),
           if (_batchRunning)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -194,24 +222,98 @@ class _MetadataCompletionPageState extends State<MetadataCompletionPage> {
           Expanded(
             child: candidates.isEmpty
                 ? Center(
-                    child: Text(
-                      l10n.allMetadataComplete,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colorManager
-                            .getSpecificTextColor()
-                            .withAlpha(150),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _searchController.text.trim().isNotEmpty
+                            ? l10n.noSearchResults
+                            : _missingSongs.isEmpty && !_showAll
+                            ? l10n.allMetadataComplete
+                            : l10n.noResults,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorManager
+                              .getSpecificTextColor()
+                              .withAlpha(150),
+                        ),
                       ),
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 100),
+                    padding: const EdgeInsets.only(bottom: 16),
                     itemCount: candidates.length,
                     itemBuilder: (context, index) =>
                         _row(context, candidates[index]),
                   ),
           ),
+          _allSongsButton(context, l10n),
         ],
+        ),
+      ),
+    );
+  }
+
+  Widget _searchField(BuildContext context, AppLocalizations l10n) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: textColor.withAlpha(14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 12),
+            Icon(Icons.search_rounded, size: 18, color: textColor.withAlpha(150)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                style: TextStyle(fontSize: 14, color: textColor),
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: l10n.searchSongs,
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: textColor.withAlpha(120),
+                  ),
+                ),
+              ),
+            ),
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: textColor.withAlpha(150),
+                ),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {});
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _allSongsButton(BuildContext context, AppLocalizations l10n) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+      child: TextButton(
+        onPressed: () => setState(() => _showAll = !_showAll),
+        child: Text(
+          _showAll ? l10n.showMissingOnly : l10n.showAllSongs,
+          style: TextStyle(fontSize: 13, color: textColor.withAlpha(170)),
+        ),
       ),
     );
   }

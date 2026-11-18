@@ -2708,4 +2708,159 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get broadcastCover => 'Broadcast cover';
+
+  @override
+  String get abLoop => 'A–B loop';
+
+  @override
+  String get abSetA => 'Set A here';
+
+  @override
+  String get abSetB => 'Set B here';
+
+  @override
+  String get abClear => 'Clear loop';
+
+  @override
+  String get abNeedBoth => 'Set both A and B first';
+
+  @override
+  String get gaplessPlayback => 'Gapless playback';
+
+  @override
+  String get trackTransition => 'Track transition';
+
+  @override
+  String get transitionOff => 'Off';
+
+  @override
+  String get transitionFixed => 'Fixed fade';
+
+  @override
+  String get transitionAdaptive => 'Adaptive fade';
+
+  @override
+  String get transitionSeconds => 'Total fade length';
+
+  @override
+  String get downloadSelected => 'Download selected';
+
+  @override
+  String get showAllSongs => 'Show all songs';
+
+  @override
+  String get showMissingOnly => 'Show only missing tags';
+
+  @override
+  String get dailyMix => 'Daily mix';
+
+  @override
+  String get dailyMixToday => 'Today';
+
+  @override
+  String get dailyMixHistory => 'History';
+
+  @override
+  String get dailyMixMissing => 'Unavailable';
+
+  @override
+  String get dailyMixEmpty => 'No songs to recommend yet';
+
+  @override
+  String get sessionDiary => 'Music memories';
+
+  @override
+  String get sessionTodayMemories => 'On this day';
+
+  @override
+  String get sessionResumeQueue => 'Restore this queue';
+
+  @override
+  String get sessionNoSessions => 'No listening sessions yet';
+
+  @override
+  String get sessionCompleted => 'finished';
+
+  @override
+  String get sessionSkipped => 'skipped';
+
+  @override
+  String get scrobbleQueue => 'Playback reporting queue';
+
+  @override
+  String get scrobblePending => 'Pending reports';
+
+  @override
+  String get scrobbleDead => 'Failed reports';
+
+  @override
+  String get scrobbleRetry => 'Retry';
+
+  @override
+  String get scrobbleClearDead => 'Clear failed';
+
+  @override
+  String get scrobbleNoPending => 'Nothing waiting to be sent';
+
+  @override
+  String get sourceHealth => 'Source health';
+
+  @override
+  String get sourceHealthy => 'Reachable';
+
+  @override
+  String get sourceUnreachable => 'Unreachable';
+
+  @override
+  String get sourceLastCheck => 'Last checked';
+
+  @override
+  String get sourcePendingReports => 'Pending reports';
+
+  @override
+  String get sourceNoServers => 'No servers configured';
+
+  @override
+  String get sourceTestAll => 'Test all sources';
+
+  @override
+  String get syncPreview => 'Sync preview';
+
+  @override
+  String get syncPreviewAdded => 'New songs';
+
+  @override
+  String get syncPreviewRemoved => 'Will be removed';
+
+  @override
+  String get syncPreviewChanged => 'Metadata changes';
+
+  @override
+  String get syncPreviewUnchanged => 'Unchanged';
+
+  @override
+  String get syncPreviewCacheImpact => 'Cached files affected';
+
+  @override
+  String get syncPreviewPlaylistImpact => 'Playlist references affected';
+
+  @override
+  String get syncPreviewApply => 'Apply sync';
+
+  @override
+  String get syncPreviewSafe => 'Nothing will change';
+
+  @override
+  String get syncPreviewWarn =>
+      'Removed songs disappear from the library. Files are not deleted.';
+
+  @override
+  String scrobbleAttempts(int count) {
+    return '$count attempts';
+  }
+
+  @override
+  String sessionTracks(int count) {
+    return '$count tracks';
+  }
 }

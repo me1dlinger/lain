@@ -11,6 +11,9 @@ import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/interaction.dart';
+import 'package:lain/base/services/lyric_index.dart';
+import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:lain/layer/lyrics_page_layer.dart';
 import 'package:lain/base/utils/common_utils.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
@@ -35,6 +38,8 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
   Timer? _debounce;
   String _query = '';
   _SearchResults? _results;
+  List<LyricHit> _lyricHits = const [];
+  int _lyricGeneration = 0;
   int _filter = 0;
   bool _focused = false;
 
@@ -76,9 +81,11 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       }
       _apply(query);
     });
+    _lyricGeneration++;
     setState(() {
       _query = query;
       _filter = 0;
+      _lyricHits = const [];
     });
   }
 
@@ -103,15 +110,31 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       _query = value;
       _filter = 0;
       _results = value.isEmpty ? null : _search(value);
+      _lyricHits = const [];
     });
+    _loadLyrics(value);
+  }
+
+  Future<void> _loadLyrics(String value) async {
+    final generation = ++_lyricGeneration;
+    if (value.trim().length < 2) {
+      return;
+    }
+    final hits = await lyricIndex.search(value);
+    if (!mounted || generation != _lyricGeneration || value != _query) {
+      return;
+    }
+    setState(() => _lyricHits = hits);
   }
 
   void _clear() {
     controller.clear();
     _debounce?.cancel();
+    _lyricGeneration++;
     setState(() {
       _query = '';
       _results = null;
+      _lyricHits = const [];
       _filter = 0;
     });
     focusNode.requestFocus();
@@ -162,6 +185,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                         key: const ValueKey('results'),
                         query: _query,
                         results: results,
+                        lyricHits: _lyricHits,
                         filter: _filter,
                         onFilter: (value) => setState(() => _filter = value),
                         onQuery: _setQuery,
@@ -657,6 +681,7 @@ class _IdleSearch extends StatelessWidget {
 class _ResultsView extends StatelessWidget {
   final String query;
   final _SearchResults results;
+  final List<LyricHit> lyricHits;
   final int filter;
   final ValueChanged<int> onFilter;
   final ValueChanged<String> onQuery;
@@ -665,6 +690,7 @@ class _ResultsView extends StatelessWidget {
     super.key,
     required this.query,
     required this.results,
+    required this.lyricHits,
     required this.filter,
     required this.onFilter,
     required this.onQuery,
@@ -675,7 +701,7 @@ class _ResultsView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final textColor = colorManager.getSpecificTextColor();
 
-    if (results.total == 0) {
+    if (results.total == 0 && lyricHits.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(24, 70, 24, 40),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -704,6 +730,7 @@ class _ResultsView extends StatelessWidget {
     final topHit = filter == 0 ? _topHit() : null;
     final songQueue = [for (final hit in results.songs) hit.song];
     final showSongs = filter == 0 || filter == 1;
+    final showLyrics = filter == 0 || filter == 5;
     final showAlbums = filter == 0 || filter == 2;
     final showArtists = filter == 0 || filter == 3;
     final showPlaylists = filter == 0 || filter == 4;
@@ -739,6 +766,24 @@ class _ResultsView extends StatelessWidget {
                 index: i,
                 child: _songRow(context, l10n, songQueue, i),
               ),
+          const SizedBox(height: 8),
+        ],
+        if (showLyrics && lyricHits.isNotEmpty) ...[
+          _sectionHeader(
+            context,
+            l10n.lyrics,
+            lyricHits.length,
+            all,
+            () => onFilter(5),
+          ),
+          for (var i = 0;
+              i < (filter == 5 ? lyricHits.length : min(3, lyricHits.length));
+              i++)
+            _Reveal(
+              key: ValueKey('$query-lyric-$i'),
+              index: i,
+              child: _lyricRow(context, l10n, lyricHits[i], i),
+            ),
           const SizedBox(height: 8),
         ],
         if (showAlbums && results.albums.isNotEmpty) ...[
@@ -982,11 +1027,12 @@ class _ResultsView extends StatelessWidget {
   Widget _filterChips(BuildContext context, AppLocalizations l10n) {
     final textColor = colorManager.getSpecificTextColor();
     final entries = <(String, int)>[
-      (l10n.searchAll, results.total),
+      (l10n.searchAll, results.total + lyricHits.length),
       (l10n.songs, results.songs.length),
       (l10n.albums, results.albums.length),
       (l10n.artists, results.artists.length),
       (l10n.playlists, results.playlists.length),
+      (l10n.lyrics, lyricHits.length),
     ];
     return SizedBox(
       height: 48,
@@ -1240,6 +1286,126 @@ class _ResultsView extends StatelessWidget {
               l10n.songCount(playlist.songList.length),
               style: TextStyle(fontSize: 11, color: textColor.withAlpha(130)),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lyricRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    LyricHit hit,
+    int index,
+  ) {
+    final textColor = colorManager.getSpecificTextColor();
+    final song = library.id2Song[hit.songId];
+    if (song == null) {
+      return const SizedBox.shrink();
+    }
+    final songs = [
+      for (final item in lyricHits)
+        if (library.id2Song[item.songId] != null)
+          library.id2Song[item.songId]!,
+    ];
+    final target = songs.indexWhere((item) => item.id == song.id);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        await audioHandler.setPlayQueue(
+          songs,
+          0,
+          targetIndex: target < 0 ? 0 : target,
+        );
+        final start = hit.start;
+        if (start != null) {
+          final wanted = start - Duration(milliseconds: song.lyricsTimeOffset);
+          await audioHandler.seek(
+            wanted.isNegative ? Duration.zero : wanted,
+          );
+        }
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).push(
+            DynamicLyricsPageRoute(
+              pageBuilder: (_, _, _) => LyricsPageLayer(),
+            ),
+          );
+        }
+      },
+      onLongPress: () => showSongOptions(
+        context: context,
+        song: song,
+        includeGoToArtist: true,
+        includeGoToAlbum: true,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CoverArtWidget(
+                size: 46,
+                borderRadius: 8,
+                picture: song.picture,
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${getTitle(song)} · ${getArtist(song)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  _HighlightedText(
+                    text: hit.translationMatch && hit.translation != null
+                        ? hit.translation!
+                        : hit.text,
+                    query: query,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: textColor.withAlpha(205),
+                    ),
+                    maxLines: 2,
+                  ),
+                  if (!hit.translationMatch &&
+                      hit.translation != null &&
+                      hit.translation!.trim().isNotEmpty)
+                    Text(
+                      hit.translation!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textColor.withAlpha(125),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (hit.start != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8, top: 2),
+                child: Text(
+                  formatDuration(hit.start!),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: textColor.withAlpha(110),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

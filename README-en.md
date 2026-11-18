@@ -39,6 +39,9 @@ Currently supports:
 - New Pre-cache the next song switch: the next track is written to the cache before the current one ends, so a streamed track change does not wait for buffering.
 - Settings > Playback adds an audio output page: route type (Bluetooth/speaker/USB/wired/HDMI), the system output sample rate, buffer and latency, plus the current song's format, bitrate and source sample rate.
 - Fade in and out is a separate switch: the volume ramps up on start and down on pause or a track change.
+- New gapless playback: mpv's playlist is given the next track ahead of time, so consecutive queue playback has no silent gap. It yields automatically when a long track transition is enabled.
+- New track transition: fixed mode splits the chosen total evenly (6 s means 3 s fade-out and 3 s fade-in); adaptive mode chooses each pair's length from outro/intro space and vocal density.
+- The player's three-dot menu now has an A–B loop: drag A and B on the song timeline or set them at the current position; playback returns to A at B and the loop clears on a track change.
 - Audio focus offers exclusive, smart ducking and mix: exclusive pauses and does not resume by itself; ducking restores the original volume when the interruption ends.
 - The queue supports drag reordering, play next, add to queue, reverse and a full queue page; clearing it shows an undo bar that restores and resumes it.
 - The media session position advances every second for notifications, the lock screen and a head unit; Navidrome and Emby now receive the current track, position and paused state for their own now-playing view.
@@ -49,11 +52,17 @@ Currently supports:
 - New server status page: state, address and latency, speed-first selection, server information and library statistics, with a button to start a library scan on the server.
 - Global search across songs, albums, artists and playlists.
 - Search 2.0: one search over the whole library with a top-result card, song/album/artist/playlist filters and counts, matched-text highlighting, pinyin and English-initial matching, recent searches and suggestions; results arrive in a short stagger and a song starts from its cover.
+- New library lyric full-text search: local tags and lyric files, Emby lyrics and cached server lyrics are indexed separately; the search page gains a Lyrics category and can play from the matched line.
 - New Long time no see shelf on the home page: songs that were played over and over but have rested for a while, ordered by play count and time away; it can be hidden or moved in the home layout.
+- New Listening diary on the home page: continuous sessions with per-track completion and skips, queue snapshots, source and end reason; a session's queue can be restored, and On this day shows the same date from earlier years.
 - Every song list gains an A-Z edge index: groups follow the pinyin initial, tapping or dragging a letter jumps there, and a bubble names the letter under the finger.
 - Local song menus add Show in folder, Remove from library and Delete file. Removing only deletes the database row and remembers the exclusion; the file stays. Deleting a file asks for confirmation.
 - The server status page adds Server capabilities: it reads the OpenSubsonic extension list and shows what the server really supports (lyrics, similar songs, transcode offset and more); Emby lists its own available endpoints.
 - Settings adds Data and backup: settings, server addresses, playlists and favorites, and listening statistics can be exported to and restored from one JSON file. A rollback copy is written before a restore, and server passwords are never included.
+- New Sync preview: before a manual sync, shows additions, removals, metadata changes, affected cache and playlist references; nothing is applied until confirmed.
+- New Source health: per-server reachability, latency and pending reports, with a test-all action and a link to the existing server status page.
+- Stream play reports now go through a persisted queue: offline reports wait and retry with backoff, and can be retried from a dedicated page.
+- If a server cannot serve a track, the app matches the same song in the local library by title, artist, duration and size and falls back to it; ambiguous matches are rejected.
 - Album and artist pages with sorting, albums first, track numbers and album descriptions; artist artwork is decided consistently from the server and the cache.
 - Artist pages add top songs and similar artists; album pages add More from this artist; detail headers use a scroll parallax.
 - Song lists remember their sort order; recently added, play-count sorting and quality tags are available.
@@ -63,7 +72,9 @@ Currently supports:
 - The local library scans itself incrementally after launch, on return to the foreground and at the chosen interval; only files whose modified time changed are read again.
 - The local music-source settings add an audio quality dashboard: tier mix, format mix, average bitrate, lossless share and the highest-quality songs, with animated rings and bars.
 - For local songs, Song Info, tag search, lyric search and metadata editing now share one panel: tags can be edited and applied, a tag search returns to the panel, and lyrics can be searched or edited on the timeline and returned; format, bitrate and path are shown on the same page.
+- The metadata completion page lists only songs missing a title, artist or album by default; when none are missing it shows an empty state with a Show all songs switch, and a search field filters by title, artist or album.
 - A random 100-song shelf is available on the home page and redraws on refresh. A streamed source can use the server's random list; when that is off or unavailable it draws from songs saved on the device, and a local library always draws locally.
+- New daily mix on the home page: the first open each day generates and stores 20 songs from play counts, recent listening, favourites, artist/album affinity, new additions and rediscovery. Manual refresh prefers a different set; each day's list is kept as history and any day can be reopened and played, with removed or unavailable songs shown but skipped.
 - New library checkup page: songs missing tags, a cover or lyrics, plus likely duplicates grouped by title, artist and duration. It only reports; no file is changed or deleted there.
 - Offline mode can use the local library or the current server's already cached songs; the database is not pruned, so leaving the mode needs no resync.
 
@@ -74,6 +85,7 @@ Currently supports:
 - Cache tasks show waiting/downloading/paused/completed/failed per song, with pause, resume and delete per task and global stop or clear.
 - Caching uses the online quality and transcode format selected for the source, and the task page shows it.
 - Downloads can pick a bitrate; on mobile data they queue and continue automatically on Wi-Fi or when the app opens, with progress shown.
+- Multi-select on a streamed source can batch-download the server's original files (no transcode). Names are "artist - title.ext", with a numeric suffix when the name already exists.
 - The download page holds the queue and completed records, with per-task and global continue, pause and delete; completed records show their cover.
 - New LAN direct switch: on the LAN the app streams from the server without transcoding and without reading the cache.
 - Streamed sources add a cache storage dashboard: cached audio/covers/lyrics/metadata, cache-limit usage, download tasks, largest cached songs and both storage paths.

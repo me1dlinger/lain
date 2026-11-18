@@ -6,7 +6,16 @@ import 'package:material_ui/material_ui.dart';
 /// something does not move it: it comes back where it was.
 
 /// The buttons in the row at the very top of the home page.
-enum HomeButton { artists, albums, songs, playlists, favorites, listeningReport }
+enum HomeButton {
+  artists,
+  albums,
+  songs,
+  playlists,
+  favorites,
+  dailyMix,
+  sessionDiary,
+  listeningReport,
+}
 
 /// The shelves below it.
 ///

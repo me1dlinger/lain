@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/services/emby_client.dart';
 import 'package:lain/base/services/feiniu_client.dart';
+import 'package:lain/base/services/scrobble_queue.dart';
 import 'package:lain/base/services/stream_client.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:lain/base/data/library.dart';
@@ -159,9 +160,9 @@ class History {
     }
 
     if (isStreamSource) {
-      while (times-- > 0) {
-        await streamClient?.scrobble(song.id);
-      }
+      // The queue sends immediately when the server is reachable and keeps the
+      // report otherwise; direct scrobbling here lost offline listens.
+      await scrobbleQueue.enqueue(song, times);
     }
 
     if (sourceType == .emby) {

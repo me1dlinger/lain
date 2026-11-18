@@ -8,6 +8,7 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/album_timeline_page.dart';
+import 'package:lain/base/widgets/session_diary_page.dart';
 import 'package:lain/base/widgets/annual_report_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/layer/layers_manager.dart';
@@ -53,12 +54,32 @@ class _StatsPageState extends State<StatsPage> {
   static const _cell = 13.0;
   static const _cellGap = 3.0;
   static const _monthsZh = [
-    '一月', '二月', '三月', '四月', '五月', '六月',
-    '七月', '八月', '九月', '十月', '十一月', '十二月',
+    '一月',
+    '二月',
+    '三月',
+    '四月',
+    '五月',
+    '六月',
+    '七月',
+    '八月',
+    '九月',
+    '十月',
+    '十一月',
+    '十二月',
   ];
   static const _monthsEn = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   @override
@@ -153,12 +174,35 @@ class _StatsPageState extends State<StatsPage> {
       children: [
         if (years.length > 1) _yearPicker(years, year),
         _annualEntry(l10n, year),
+        const SizedBox(height: 12),
+        _card(
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.history_rounded,
+              color: colorManager.getSpecificIconColor(),
+            ),
+            title: Text(l10n.sessionDiary),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SessionDiaryPage()),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 4),
         _sectionTitle(l10n.yearlyActivity),
         _card(_heatmap(l10n, int.tryParse(year) ?? DateTime.now().year, data)),
         _sectionTitle('${l10n.playRanking}  ($todayKey)'),
         _card(
           _rankList(l10n, [
-            for (final song in stats.topSongsOfDay(year, data.days[todayKey], 10))
+            for (final song in stats.topSongsOfDay(
+              year,
+              data.days[todayKey],
+              10,
+            ))
               _Rank(song.title, song.artist, song.plays),
           ]),
         ),
@@ -523,35 +567,35 @@ class _StatsPageState extends State<StatsPage> {
             for (final tile in tiles)
               Container(
                 width: cellWidth,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: _textColor.withAlpha(38),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  tile[1],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: _textColor,
-                  ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _textColor.withAlpha(38),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  tile[0],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _textColor.withAlpha(160),
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      tile[1],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: _textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tile[0],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _textColor.withAlpha(160),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
               ),
           ],
         );

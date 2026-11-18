@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
+import 'package:lain/base/data/playback_journal.dart';
+import 'package:lain/base/services/scrobble_queue.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/offline_setting.dart';
@@ -84,6 +86,13 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         });
       } else if (isTV && state == .paused) {
         audioHandler.pause();
+      }
+      if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.detached) {
+        unawaited(playbackJournal.flush());
+      }
+      if (state == AppLifecycleState.resumed) {
+        unawaited(scrobbleQueue.flush());
       }
     }
   }

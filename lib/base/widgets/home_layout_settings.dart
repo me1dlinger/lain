@@ -64,6 +64,8 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
                           HomeButton.songs => l10n.songs,
                           HomeButton.playlists => l10n.playlists,
                           HomeButton.favorites => l10n.favorites,
+                          HomeButton.dailyMix => l10n.dailyMix,
+                          HomeButton.sessionDiary => l10n.sessionDiary,
                           HomeButton.listeningReport => l10n.listeningReport,
                         },
                       ),

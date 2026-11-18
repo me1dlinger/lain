@@ -2657,4 +2657,158 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get broadcastCover => '广播封面';
+
+  @override
+  String get abLoop => 'A–B 循环';
+
+  @override
+  String get abSetA => 'A 设为当前';
+
+  @override
+  String get abSetB => 'B 设为当前';
+
+  @override
+  String get abClear => '清除循环';
+
+  @override
+  String get abNeedBoth => '先设置 A 和 B';
+
+  @override
+  String get gaplessPlayback => '无缝播放';
+
+  @override
+  String get trackTransition => '歌曲切换过渡';
+
+  @override
+  String get transitionOff => '关闭';
+
+  @override
+  String get transitionFixed => '固定淡入淡出';
+
+  @override
+  String get transitionAdaptive => '智能自适应';
+
+  @override
+  String get transitionSeconds => '过渡总时长';
+
+  @override
+  String get downloadSelected => '下载所选';
+
+  @override
+  String get showAllSongs => '显示全部歌曲';
+
+  @override
+  String get showMissingOnly => '只显示缺少标签';
+
+  @override
+  String get dailyMix => '每日推荐';
+
+  @override
+  String get dailyMixToday => '今天';
+
+  @override
+  String get dailyMixHistory => '历史回顾';
+
+  @override
+  String get dailyMixMissing => '不可用';
+
+  @override
+  String get dailyMixEmpty => '曲库中还没有可推荐的歌曲';
+
+  @override
+  String get sessionDiary => '音乐记忆';
+
+  @override
+  String get sessionTodayMemories => '今日回忆';
+
+  @override
+  String get sessionResumeQueue => '恢复这段队列';
+
+  @override
+  String get sessionNoSessions => '还没有播放记录';
+
+  @override
+  String get sessionCompleted => '听完';
+
+  @override
+  String get sessionSkipped => '跳过';
+
+  @override
+  String get scrobbleQueue => '播放上报队列';
+
+  @override
+  String get scrobblePending => '待上报';
+
+  @override
+  String get scrobbleDead => '失败记录';
+
+  @override
+  String get scrobbleRetry => '重试';
+
+  @override
+  String get scrobbleClearDead => '清除失败记录';
+
+  @override
+  String get scrobbleNoPending => '没有待发送的记录';
+
+  @override
+  String get sourceHealth => '源健康';
+
+  @override
+  String get sourceHealthy => '可连接';
+
+  @override
+  String get sourceUnreachable => '不可达';
+
+  @override
+  String get sourceLastCheck => '最近检查';
+
+  @override
+  String get sourcePendingReports => '待上报记录';
+
+  @override
+  String get sourceNoServers => '还没有配置服务器';
+
+  @override
+  String get sourceTestAll => '测试全部来源';
+
+  @override
+  String get syncPreview => '同步预览';
+
+  @override
+  String get syncPreviewAdded => '新增歌曲';
+
+  @override
+  String get syncPreviewRemoved => '将被移除';
+
+  @override
+  String get syncPreviewChanged => '元数据变化';
+
+  @override
+  String get syncPreviewUnchanged => '未变化';
+
+  @override
+  String get syncPreviewCacheImpact => '受影响缓存';
+
+  @override
+  String get syncPreviewPlaylistImpact => '受影响歌单引用';
+
+  @override
+  String get syncPreviewApply => '开始同步';
+
+  @override
+  String get syncPreviewSafe => '没有需要变更的内容';
+
+  @override
+  String get syncPreviewWarn => '移除只会从曲库消失，不会删除文件。';
+
+  @override
+  String scrobbleAttempts(int count) {
+    return '$count 次尝试';
+  }
+
+  @override
+  String sessionTracks(int count) {
+    return '$count 首';
+  }
 }

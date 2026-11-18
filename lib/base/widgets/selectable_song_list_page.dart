@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/download_manager.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/library_organize_page.dart';
 import 'package:lain/base/widgets/metadata_batch_deck_page.dart';
@@ -235,6 +236,15 @@ class SelectableSongListPage extends StatelessWidget {
                 );
               },
             ),
+            if (isStreamSource || sourceType == .webdav)
+              ListTile(
+                leading: Icon(Icons.download_rounded, color: iconColor.value),
+                title: Text(l10n.downloadSelected),
+                onTap: () async {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  await downloadManager.startDownloads(selected);
+                },
+              ),
             ListTile(
               title: Text(l10n.cancel, textAlign: TextAlign.center),
               onTap: () {

@@ -6,6 +6,7 @@ import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/play_queue_sheet.dart';
+import 'package:lain/base/widgets/vinyl_disc.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:lain/layer/layers_manager.dart';
 import 'package:lain/layer/lyrics_page_layer.dart';
@@ -82,7 +83,25 @@ class PlayBar extends StatelessWidget {
                         flightDirection,
                         fromHeroContext,
                         toHeroContext,
-                      ) => FittedBox(child: toHeroContext.widget),
+                      ) {
+                        final source = fromHeroContext.widget;
+                        final sourceChild = source is Hero ? source.child : source;
+                        final target = toHeroContext.widget;
+                        final targetChild = target is Hero ? target.child : target;
+                        // Closing a vinyl player: keep the disc during the
+                        // flight and crossfade into the square mini cover near
+                        // the end, instead of popping from a disc to a square
+                        // cover for the whole transition.
+                        if (flightDirection == HeroFlightDirection.pop &&
+                            sourceChild is VinylDisc) {
+                          return _VinylToMiniFlight(
+                            vinyl: sourceChild,
+                            cover: targetChild,
+                            animation: animation,
+                          );
+                        }
+                        return FittedBox(child: targetChild);
+                      },
                   child: CoverArtWidget(
                     size: 35,
                     borderRadius: 3,
@@ -174,6 +193,46 @@ class PlayBar extends StatelessWidget {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+
+/// The closing flight of a vinyl player: the disc shrinks towards the play
+/// bar, and the 35 px square cover fades in over the last part of the move.
+class _VinylToMiniFlight extends StatelessWidget {
+  final VinylDisc vinyl;
+  final Widget cover;
+  final Animation<double> animation;
+
+  const _VinylToMiniFlight({
+    required this.vinyl,
+    required this.cover,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        // On pop the route's animation runs from 1 back to 0. The flight
+        // starts at the player and ends at the play bar, so turn it back into
+        // 0..1; otherwise the square mini cover appears for the first frames
+        // and then fades away before the disc has moved.
+        final t = Curves.easeInOutCubic.transform(1 - animation.value);
+        final square = ((t - 0.55) / 0.45).clamp(0.0, 1.0);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            FittedBox(child: vinyl),
+            Opacity(
+              opacity: square,
+              child: FittedBox(child: cover),
+            ),
+          ],
         );
       },
     );

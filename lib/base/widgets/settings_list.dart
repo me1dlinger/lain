@@ -17,6 +17,7 @@ import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/stream_relay.dart';
@@ -42,6 +43,10 @@ import 'package:lain/base/widgets/audio_quality_dashboard.dart';
 import 'package:lain/base/widgets/car_display_settings_page.dart';
 import 'package:lain/base/widgets/debug_page.dart';
 import 'package:lain/base/widgets/backup_page.dart';
+import 'package:lain/base/services/scrobble_queue.dart';
+import 'package:lain/base/widgets/scrobble_queue_page.dart';
+import 'package:lain/base/widgets/source_health_page.dart';
+import 'package:lain/base/widgets/sync_preview_page.dart';
 import 'package:lain/base/widgets/audio_output_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
@@ -500,6 +505,21 @@ class _SettingsListState extends State<SettingsList> {
       case SettingsCategory.musicSource:
         return [
           serversListTile(context, l10n),
+          ListTile(
+            leading: Icon(
+              Icons.monitor_heart_outlined,
+              size: iconSize,
+              color: colorManager.getSpecificIconColor(),
+            ),
+            title: Text(l10n.sourceHealth),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SourceHealthPage()),
+              );
+            },
+          ),
           // The local library sits behind the servers so a stray tap does not
           // switch sources on the way to something else.
           localSourceListTile(context, l10n),
@@ -513,6 +533,7 @@ class _SettingsListState extends State<SettingsList> {
           // has its own second-level page.
           if (sourceType == .webdav) selectMusicFoldersListTile(context, l10n),
           syncListTile(context, l10n),
+          if (isStreamSource) scrobbleQueueListTile(context, l10n),
           if (isStreamSource) ...[
             lanDirectListTile(l10n),
             streamQualityListTile(context, l10n),
@@ -563,6 +584,9 @@ class _SettingsListState extends State<SettingsList> {
           replayGainListTile(context, l10n),
           playbackSpeedListTile(context, l10n),
           audioFadeListTile(l10n),
+          gaplessListTile(l10n),
+          trackTransitionListTile(context, l10n),
+          transitionSecondsListTile(context, l10n),
           playbackModeListTile(context, l10n),
           ListTile(
             leading: Icon(
@@ -978,9 +1002,16 @@ class _SettingsListState extends State<SettingsList> {
     final cached =
         offlineUseCachedLibraryNotifier.value &&
         (isStreamSource || sourceType == .webdav);
-    if (sourceType == .local) {
-      // Coming back to the cached library needs a server; the one the user was
-      // on is remembered, because switching to the local library cleared it.
+    // Always ask, including while the local library is already showing. The
+    // old branch treated "source is local" as "the user wants the cache" and
+    // switched without a dialog, which is why tapping the menu once jumped to
+    // the cached library and the second tap was the only one that asked.
+    final choice = await _askOfflineLibrary(context, l10n);
+    if (choice == null || choice == cached) {
+      return;
+    }
+    if (choice) {
+      // The server may have been cleared when the local library was entered.
       final wanted = _offlineServer();
       if (wanted == null) {
         showCenterMessage(l10n.noServerForOffline);
@@ -988,23 +1019,18 @@ class _SettingsListState extends State<SettingsList> {
       }
       await config.activateServerOffline(wanted);
       offlineUseCachedLibraryNotifier.value = true;
-      setting.save();
-      await _reloadCachedLibrary();
-      return;
-    }
-    final choice = await _askOfflineLibrary(context, l10n);
-    if (choice == null || choice == cached) {
-      return;
-    }
-    if (choice) {
-      offlineUseCachedLibraryNotifier.value = true;
-      offlineServerIdNotifier.value = config.activeServerId ?? '';
+      offlineServerIdNotifier.value = wanted.id;
       setting.save();
       await _reloadCachedLibrary();
     } else {
       offlineUseCachedLibraryNotifier.value = false;
       setting.save();
       await Loader.switchToLocal();
+      playlistManager.updateNotifier.value++;
+      if (mounted) {
+        setState(() {});
+      }
+      layersManager.backgroundChangeNotifier.value++;
     }
   }
 
@@ -1142,20 +1168,50 @@ class _SettingsListState extends State<SettingsList> {
     return ListTile(
       leading: ImageIcon(reloadImage, size: iconSize),
       title: Text(l10n.syncLibrary),
-      onTap: () async {
-        if (await showConfirmDialog(context, l10n.syncLibrary)) {
-          if (Loader.busy) {
-            if (context.mounted) {
-              showCenterMessage(l10n.syncingTryLater);
-            }
-            return;
-          }
-          final synced = await Loader.sync();
-          tryVibrate();
-          if (context.mounted) {
-            showCenterMessage(synced ? l10n.syncDone : l10n.syncFailed);
-          }
-        }
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SyncPreviewPage()),
+        );
+      },
+    );
+  }
+
+  Widget scrobbleQueueListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ValueListenableBuilder(
+      valueListenable: scrobbleQueue.events,
+      builder: (context, events, child) {
+        return ListTile(
+          leading: Icon(
+            Icons.cloud_upload_outlined,
+            size: iconSize,
+            color: colorManager.getSpecificIconColor(),
+          ),
+          title: Text(l10n.scrobbleQueue),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (events.isNotEmpty)
+                Text(
+                  '${events.length}  ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorManager.getSpecificTextColor().withAlpha(170),
+                  ),
+                ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ScrobbleQueuePage()),
+            );
+          },
+        );
       },
     );
   }
@@ -2278,6 +2334,216 @@ class _SettingsListState extends State<SettingsList> {
           subtitle: Text(playbackSpeedLabel(speed)),
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
           onTap: () => showPlaybackSpeedDialog(context),
+        );
+      },
+    );
+  }
+
+  Widget gaplessListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.link_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.gaplessPlayback),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: gaplessPlaybackNotifier,
+          onToggleCallBack: () {
+            if (gaplessPlaybackNotifier.value &&
+                trackTransitionModeNotifier.value != TrackTransitionMode.off) {
+              trackTransitionModeNotifier.value = TrackTransitionMode.off;
+            }
+            setting.save();
+            setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
+  String _transitionLabel(
+    AppLocalizations l10n,
+    TrackTransitionMode mode,
+  ) {
+    return switch (mode) {
+      TrackTransitionMode.off => l10n.transitionOff,
+      TrackTransitionMode.fixed => l10n.transitionFixed,
+      TrackTransitionMode.adaptive => l10n.transitionAdaptive,
+    };
+  }
+
+  Widget trackTransitionListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        trackTransitionModeNotifier,
+        trackTransitionSecondsNotifier,
+      ]),
+      builder: (context, child) {
+        final mode = trackTransitionModeNotifier.value;
+        final seconds = trackTransitionSecondsNotifier.value;
+        return ListTile(
+          leading: Icon(
+            Icons.compare_arrows_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.trackTransition),
+          trailing: Text(
+            mode == TrackTransitionMode.fixed
+                ? '${_transitionLabel(l10n, mode)} · ${seconds}s  '
+                : '${_transitionLabel(l10n, mode)}  ',
+            style: TextStyle(
+              fontSize: 13,
+              color: colorManager.getSpecificTextColor().withAlpha(170),
+            ),
+          ),
+          onTap: () async {
+            final choice = await showAnimationDialog<TrackTransitionMode>(
+              context: context,
+              child: SizedBox(
+                width: 300,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final value in TrackTransitionMode.values)
+                        Builder(
+                          builder: (dialogContext) => ListTile(
+                            title: Text(_transitionLabel(l10n, value)),
+                            trailing: mode == value
+                                ? const Icon(Icons.check_rounded)
+                                : null,
+                            onTap: () => Navigator.pop(dialogContext, value),
+                          ),
+                        ),
+                      if (mode == TrackTransitionMode.fixed)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                          child: Row(
+                            children: [
+                              Text(
+                                l10n.transitionSeconds,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              const Spacer(),
+                              DropdownButton<int>(
+                                value: seconds,
+                                underline: const SizedBox.shrink(),
+                                items: [
+                                  for (final value in const [2, 4, 6, 8, 10, 12])
+                                    DropdownMenuItem(
+                                      value: value,
+                                      child: Text('$value s'),
+                                    ),
+                                ],
+                                onChanged: (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  trackTransitionSecondsNotifier.value = value;
+                                  setting.save();
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (choice == null) {
+              return;
+            }
+            trackTransitionModeNotifier.value = choice;
+            if (choice != TrackTransitionMode.off) {
+              // A long fade and gapless cannot run together.
+              gaplessPlaybackNotifier.value = false;
+            }
+            setting.save();
+            if (mounted) {
+              setState(() {});
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget transitionSecondsListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        trackTransitionModeNotifier,
+        trackTransitionSecondsNotifier,
+      ]),
+      builder: (context, child) {
+        if (trackTransitionModeNotifier.value != TrackTransitionMode.fixed) {
+          return const SizedBox.shrink();
+        }
+        return ListTile(
+          leading: Icon(
+            Icons.timer_outlined,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.transitionSeconds),
+          trailing: Text(
+            '${trackTransitionSecondsNotifier.value}s  ',
+            style: TextStyle(
+              fontSize: 13,
+              color: colorManager.getSpecificTextColor().withAlpha(170),
+            ),
+          ),
+          onTap: () async {
+            final choice = await showAnimationDialog<int>(
+              context: context,
+              child: SizedBox(
+                width: 280,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final value in const [2, 4, 6, 8, 10, 12])
+                        Builder(
+                          builder: (dialogContext) => ListTile(
+                            title: Text('$value s'),
+                            subtitle: Text(
+                              '${value ~/ 2}s + ${value ~/ 2}s',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            trailing:
+                                trackTransitionSecondsNotifier.value == value
+                                ? const Icon(Icons.check_rounded)
+                                : null,
+                            onTap: () => Navigator.pop(dialogContext, value),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (choice == null) {
+              return;
+            }
+            trackTransitionSecondsNotifier.value = choice;
+            setting.save();
+            if (mounted) {
+              setState(() {});
+            }
+          },
         );
       },
     );

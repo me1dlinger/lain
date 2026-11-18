@@ -27,6 +27,7 @@ import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/share_card_settings.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
+import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/utils/path.dart';
 import 'package:lain/base/widgets/manage_music_folders.dart';
@@ -278,6 +279,13 @@ class Setting {
     playbackSpeedNotifier.value =
         (json['playbackSpeed'] as num?)?.toDouble() ?? 1.0;
     audioFadeNotifier.value = json['audioFade'] as bool? ?? true;
+    gaplessPlaybackNotifier.value =
+        json['gaplessPlayback'] as bool? ?? true;
+    trackTransitionModeNotifier.value =
+        TrackTransitionMode.values.asNameMap()['${json['trackTransitionMode']}'] ??
+        TrackTransitionMode.off;
+    final transitionSeconds = json['trackTransitionSeconds'] as int? ?? 6;
+    trackTransitionSecondsNotifier.value = transitionSeconds.clamp(2, 12);
     reportPlaybackProgressNotifier.value =
         json['reportPlaybackProgress'] as bool? ?? true;
     useServerRandomNotifier.value =
@@ -453,6 +461,9 @@ class Setting {
         'replayGainMode': replayGainModeNotifier.value.name,
         'playbackSpeed': playbackSpeedNotifier.value,
         'audioFade': audioFadeNotifier.value,
+        'gaplessPlayback': gaplessPlaybackNotifier.value,
+        'trackTransitionMode': trackTransitionModeNotifier.value.name,
+        'trackTransitionSeconds': trackTransitionSecondsNotifier.value,
         'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
         'useServerRandom': useServerRandomNotifier.value,
         'playerCoverStyle': playerCoverStyleNotifier.value.name,

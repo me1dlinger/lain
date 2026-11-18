@@ -5215,6 +5215,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Broadcast cover'**
   String get broadcastCover;
+
+  /// No description provided for @abLoop.
+  ///
+  /// In en, this message translates to:
+  /// **'A–B loop'**
+  String get abLoop;
+
+  /// No description provided for @abSetA.
+  ///
+  /// In en, this message translates to:
+  /// **'Set A here'**
+  String get abSetA;
+
+  /// No description provided for @abSetB.
+  ///
+  /// In en, this message translates to:
+  /// **'Set B here'**
+  String get abSetB;
+
+  /// No description provided for @abClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear loop'**
+  String get abClear;
+
+  /// No description provided for @abNeedBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Set both A and B first'**
+  String get abNeedBoth;
+
+  /// No description provided for @gaplessPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Gapless playback'**
+  String get gaplessPlayback;
+
+  /// No description provided for @trackTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Track transition'**
+  String get trackTransition;
+
+  /// No description provided for @transitionOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get transitionOff;
+
+  /// No description provided for @transitionFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed fade'**
+  String get transitionFixed;
+
+  /// No description provided for @transitionAdaptive.
+  ///
+  /// In en, this message translates to:
+  /// **'Adaptive fade'**
+  String get transitionAdaptive;
+
+  /// No description provided for @transitionSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Total fade length'**
+  String get transitionSeconds;
+
+  /// No description provided for @downloadSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Download selected'**
+  String get downloadSelected;
+
+  /// No description provided for @showAllSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all songs'**
+  String get showAllSongs;
+
+  /// No description provided for @showMissingOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Show only missing tags'**
+  String get showMissingOnly;
+
+  /// No description provided for @dailyMix.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily mix'**
+  String get dailyMix;
+
+  /// No description provided for @dailyMixToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dailyMixToday;
+
+  /// No description provided for @dailyMixHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get dailyMixHistory;
+
+  /// No description provided for @dailyMixMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get dailyMixMissing;
+
+  /// No description provided for @dailyMixEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No songs to recommend yet'**
+  String get dailyMixEmpty;
+
+  /// No description provided for @sessionDiary.
+  ///
+  /// In en, this message translates to:
+  /// **'Music memories'**
+  String get sessionDiary;
+
+  /// No description provided for @sessionTodayMemories.
+  ///
+  /// In en, this message translates to:
+  /// **'On this day'**
+  String get sessionTodayMemories;
+
+  /// No description provided for @sessionResumeQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this queue'**
+  String get sessionResumeQueue;
+
+  /// No description provided for @sessionNoSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'No listening sessions yet'**
+  String get sessionNoSessions;
+
+  /// No description provided for @sessionCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'finished'**
+  String get sessionCompleted;
+
+  /// No description provided for @sessionSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'skipped'**
+  String get sessionSkipped;
+
+  /// No description provided for @scrobbleQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback reporting queue'**
+  String get scrobbleQueue;
+
+  /// No description provided for @scrobblePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending reports'**
+  String get scrobblePending;
+
+  /// No description provided for @scrobbleDead.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed reports'**
+  String get scrobbleDead;
+
+  /// No description provided for @scrobbleRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get scrobbleRetry;
+
+  /// No description provided for @scrobbleClearDead.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear failed'**
+  String get scrobbleClearDead;
+
+  /// No description provided for @scrobbleNoPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing waiting to be sent'**
+  String get scrobbleNoPending;
+
+  /// No description provided for @sourceHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Source health'**
+  String get sourceHealth;
+
+  /// No description provided for @sourceHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable'**
+  String get sourceHealthy;
+
+  /// No description provided for @sourceUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unreachable'**
+  String get sourceUnreachable;
+
+  /// No description provided for @sourceLastCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked'**
+  String get sourceLastCheck;
+
+  /// No description provided for @sourcePendingReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending reports'**
+  String get sourcePendingReports;
+
+  /// No description provided for @sourceNoServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No servers configured'**
+  String get sourceNoServers;
+
+  /// No description provided for @sourceTestAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Test all sources'**
+  String get sourceTestAll;
+
+  /// No description provided for @syncPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync preview'**
+  String get syncPreview;
+
+  /// No description provided for @syncPreviewAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'New songs'**
+  String get syncPreviewAdded;
+
+  /// No description provided for @syncPreviewRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be removed'**
+  String get syncPreviewRemoved;
+
+  /// No description provided for @syncPreviewChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata changes'**
+  String get syncPreviewChanged;
+
+  /// No description provided for @syncPreviewUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchanged'**
+  String get syncPreviewUnchanged;
+
+  /// No description provided for @syncPreviewCacheImpact.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached files affected'**
+  String get syncPreviewCacheImpact;
+
+  /// No description provided for @syncPreviewPlaylistImpact.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist references affected'**
+  String get syncPreviewPlaylistImpact;
+
+  /// No description provided for @syncPreviewApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply sync'**
+  String get syncPreviewApply;
+
+  /// No description provided for @syncPreviewSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing will change'**
+  String get syncPreviewSafe;
+
+  /// No description provided for @syncPreviewWarn.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed songs disappear from the library. Files are not deleted.'**
+  String get syncPreviewWarn;
+
+  /// No description provided for @scrobbleAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} attempts'**
+  String scrobbleAttempts(int count);
+
+  /// No description provided for @sessionTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tracks'**
+  String sessionTracks(int count);
 }
 
 class _AppLocalizationsDelegate

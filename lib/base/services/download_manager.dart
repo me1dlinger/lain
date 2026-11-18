@@ -104,6 +104,10 @@ class DownloadTask {
   final String title;
   final String artist;
   final String album;
+
+  /// The user asked for the server's own file, not the selected transcode.
+  final bool original;
+
   DownloadTaskState state;
 
   /// Fraction of the transfer completed, or null while the source cannot
@@ -115,6 +119,7 @@ class DownloadTask {
     required this.title,
     required this.artist,
     required this.album,
+    this.original = false,
     this.state = DownloadTaskState.waitingForWifi,
   });
 
@@ -123,6 +128,7 @@ class DownloadTask {
     'title': title,
     'artist': artist,
     'album': album,
+    'original': original,
     'state': state.name,
   };
 
@@ -139,6 +145,7 @@ class DownloadTask {
       title: '${raw['title'] ?? ''}',
       artist: '${raw['artist'] ?? ''}',
       album: '${raw['album'] ?? ''}',
+      original: raw['original'] == true,
       state: DownloadTaskState.values.asNameMap()['${raw['state']}'] ??
           DownloadTaskState.waitingForWifi,
     );
@@ -168,6 +175,7 @@ class DownloadManager {
   File? _file;
   File? _queueFile;
   bool _loaded = false;
+  bool _quiet = false;
 
   Future<void> ensureLoaded() async {
     if (_loaded) {
@@ -253,7 +261,10 @@ class DownloadManager {
 
   /// Queues [song]. When the connection allows it the download starts at once;
   /// on mobile data with the setting off it waits for Wi-Fi.
-  Future<bool> startDownload(MyAudioMetadata song) async {
+  Future<bool> startDownload(
+    MyAudioMetadata song, {
+    bool original = false,
+  }) async {
     final client = streamClient;
     // WebDAV has no StreamClient, but its files download just the same.
     if (client == null && (sourceType != .webdav || webdavClient == null)) {
@@ -271,6 +282,7 @@ class DownloadManager {
       title: getTitle(song),
       artist: getArtist(song),
       album: getAlbum(song),
+      original: original,
     );
     _tasks.insert(0, task);
 
@@ -343,7 +355,9 @@ class DownloadManager {
       path = await _freshPath(dir, _fileNameFor(song));
       _taskPaths[task.songId] = path;
 
-      final quality = downloadQualityNotifier.value;
+      final quality = task.original
+          ? StreamQuality.original
+          : downloadQualityNotifier.value;
       final ok = webdav != null
           ? await webdav.download(
               remotePath: song.path ?? '',
@@ -582,6 +596,30 @@ class DownloadManager {
   }
 
   /// `Artist - Title.<suffix>`, with what a file name cannot contain replaced.
+  /// Downloads every song in [songs] as the server stores it. The filename is
+  /// already "artist - title.ext"; a name that exists gets " (2)" rather than
+  /// overwriting the earlier download.
+  Future<int> startDownloads(
+    List<MyAudioMetadata> songs, {
+    bool original = true,
+  }) async {
+    var started = 0;
+    _quiet = true;
+    try {
+      for (final song in songs) {
+        if (await startDownload(song, original: original)) {
+          started++;
+        }
+      }
+    } finally {
+      _quiet = false;
+    }
+    if (started > 0) {
+      _message(getAppLocalizations().downloadAdded);
+    }
+    return started;
+  }
+
   String _fileNameFor(MyAudioMetadata song) {
     final suffix = song.format ??
         song.path?.split('.').last ??
@@ -661,6 +699,9 @@ class DownloadManager {
   }
 
   void _message(String text, {int duration = 3000}) {
+    if (_quiet) {
+      return;
+    }
     final context = globalNavigatorKey.currentContext;
     if (context == null || !context.mounted) {
       return;

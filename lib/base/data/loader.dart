@@ -13,6 +13,9 @@ import 'package:lain/base/data/history.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/comment_client.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/services/lyric_index.dart';
+import 'package:lain/base/services/scrobble_queue.dart';
+import 'package:lain/base/services/source_health.dart';
 import 'package:lain/base/data/music_server.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -75,6 +78,8 @@ class Loader {
     } catch (e) {
       logger.output('[startup] settings load failed: $e');
     }
+    unawaited(scrobbleQueue.start());
+    unawaited(sourceHealth.start());
 
     // A comment server that answered is written through to the settings, so
     // the next launch asks it first instead of probing both addresses. The
@@ -181,6 +186,7 @@ class Loader {
       }
 
       artistAlbumManager.classify();
+      lyricIndex.schedule();
 
       try {
         await history.load();
@@ -324,6 +330,7 @@ class Loader {
       await prefetchArtistInfo();
 
       artistAlbumManager.classify();
+      lyricIndex.schedule();
 
       await history.load();
 
@@ -370,6 +377,7 @@ class Loader {
       // ones so a re-read tag or a removed file is reflected there too.
       audioHandler.sync();
       artistAlbumManager.classify();
+      lyricIndex.schedule();
       return true;
     } catch (e) {
       logger.output('[auto scan] $e');
@@ -409,6 +417,7 @@ class Loader {
     await prefetchArtistInfo();
 
     artistAlbumManager.classify();
+      lyricIndex.schedule();
 
     await history.load();
 

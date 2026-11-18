@@ -23,6 +23,8 @@ import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/my_navigator.dart';
 import 'package:lain/base/widgets/my_scaffold.dart';
 import 'package:lain/base/widgets/play_next_button.dart';
+import 'package:lain/base/widgets/daily_recommendation_page.dart';
+import 'package:lain/base/widgets/session_diary_page.dart';
 import 'package:lain/base/widgets/rediscovery_stats.dart';
 import 'package:lain/base/widgets/stats_page.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
@@ -228,6 +230,24 @@ class HomeLayerState extends State<HomeLayer> {
           Icons.favorite_outline_rounded,
           '_Favorite',
         );
+      case HomeButton.dailyMix:
+        return homeNavAction(l10n.dailyMix, Icons.auto_awesome_rounded, () {
+          globalNavigatorKey.currentState?.push(
+            themedRoute(
+              (context) => const DailyRecommendationPage(),
+              picture: backgroundPicture,
+            ),
+          );
+        });
+      case HomeButton.sessionDiary:
+        return homeNavAction(l10n.sessionDiary, Icons.history_rounded, () {
+          globalNavigatorKey.currentState?.push(
+            themedRoute(
+              (context) => const SessionDiaryPage(),
+              picture: backgroundPicture,
+            ),
+          );
+        });
       case HomeButton.listeningReport:
         return homeNavAction(l10n.listeningReport, Icons.insights_rounded, () {
           globalNavigatorKey.currentState?.push(

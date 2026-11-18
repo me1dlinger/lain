@@ -20,6 +20,11 @@ class CoverArtWidget extends StatelessWidget {
   final Color? color;
   final bool useResize;
 
+  /// How the image is sampled after a transform. The default is fine for
+  /// static covers; a rotating vinyl label needs better filtering or the
+  /// pixels shimmer at an angle.
+  final FilterQuality filterQuality;
+
   /// Whether this cover goes to the front of the load queue (page headers,
   /// the now-playing artwork) instead of lining up behind list thumbnails.
   final bool priorityLoad;
@@ -34,6 +39,7 @@ class CoverArtWidget extends StatelessWidget {
     this.elevation = 0,
     this.color,
     this.useResize = true,
+    this.filterQuality = FilterQuality.medium,
     this.priorityLoad = false,
   });
 
@@ -50,10 +56,7 @@ class CoverArtWidget extends StatelessWidget {
       layoutBuilder: (currentChild, previousChildren) => Stack(
         alignment: Alignment.center,
         fit: StackFit.passthrough,
-        children: [
-          ...previousChildren,
-          if (currentChild != null) currentChild,
-        ],
+        children: [...previousChildren, if (currentChild != null) currentChild],
       ),
       child: Material(
         // The cover's identity is part of the key: when the slot shows a
@@ -114,6 +117,7 @@ class CoverArtWidget extends StatelessWidget {
       borderRadius: borderRadius,
       picture: fallback,
       useResize: useResize,
+      filterQuality: filterQuality,
     );
   }
 
@@ -127,6 +131,7 @@ class CoverArtWidget extends StatelessWidget {
       width: size,
       height: size,
       fit: size != null ? .contain : .cover,
+      filterQuality: filterQuality,
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
         // A file that will not decode is not a cover (an empty response, a
@@ -207,16 +212,17 @@ class _FuturePictureState extends State<_FuturePicture> {
 
   void _startLoad() {
     _futureKey = _keyOf(widget.picture);
-    _future = loadPictureSafe(
-      widget.picture,
-      widgetId: widgetId,
-      priority: widget.priorityLoad,
-    ).timeout(
-      const Duration(seconds: 25),
-      // A load that never answers must not leave the builder waiting: the
-      // fallback is shown and the bounded retry below asks again.
-      onTimeout: () {},
-    );
+    _future =
+        loadPictureSafe(
+          widget.picture,
+          widgetId: widgetId,
+          priority: widget.priorityLoad,
+        ).timeout(
+          const Duration(seconds: 25),
+          // A load that never answers must not leave the builder waiting: the
+          // fallback is shown and the bounded retry below asks again.
+          onTimeout: () {},
+        );
   }
 
   @override

@@ -11,6 +11,7 @@ import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:lain/base/widgets/ab_loop_sheet.dart';
 import 'package:lain/base/widgets/action_menu.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/player_cover_style.dart';
@@ -25,6 +26,7 @@ import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/vinyl_disc.dart';
 import 'package:lain/base/widgets/playlist_widgets.dart';
 import 'package:lain/base/data/setting.dart';
+import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
 import 'package:lain/base/widgets/my_sheet.dart';
@@ -109,38 +111,55 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         }
       },
       child: ValueListenableBuilder(
-      valueListenable: canDragNotifier,
-      builder: (context, value, child) {
-        return GestureDetector(
-          onVerticalDragStart: value
-              ? (_) {
-                  draggingNotifier.value = true;
-                  concealRouteTimer?.cancel();
-                  final route = ModalRoute.of(context);
-                  if (route is DynamicLyricsPageRoute) {
-                    route.revealRoutesBelow();
+        valueListenable: canDragNotifier,
+        builder: (context, value, child) {
+          return GestureDetector(
+            onVerticalDragStart: value
+                ? (_) {
+                    draggingNotifier.value = true;
+                    concealRouteTimer?.cancel();
+                    final route = ModalRoute.of(context);
+                    if (route is DynamicLyricsPageRoute) {
+                      route.revealRoutesBelow();
+                    }
                   }
-                }
-              : null,
-          onVerticalDragUpdate: value
-              ? (details) {
-                  _animationDuration = 0;
-                  dragOffsetNotifier.value += details.delta.dy;
-                  dragOffsetNotifier.value = dragOffsetNotifier.value.clamp(
-                    0.0,
-                    screenHeight,
-                  );
-                }
-              : null,
+                : null,
+            onVerticalDragUpdate: value
+                ? (details) {
+                    _animationDuration = 0;
+                    dragOffsetNotifier.value += details.delta.dy;
+                    dragOffsetNotifier.value = dragOffsetNotifier.value.clamp(
+                      0.0,
+                      screenHeight,
+                    );
+                  }
+                : null,
 
-          onVerticalDragEnd: value
-              ? (details) {
-                  double velocity = details.primaryVelocity ?? 0;
+            onVerticalDragEnd: value
+                ? (details) {
+                    double velocity = details.primaryVelocity ?? 0;
 
-                  if (dragOffsetNotifier.value * 3 > screenHeight ||
-                      velocity > 500) {
-                    Navigator.pop(context);
-                  } else {
+                    if (dragOffsetNotifier.value * 3 > screenHeight ||
+                        velocity > 500) {
+                      Navigator.pop(context);
+                    } else {
+                      _animationDuration = 250;
+                      dragOffsetNotifier.value = 0.0;
+                      concealRouteTimer = Timer(
+                        Duration(milliseconds: 250),
+                        () {
+                          draggingNotifier.value = false;
+                          final route = ModalRoute.of(context);
+                          if (route is DynamicLyricsPageRoute) {
+                            route.concealRoutesBelow();
+                          }
+                        },
+                      );
+                    }
+                  }
+                : null,
+            onVerticalDragCancel: value
+                ? () {
                     _animationDuration = 250;
                     dragOffsetNotifier.value = 0.0;
                     concealRouteTimer = Timer(Duration(milliseconds: 250), () {
@@ -151,36 +170,22 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       }
                     });
                   }
-                }
-              : null,
-          onVerticalDragCancel: value
-              ? () {
-                  _animationDuration = 250;
-                  dragOffsetNotifier.value = 0.0;
-                  concealRouteTimer = Timer(Duration(milliseconds: 250), () {
-                    draggingNotifier.value = false;
-                    final route = ModalRoute.of(context);
-                    if (route is DynamicLyricsPageRoute) {
-                      route.concealRoutesBelow();
-                    }
-                  });
-                }
-              : null,
-          child: child,
-        );
-      },
-      child: ValueListenableBuilder(
-        valueListenable: dragOffsetNotifier,
-        builder: (context, value, child) {
-          return AnimatedContainer(
-            duration: Duration(milliseconds: _animationDuration),
-            curve: Curves.easeOutCubic,
-            transform: Matrix4.translationValues(0, value, 0),
+                : null,
             child: child,
           );
         },
-        child: content(isShort),
-      ),
+        child: ValueListenableBuilder(
+          valueListenable: dragOffsetNotifier,
+          builder: (context, value, child) {
+            return AnimatedContainer(
+              duration: Duration(milliseconds: _animationDuration),
+              curve: Curves.easeOutCubic,
+              transform: Matrix4.translationValues(0, value, 0),
+              child: child,
+            );
+          },
+          child: content(isShort),
+        ),
       ),
     );
   }
@@ -220,7 +225,8 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   // settings before the player arrived.
                   Positioned.fill(
                     child: ColoredBox(
-                      color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+                      color: colorManager
+                          .getSpecificLyricsPageCoverArtBaseColor(),
                     ),
                   ),
                   // Blur the cover itself instead of the page behind it. A
@@ -477,10 +483,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   : 0.0;
               return Transform.translate(
                 offset: Offset(-24 * offset, 0),
-                child: Transform.scale(
-                  scale: 1 - 0.05 * offset,
-                  child: child,
-                ),
+                child: Transform.scale(scale: 1 - 0.05 * offset, child: child),
               );
             },
             child: ValueListenableBuilder<PlayerCoverStyle>(
@@ -560,10 +563,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   icon: const Icon(Icons.forum_outlined, size: 25),
                   onPressed: () {
                     tryVibrate();
-                    Navigator.push(
-                      context,
-                      CommentPageView.route(currentSong),
-                    );
+                    Navigator.push(context, CommentPageView.route(currentSong));
                   },
                 );
               },
@@ -632,6 +632,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   replayGainModeNotifier,
                   playbackSpeedNotifier,
                   audioFadeNotifier,
+                  gaplessPlaybackNotifier,
+                  trackTransitionModeNotifier,
+                  trackTransitionSecondsNotifier,
                   playbackModeNotifier,
                   playerCoverStyleNotifier,
                 ]),
@@ -700,6 +703,18 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         },
                       ),
                       ActionMenuTile(
+                        icon: Icons.repeat_on_rounded,
+                        label: l10n.abLoop,
+                        onTap: () {
+                          final pageContext = Navigator.of(
+                            sheetContext,
+                            rootNavigator: true,
+                          ).context;
+                          Navigator.pop(sheetContext);
+                          showAbLoopSheet(pageContext);
+                        },
+                      ),
+                      ActionMenuTile(
                         icon: Icons.share_rounded,
                         label: l10n.lyricShareCard,
                         onTap: () {
@@ -713,7 +728,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                               pageContext,
                               currentSong,
                               lyric: _currentShareLyric(currentSong),
-                              translation: _currentShareTranslation(currentSong),
+                              translation: _currentShareTranslation(
+                                currentSong,
+                              ),
                             );
                           }
                         },
@@ -778,6 +795,33 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         ),
                       ),
                       ActionMenuTile(
+                        icon: Icons.link_rounded,
+                        label: l10n.gaplessPlayback,
+                        trailing: SizedBox(
+                          width: 50,
+                          child: MySwitch(
+                            valueNotifier: gaplessPlaybackNotifier,
+                            onToggleCallBack: () {
+                              if (gaplessPlaybackNotifier.value &&
+                                  trackTransitionModeNotifier.value !=
+                                      TrackTransitionMode.off) {
+                                trackTransitionModeNotifier.value =
+                                    TrackTransitionMode.off;
+                              }
+                              setting.save();
+                              tryVibrateLight();
+                            },
+                          ),
+                        ),
+                      ),
+                      ActionMenuTile(
+                        icon: Icons.compare_arrows_rounded,
+                        label: l10n.trackTransition,
+                        subtitle: _transitionSubtitle(l10n),
+                        trailing: chevron,
+                        onTap: () => _showTransitionDialog(sheetContext),
+                      ),
+                      ActionMenuTile(
                         icon: Icons.graphic_eq_rounded,
                         label: l10n.playbackMode,
                         subtitle: PlaybackModePage.modeLabel(
@@ -785,8 +829,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           playbackModeNotifier.value,
                         ),
                         trailing: chevron,
-                        onTap: () =>
-                            showAudioPlaybackModeDialog(sheetContext),
+                        onTap: () => showAudioPlaybackModeDialog(sheetContext),
                       ),
                     ],
                   );
@@ -797,6 +840,150 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         );
       },
       icon: Icon(Icons.more_vert, color: lyricsPageForegroundColor.value),
+    );
+  }
+
+  String _transitionSubtitle(AppLocalizations l10n) {
+    final mode = trackTransitionModeNotifier.value;
+    return switch (mode) {
+      TrackTransitionMode.off => l10n.transitionOff,
+      TrackTransitionMode.fixed =>
+        '${l10n.transitionFixed} · ${trackTransitionSecondsNotifier.value}s',
+      TrackTransitionMode.adaptive => l10n.transitionAdaptive,
+    };
+  }
+
+  Future<void> _showTransitionDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return showAnimationDialog<void>(
+      context: context,
+      child: SizedBox(
+        width: 320,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: ListenableBuilder(
+            listenable: Listenable.merge([
+              trackTransitionModeNotifier,
+              trackTransitionSecondsNotifier,
+            ]),
+            builder: (context, child) {
+              final mode = trackTransitionModeNotifier.value;
+              final textColor = lyricsPageForegroundColor.value;
+              return DefaultTextStyle.merge(
+                style: TextStyle(color: textColor),
+                child: IconTheme(
+                  data: IconThemeData(color: textColor),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                        child: Text(
+                          l10n.trackTransition,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                      for (final value in TrackTransitionMode.values)
+                        Builder(
+                          builder: (dialogContext) => ListTile(
+                            textColor: textColor,
+                            iconColor: textColor,
+                            titleTextStyle: TextStyle(
+                              fontSize: 15,
+                              color: textColor,
+                            ),
+                            title: Text(switch (value) {
+                              TrackTransitionMode.off => l10n.transitionOff,
+                              TrackTransitionMode.fixed => l10n.transitionFixed,
+                              TrackTransitionMode.adaptive =>
+                                l10n.transitionAdaptive,
+                            }, style: TextStyle(color: textColor)),
+                            trailing: mode == value
+                                ? Icon(Icons.check_rounded, color: textColor)
+                                : null,
+                            onTap: () {
+                              trackTransitionModeNotifier.value = value;
+                              if (value != TrackTransitionMode.off) {
+                                gaplessPlaybackNotifier.value = false;
+                              }
+                              setting.save();
+                            },
+                          ),
+                        ),
+                      if (mode == TrackTransitionMode.fixed)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Row(
+                            children: [
+                              Text(
+                                l10n.transitionSeconds,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: textColor,
+                                ),
+                              ),
+                              const Spacer(),
+                              DropdownButton<int>(
+                                value: trackTransitionSecondsNotifier.value,
+                                dropdownColor: colorManager
+                                    .getSpecificOpaqueBgColor(),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 14,
+                                ),
+                                iconEnabledColor: textColor,
+                                underline: const SizedBox.shrink(),
+                                items: [
+                                  for (final value in const [
+                                    2,
+                                    4,
+                                    6,
+                                    8,
+                                    10,
+                                    12,
+                                  ])
+                                    DropdownMenuItem(
+                                      value: value,
+                                      child: Text(
+                                        '$value s',
+                                        style: TextStyle(color: textColor),
+                                      ),
+                                    ),
+                                ],
+                                onChanged: (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  trackTransitionSecondsNotifier.value = value;
+                                  setting.save();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: textColor,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(l10n.confirm),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 
