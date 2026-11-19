@@ -38,8 +38,28 @@ final relayAddressNotifier = ValueNotifier<String>('');
 /// metadata itself has no image field; Android's stack reads the media
 /// session, and different units/stacks pick a bitmap, a URI, or neither.
 /// These are testable variants of the same session item.
-enum ClassicCoverMode { bitmap, bitmapUri, largeBitmap, relayUri }
+enum ClassicCoverMode {
+  /// The complete shape, for units that do not read the bitmap: the cover
+  /// file as `artUri`, a URI the unit can fetch itself (a streamed source's
+  /// server URL or this phone's LAN relay), and the broadcast-sized bitmap.
+  full,
 
+  /// The session bitmap only, at the broadcast thumbnail size.
+  bitmap,
+
+  /// The session bitmap plus a content:// URI from the app's provider.
+  bitmapUri,
+
+  /// The session bitmap made from the original cover file.
+  largeBitmap,
+
+  /// The session bitmap plus the LAN relay / server cover URI.
+  relayUri,
+}
+
+/// The default is [ClassicCoverMode.full]: a classic Bluetooth route gets
+/// every artwork route at once, so a unit that reads a bitmap and one that
+/// fetches a URI both have something to use.
 final classicCoverModeNotifier = ValueNotifier<ClassicCoverMode>(
-  ClassicCoverMode.bitmap,
+  ClassicCoverMode.full,
 );

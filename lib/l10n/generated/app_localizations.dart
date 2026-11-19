@@ -4711,6 +4711,12 @@ abstract class AppLocalizations {
   /// **'Classic Bluetooth cover'**
   String get classicCoverMode;
 
+  /// No description provided for @classicCoverFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full (file + fetchable URI + bitmap)'**
+  String get classicCoverFull;
+
   /// No description provided for @classicCoverBitmap.
   ///
   /// In en, this message translates to:

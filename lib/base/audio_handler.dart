@@ -2974,9 +2974,13 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     _contentUriCache[path] = uri;
+    final classicContent =
+        _useClassicPublisher &&
+        (classicCoverModeNotifier.value == ClassicCoverMode.bitmapUri ||
+            classicCoverModeNotifier.value == ClassicCoverMode.full);
     final wantsContent =
         coverBroadcastModeNotifier.value == CoverBroadcastMode.content ||
-        classicCoverModeNotifier.value == ClassicCoverMode.bitmapUri;
+        classicContent;
     if (wantsContent && currentSongNotifier.value?.id == song.id) {
       _pubFileArtUri = uri;
       refreshServiceMediaItem();
@@ -2992,6 +2996,35 @@ class MyAudioHandler extends BaseAudioHandler {
     return uri
         .replace(queryParameters: {...uri.queryParameters, 'size': '$size'})
         .toString();
+  }
+
+  /// The cover URI a classic Bluetooth unit can fetch for itself.
+  ///
+  /// A streamed source with query-string authentication hands out the server
+  /// URL itself: both the phone and a head unit on the same network can fetch
+  /// it. Everything else (a local file, WebDAV, a server without a plain URL)
+  /// goes through this phone's LAN relay, with a content:// URI as the last
+  /// resort. The bitmap is published as well, so a unit that reads either
+  /// kind of artwork still has one.
+  String? _classicCoverUri(
+    MyAudioMetadata song,
+    ({String? fileUri, String? coverPath, String? smallArtPath, String? fetchUri})
+    art,
+  ) {
+    if (isStreamSource && song.picture.id.isNotEmpty) {
+      final remote = streamClient?.getPictureUrl(song.picture.id);
+      if (remote != null && remote.isNotEmpty) {
+        return _coverUrlWithSize(remote, MediaArt.broadcastSide);
+      }
+    }
+    final key = art.smallArtPath ?? art.coverPath;
+    if (key != null && key.isNotEmpty) {
+      final relayed = streamRelay.coverUrlSync(filePath: key);
+      if (relayed != null) {
+        return relayed;
+      }
+    }
+    return _contentUriFor(art.smallArtPath, song);
   }
 
   /// Drops URIs that were resolved for a network that is no longer in use.
@@ -3140,6 +3173,7 @@ class MyAudioHandler extends BaseAudioHandler {
     final art = _artworkFor(currentSong);
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
     _publishedLyric = line;
+    final classic = _useClassicPublisher;
 
     // The smaller broadcast copy is the normal choice, but a local cover
     // whose thumbnail could not be made still has its original on disk - and
@@ -3147,21 +3181,36 @@ class MyAudioHandler extends BaseAudioHandler {
     var bitmapPath = art.smallArtPath ?? art.coverPath;
     var fileUri = art.fileUri;
     var fetchUri = art.fetchUri;
-    switch (classicCoverModeNotifier.value) {
-      case ClassicCoverMode.bitmap:
-        fileUri = null;
-        fetchUri = null;
-      case ClassicCoverMode.bitmapUri:
-        final uri = _contentUriFor(art.smallArtPath, currentSong);
-        fileUri = uri;
-        fetchUri = uri;
-      case ClassicCoverMode.largeBitmap:
-        bitmapPath = art.coverPath ?? art.smallArtPath;
-        fileUri = null;
-        fetchUri = null;
-      case ClassicCoverMode.relayUri:
-        // Keep the server/relay URL selected by the cover broadcast mode.
-        break;
+    // The classic cover shapes belong to the classic Bluetooth route (or to
+    // the forced switch); on the smart-link route the normal cover broadcast
+    // mode decides, exactly as before.
+    if (classic) {
+      switch (classicCoverModeNotifier.value) {
+        case ClassicCoverMode.full:
+          // The cover file itself, a URI the unit can fetch, and the bitmap:
+          // a unit that reads any one of the three still gets the artwork.
+          final coverPath = art.coverPath ?? art.smallArtPath;
+          if (coverPath != null &&
+              coverPath.isNotEmpty &&
+              File(coverPath).existsSync()) {
+            fileUri = File(coverPath).uri.toString();
+          }
+          fetchUri = _classicCoverUri(currentSong, art);
+        case ClassicCoverMode.bitmap:
+          fileUri = null;
+          fetchUri = null;
+        case ClassicCoverMode.bitmapUri:
+          final uri = _contentUriFor(art.smallArtPath, currentSong);
+          fileUri = uri;
+          fetchUri = uri;
+        case ClassicCoverMode.largeBitmap:
+          bitmapPath = art.coverPath ?? art.smallArtPath;
+          fileUri = null;
+          fetchUri = null;
+        case ClassicCoverMode.relayUri:
+          // Keep the server/relay URL selected by the cover broadcast mode.
+          break;
+      }
     }
 
     if (!broadcastCoverNotifier.value) {
@@ -3181,12 +3230,12 @@ class MyAudioHandler extends BaseAudioHandler {
     final lyricsOn = carLyricsEnabled(
       config: displayConfig,
       legacySwitch: controlCenterLyricsNotifier.value,
-      classicRoute: _useClassicPublisher,
+      classicRoute: classic,
     );
     final carLyric = _currentCarLyricPair();
     final carLines = composeCarLinesForRoute(
       config: displayConfig,
-      classic: _useClassicPublisher,
+      classic: classic,
       title: title,
       artist: artist,
       album: album,

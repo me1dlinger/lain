@@ -1019,6 +1019,7 @@
   "carPreview": "预览",
   "carReset": "恢复默认",
   "classicCoverMode": "经典蓝牙封面",
+  "classicCoverFull": "完整方案（文件 + 可获取 URI + 位图）",
   "classicCoverBitmap": "位图",
   "classicCoverBitmapUri": "位图 + URI",
   "classicCoverLarge": "原始大图",

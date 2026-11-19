@@ -2450,6 +2450,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get classicCoverMode => 'Classic Bluetooth cover';
 
   @override
+  String get classicCoverFull => 'Full (file + fetchable URI + bitmap)';
+
+  @override
   String get classicCoverBitmap => 'Bitmap';
 
   @override

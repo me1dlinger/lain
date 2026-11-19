@@ -310,10 +310,16 @@ class Setting {
     carDisplayConfigNotifier.value = CarDisplayConfig.fromJson(
       json['carDisplay'],
     );
+    final storedClassicCoverMode =
+        ClassicCoverMode.values.asNameMap()['${json['classicCoverMode']}'];
+    final classicCoverModeVersion =
+        json['classicCoverModeVersion'] as int? ?? 1;
     classicCoverModeNotifier.value =
-        ClassicCoverMode.values
-            .asNameMap()['${json['classicCoverMode']}'] ??
-        ClassicCoverMode.bitmap;
+        storedClassicCoverMode == null ||
+            (storedClassicCoverMode == ClassicCoverMode.bitmap &&
+                classicCoverModeVersion < 2)
+        ? ClassicCoverMode.full
+        : storedClassicCoverMode;
     classicBluetoothBroadcastNotifier.value =
         json['classicBluetoothBroadcast'] as bool? ?? false;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
@@ -477,6 +483,7 @@ class Setting {
         'shareCardShowTranslation': shareCardShowTranslationNotifier.value,
         'carDisplay': carDisplayConfigNotifier.value.toJson(),
         'classicCoverMode': classicCoverModeNotifier.value.name,
+        'classicCoverModeVersion': 2,
         'classicBluetoothBroadcast': classicBluetoothBroadcastNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,

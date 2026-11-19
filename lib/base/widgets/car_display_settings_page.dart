@@ -45,6 +45,7 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
 
   String _coverLabel(AppLocalizations l10n, ClassicCoverMode mode) {
     return switch (mode) {
+      ClassicCoverMode.full => l10n.classicCoverFull,
       ClassicCoverMode.bitmap => l10n.classicCoverBitmap,
       ClassicCoverMode.bitmapUri => l10n.classicCoverBitmapUri,
       ClassicCoverMode.largeBitmap => l10n.classicCoverLarge,

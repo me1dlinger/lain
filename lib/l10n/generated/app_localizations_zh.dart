@@ -2406,6 +2406,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get classicCoverMode => '经典蓝牙封面';
 
   @override
+  String get classicCoverFull => '完整方案（文件 + 可获取 URI + 位图）';
+
+  @override
   String get classicCoverBitmap => '位图';
 
   @override
