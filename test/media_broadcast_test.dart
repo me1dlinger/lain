@@ -224,27 +224,30 @@ void main() {
       expect(broadcaster.publishCount, greaterThan(1));
     });
 
-    test('new artwork for the same song is published under the new id', () async {
-      final session = FakeSession();
-      final broadcaster = MediaBroadcaster(debounce: Duration.zero);
+    test(
+      'new artwork for the same song is published under the new id',
+      () async {
+        final session = FakeSession();
+        final broadcaster = MediaBroadcaster(debounce: Duration.zero);
 
-      broadcaster.publish(
-        snapshot(session, 'song-1'),
-        kind: MediaUpdateKind.track,
-        immediate: true,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      // The cover landed: same song, new artwork version.
-      broadcaster.publish(
-        snapshot(session, 'song-1#art:1'),
-        kind: MediaUpdateKind.artwork,
-        immediate: true,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+        broadcaster.publish(
+          snapshot(session, 'song-1'),
+          kind: MediaUpdateKind.track,
+          immediate: true,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        // The cover landed: same song, new artwork version.
+        broadcaster.publish(
+          snapshot(session, 'song-1#art:1'),
+          kind: MediaUpdateKind.artwork,
+          immediate: true,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 400));
 
-      expect(session.delivered, ['song-1', 'song-1#art:1']);
-      expect(session.last, ['song-1#art:1']);
-    });
+        expect(session.delivered, ['song-1', 'song-1#art:1']);
+        expect(session.last, ['song-1#art:1']);
+      },
+    );
 
     test('reset drops what is pending', () async {
       final session = FakeSession();
@@ -318,39 +321,76 @@ void main() {
       );
     });
 
-    test('a success clears the failure and the snapshot can carry art', () async {
+    test(
+      'a success clears the failure and the snapshot can carry art',
+      () async {
+        final session = FakeSession();
+        final broadcaster = MediaBroadcaster(debounce: Duration.zero);
+        final generation = broadcaster.nextGeneration();
+
+        broadcaster.handleCoverOutcome(
+          '/covers/e.jpg',
+          CoverOutcome(generation: generation, artPath: null),
+        );
+        broadcaster.handleCoverOutcome(
+          '/covers/e.jpg',
+          CoverOutcome(generation: generation, artPath: null),
+        );
+        expect(broadcaster.shouldAttemptCover('/covers/e.jpg'), isFalse);
+
+        broadcaster.handleCoverOutcome(
+          '/covers/e.jpg',
+          CoverOutcome(
+            generation: nextGeneration(broadcaster),
+            artPath: '/covers/e.jpg.100',
+          ),
+        );
+
+        broadcaster.publish(
+          snapshot(session, 'song-e#art:2', hasArt: true),
+          immediate: true,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(session.delivered, ['song-e#art:2']);
+      },
+    );
+  });
+
+  group('classic Bluetooth compatibility', () {
+    test('publishNow bypasses the duplicate check and delivers twice', () {
       final session = FakeSession();
-      final broadcaster = MediaBroadcaster(debounce: Duration.zero);
-      final generation = broadcaster.nextGeneration();
+      final broadcaster = MediaBroadcaster();
 
-      broadcaster.handleCoverOutcome(
-        '/covers/e.jpg',
-        CoverOutcome(generation: generation, artPath: null),
-      );
-      broadcaster.handleCoverOutcome(
-        '/covers/e.jpg',
-        CoverOutcome(generation: generation, artPath: null),
-      );
-      expect(broadcaster.shouldAttemptCover('/covers/e.jpg'), isFalse);
+      final item = snapshot(session, 'song-bt', key: 'same');
+      broadcaster.publishNow(item, kind: MediaUpdateKind.track);
+      broadcaster.publishNow(item, kind: MediaUpdateKind.track);
 
-      broadcaster.handleCoverOutcome(
-        '/covers/e.jpg',
-        CoverOutcome(
-          generation: nextGeneration(broadcaster),
-          artPath: '/covers/e.jpg.100',
-        ),
-      );
+      expect(session.delivered, ['song-bt', 'song-bt']);
+      expect(broadcaster.publishCount, 2);
+      expect(broadcaster.hasPending, isFalse);
+    });
+
+    test('publishNow cancels a pending gated update', () async {
+      final session = FakeSession();
+      final broadcaster = MediaBroadcaster();
 
       broadcaster.publish(
-        snapshot(session, 'song-e#art:2', hasArt: true),
-        immediate: true,
+        snapshot(session, 'old'),
+        kind: MediaUpdateKind.lyric,
+      );
+      broadcaster.publishNow(
+        snapshot(session, 'new'),
+        kind: MediaUpdateKind.lyric,
       );
       await Future<void>.delayed(Duration.zero);
 
-      expect(session.delivered, ['song-e#art:2']);
+      expect(session.delivered, ['new']);
+      expect(broadcaster.hasPending, isFalse);
     });
   });
 }
 
 /// The next broadcast generation, as the handler takes it on every switch.
-int nextGeneration(MediaBroadcaster broadcaster) => broadcaster.nextGeneration();
+int nextGeneration(MediaBroadcaster broadcaster) =>
+    broadcaster.nextGeneration();

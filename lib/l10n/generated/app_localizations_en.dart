@@ -559,12 +559,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get normal => 'Normal';
 
   @override
-  String get randomizeTemp => 'Randomize(Temporary)';
-
-  @override
-  String get randomizePermanent => 'Randomize(Permanent)';
-
-  @override
   String get modifiedTimeAscending => 'Modified Time Ascending';
 
   @override
@@ -2759,6 +2753,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dailyMixHistory => 'History';
+
+  @override
+  String get dailyMixCalendar => 'Calendar';
+
+  @override
+  String get dailyMixBackToday => 'Back to today';
+
+  @override
+  String get dailyMixRefreshConfirm =>
+      'Generate today\'s recommendations again?';
 
   @override
   String get dailyMixMissing => 'Unavailable';

@@ -69,10 +69,10 @@ extension _SongListPanel on _SongListState {
             valueListenable: currentSongListNotifier,
             builder: (context, currentSongList, child) {
               if (prepareing) {
-              return const SliverFillRemaining(
-                hasScrollBody: false,
-                child: SongListSkeleton(),
-              );
+                return const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: SongListSkeleton(),
+                );
               }
               if (artist != null) {
                 // Same grouping as the portrait view; reordering is not offered
@@ -263,7 +263,9 @@ extension _SongListPanel on _SongListState {
                               ),
                             ],
 
-                            if (isLibrary || folder != null || playlist != null) ...[
+                            if (isLibrary ||
+                                folder != null ||
+                                playlist != null) ...[
                               SizedBox(width: 15),
                               ElevatedButton(
                                 onPressed: () {
@@ -321,87 +323,75 @@ extension _SongListPanel on _SongListState {
                                                 if (sourceType == .navidrome ||
                                                     sourceType == .emby)
                                                   ListTile(
-                                                    title: Text(l10n.mostPlayed),
+                                                    title: Text(
+                                                      l10n.mostPlayed,
+                                                    ),
                                                     onTap: () {
                                                       Navigator.pop(context);
                                                       sortTypeNotifier.value =
                                                           17;
                                                     },
                                                     trailing:
-                                                        sortTypeNotifier.value ==
+                                                        sortTypeNotifier
+                                                                .value ==
                                                             17
                                                         ? Icon(Icons.check)
                                                         : null,
                                                   ),
 
-                                                if (isLibrary && isNotStreamSource ||
+                                                if (isLibrary &&
+                                                        isNotStreamSource ||
                                                     folder != null) ...[
                                                   ListTile(
                                                     title: Text(
-                                                      l10n
-                                                          .modifiedTimeAscending,
+                                                      l10n.modifiedTimeAscending,
                                                     ),
                                                     onTap: () {
                                                       Navigator.pop(context);
-                                                      sortTypeNotifier.value = 9;
+                                                      sortTypeNotifier.value =
+                                                          9;
                                                     },
                                                     trailing:
-                                                        sortTypeNotifier.value ==
+                                                        sortTypeNotifier
+                                                                .value ==
                                                             9
                                                         ? Icon(Icons.check)
                                                         : null,
                                                   ),
                                                   ListTile(
                                                     title: Text(
-                                                      l10n
-                                                          .modifiedTimedescending,
+                                                      l10n.modifiedTimedescending,
                                                     ),
                                                     onTap: () {
                                                       Navigator.pop(context);
-                                                      sortTypeNotifier.value = 10;
+                                                      sortTypeNotifier.value =
+                                                          10;
                                                     },
                                                     trailing:
-                                                        sortTypeNotifier.value ==
+                                                        sortTypeNotifier
+                                                                .value ==
                                                             10
                                                         ? Icon(Icons.check)
                                                         : null,
                                                   ),
                                                   ListTile(
-                                                    title: Text(
-                                                      l10n.randomizeTemp,
-                                                    ),
+                                                    title: Text(l10n.randomize),
                                                     onTap: () {
                                                       Navigator.pop(context);
-                                                      sortTypeNotifier.value = 11;
-                                                    },
-                                                    trailing:
-                                                        sortTypeNotifier.value ==
-                                                            11
-                                                        ? Icon(Icons.check)
-                                                        : null,
-                                                  ),
-                                                  ListTile(
-                                                    title: Text(
-                                                      l10n.randomizePermanent,
-                                                    ),
-                                                    onTap: () async {
-                                                      Navigator.pop(context);
-                                                      if (!await showConfirmDialog(
-                                                        context,
-                                                        l10n.cannotBeUndone,
-                                                      )) {
-                                                        return;
-                                                      }
-                                                      sortTypeNotifier.value = 0;
-                                                      if (isLibrary) {
-                                                        library.shuffle();
+                                                      if (sortTypeNotifier
+                                                              .value ==
+                                                          11) {
+                                                        _reseedRandom();
+                                                        updateSongList();
                                                       } else {
-                                                        folder!.shuffle();
+                                                        sortTypeNotifier.value =
+                                                            11;
                                                       }
                                                     },
                                                     trailing:
-                                                        sortTypeNotifier.value ==
-                                                            12
+                                                        sortTypeNotifier
+                                                                .value ==
+                                                            11
                                                         ? Icon(Icons.check)
                                                         : null,
                                                   ),
@@ -611,10 +601,7 @@ extension _SongListPanel on _SongListState {
               child: Text(
                 song.track == null ? '' : '${song.track}',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: textColor.withAlpha(150),
-                ),
+                style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
               ),
             ),
             const SizedBox(width: 8),

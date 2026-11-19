@@ -407,7 +407,10 @@ class _ServerEditPageState extends State<ServerEditPage> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.only(bottom: 30),
+                // Leave room for the mini player: this page is pushed above the
+                // root layers, but the play bar still sits at the bottom of the
+                // screen and used to cover the test-and-save button.
+                padding: const EdgeInsets.only(bottom: 130),
                 children: [
                   // A server's kind is part of its identity (and its database),
                   // so it is chosen when the server is created and not changed

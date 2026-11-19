@@ -104,6 +104,7 @@ Future<void> initAudioService() async {
     ),
   );
   _session = await AudioSession.instance;
+  audioHandler.startClassicBluetoothMonitoring();
   // Configure for the playback mode in effect (the handler re-reads the
   // setting from disk when it starts, so this is the persisted choice).
   adopt(_session, playbackModeNotifier.value);
@@ -124,7 +125,9 @@ Future<void> initAudioService() async {
   // only listened to once the handler exists, since keeping them queued would
   // act on an interruption that is already over.
   unawaited(
-    audioHandler.whenReady.then((_) => audioHandler.startPlaybackModeHandling()),
+    audioHandler.whenReady.then(
+      (_) => audioHandler.startPlaybackModeHandling(),
+    ),
   );
 
   if (isMobile) {
@@ -201,6 +204,14 @@ class MyAudioHandler extends BaseAudioHandler {
   late File _positionState;
 
   Timer? _positionTimer;
+
+  /// Whether the current output is a classic Bluetooth route (A2DP/SCO). On
+  /// these units metadata can be missed entirely at startup and lyric updates
+  /// can sit at the old line until the unit sees a playback-state change, so
+  /// this route gets an explicit re-publish after the session is active.
+  bool _classicBluetooth = false;
+  int _classicBluetoothRefreshToken = 0;
+  int _classicBluetoothItemVersion = 0;
 
   /// A volume ramp in progress, and the command that owns it. A newer
   /// play/pause/duck cancels the ramp so two of them never fight over the
@@ -502,7 +513,9 @@ class MyAudioHandler extends BaseAudioHandler {
       // The awaits above can have let a later switch start; the end of the
       // track that was playing then is not the current track's to act on.
       if (loadGenerationAtEntry != _loadGeneration) {
-        _completionLog('completion superseded by a newer track switch, ignored');
+        _completionLog(
+          'completion superseded by a newer track switch, ignored',
+        );
         return;
       }
 
@@ -512,8 +525,10 @@ class MyAudioHandler extends BaseAudioHandler {
       }
 
       if (_fadeOutRunning) {
-        _completionLog('track ended while its fade was running, '
-            'the fade owns the hand-off');
+        _completionLog(
+          'track ended while its fade was running, '
+          'the fade owns the hand-off',
+        );
         return;
       }
 
@@ -522,9 +537,7 @@ class MyAudioHandler extends BaseAudioHandler {
         // A load flag left behind by an earlier superseded load must not
         // swallow the replay (the generation check above already ruled out a
         // newer switch being in flight).
-        _completionLog(
-          'repeat one, restarting id=${song?.id ?? '-'}',
-        );
+        _completionLog('repeat one, restarting id=${song?.id ?? '-'}');
         _loading = false;
         await load();
       } else {
@@ -636,7 +649,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (tmp >= 0 &&
         tmp + 1 < lines.length &&
         position >= lines[tmp].start &&
-        position <= lines[tmp + 1].start) {
+        position < lines[tmp + 1].start) {
       return;
     }
 
@@ -677,7 +690,14 @@ class MyAudioHandler extends BaseAudioHandler {
           currentSong,
           lyric: lineText,
           kind: MediaUpdateKind.lyric,
+          // A classic Bluetooth unit may ignore a gated metadata-only change
+          // while playing; send this line directly and follow it with a
+          // neutral playback-state event so the unit re-reads the item.
+          force: _classicBluetooth,
         );
+        if (_classicBluetooth) {
+          _nudgeClassicBluetoothPlaybackState(currentSong.id);
+        }
       }
 
       if (isMobile) {
@@ -1042,9 +1062,8 @@ class MyAudioHandler extends BaseAudioHandler {
     if (source.isEmpty) {
       return;
     }
-    final tapped = targetIndex != null &&
-            targetIndex >= 0 &&
-            targetIndex < source.length
+    final tapped =
+        targetIndex != null && targetIndex >= 0 && targetIndex < source.length
         ? source[targetIndex]
         : null;
     // A tap on a row keeps the mode the user is in; the page's play-all and
@@ -1109,7 +1128,8 @@ class MyAudioHandler extends BaseAudioHandler {
     if (playQueue.isEmpty) {
       return;
     }
-    final current = currentSongNotifier.value ??
+    final current =
+        currentSongNotifier.value ??
         playQueue[currentIndex.clamp(0, playQueue.length - 1)];
     if (_playQueueTmp.isEmpty) {
       _playQueueTmp = List.from(playQueue);
@@ -1127,7 +1147,8 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     final previousMode = playModeNotifier.value;
-    final current = currentSongNotifier.value ??
+    final current =
+        currentSongNotifier.value ??
         (playQueue.isEmpty
             ? null
             : playQueue[currentIndex.clamp(0, playQueue.length - 1)]);
@@ -1148,11 +1169,10 @@ class MyAudioHandler extends BaseAudioHandler {
         // Shuffle always rebuilds from the original order. The old code did
         // nothing when a snapshot existed, which is why the button looked dead
         // after a previous shuffle.
-        final base =
-            _playQueueTmp.isNotEmpty ? List.of(_playQueueTmp) : List.of(playQueue);
-        final others = base
-            .where((song) => song.id != current?.id)
-            .toList()
+        final base = _playQueueTmp.isNotEmpty
+            ? List.of(_playQueueTmp)
+            : List.of(playQueue);
+        final others = base.where((song) => song.id != current?.id).toList()
           ..shuffle();
         playQueue = [?current, ...others];
         currentIndex = 0;
@@ -1612,10 +1632,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     try {
       final source = await _resolvePlaybackUri(song);
-      return Media(
-        source.playbackUrl,
-        httpHeaders: source.playbackHeaders,
-      );
+      return Media(source.playbackUrl, httpHeaders: source.playbackHeaders);
     } catch (e) {
       _mediaLog('gapless media for ${song.id} failed: $e');
       return null;
@@ -1732,6 +1749,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
     updateServiceMediaItem(next, kind: MediaUpdateKind.track);
     updatePlaybackState(postion: Duration.zero);
+    _scheduleClassicBluetoothRefresh();
     _reportServerProgress(force: true);
     saveAllStates();
     if (isMobile) {
@@ -2182,16 +2200,11 @@ class MyAudioHandler extends BaseAudioHandler {
           currentSong,
           _broadcast.generation,
           onDisk: coverOnDisk,
-        ).timeout(
-          const Duration(milliseconds: 300),
-          onTimeout: () {},
-        );
+        ).timeout(const Duration(milliseconds: 300), onTimeout: () {});
       }
       if (_isCurrentLoad(loadGeneration)) {
-        updateServiceMediaItem(
-          currentSong,
-          kind: MediaUpdateKind.track,
-        );
+        updateServiceMediaItem(currentSong, kind: MediaUpdateKind.track);
+        _scheduleClassicBluetoothRefresh();
       }
     }
 
@@ -2297,9 +2310,7 @@ class MyAudioHandler extends BaseAudioHandler {
           _fadeTo(
             _volumeTarget,
             from: 0,
-            duration: Duration(
-              milliseconds: (longFadeIn * 1000).round(),
-            ),
+            duration: Duration(milliseconds: (longFadeIn * 1000).round()),
           ),
         );
       } else if (fadeEnabled && isPlayingNotifier.value) {
@@ -2538,6 +2549,89 @@ class MyAudioHandler extends BaseAudioHandler {
   /// Diagnostics for the media session. Written to the app's log (exportable
   /// from the settings) and to stdout, so `adb logcat` shows the same lines
   /// while the phone - rather than a car - is under test.
+  /// Starts watching the output route. A classic Bluetooth car is the only
+  /// route that needs the compatibility re-publish; Android Auto, USB and the
+  /// built-in speaker keep the normal gated broadcasts.
+  void startClassicBluetoothMonitoring() {
+    if (!isMobile) {
+      return;
+    }
+    _session.devicesChangedEventStream.listen((_) {
+      unawaited(_refreshClassicBluetoothRoute());
+    });
+    unawaited(_refreshClassicBluetoothRoute());
+  }
+
+  Future<void> _refreshClassicBluetoothRoute() async {
+    try {
+      final devices = await _session.getDevices(includeInputs: false);
+      final bluetooth = devices.any(
+        (device) =>
+            device.isOutput &&
+            (device.type == AudioDeviceType.bluetoothA2dp ||
+                device.type == AudioDeviceType.bluetoothSco ||
+                device.type == AudioDeviceType.bluetoothLe),
+      );
+      if (bluetooth == _classicBluetooth) {
+        return;
+      }
+      _classicBluetooth = bluetooth;
+      _mediaLog('classic Bluetooth route ${bluetooth ? 'on' : 'off'}');
+      if (bluetooth) {
+        _scheduleClassicBluetoothRefresh();
+      } else {
+        // Invalidate staged refreshes from the old route.
+        _classicBluetoothRefreshToken++;
+      }
+    } catch (e) {
+      _mediaLog('classic Bluetooth route check failed: $e');
+    }
+  }
+
+  /// Re-sends the current item and playback state shortly after a track starts
+  /// (and after a Bluetooth route appears). The first publish happens before
+  /// audio_service activates the session; some older AVRCP units read that as
+  /// "not found" until a later metadata event arrives.
+  void _scheduleClassicBluetoothRefresh() {
+    if (!_classicBluetooth) {
+      return;
+    }
+    final song = currentSongNotifier.value;
+    if (song == null) {
+      return;
+    }
+    final token = ++_classicBluetoothRefreshToken;
+    for (final delay in const [
+      Duration.zero,
+      Duration(milliseconds: 450),
+      Duration(seconds: 2),
+    ]) {
+      Timer(delay, () {
+        if (token != _classicBluetoothRefreshToken ||
+            !_classicBluetooth ||
+            currentSongNotifier.value?.id != song.id) {
+          return;
+        }
+        updateServiceMediaItem(song, kind: MediaUpdateKind.track, force: true);
+        updatePlaybackState();
+      });
+    }
+  }
+
+  /// A lyric line was force-published. A neutral playback-state update after
+  /// it makes units that only re-read metadata on a state event notice the new
+  /// line; it does not change playing/paused.
+  void _nudgeClassicBluetoothPlaybackState(String songId) {
+    if (!_classicBluetooth) {
+      return;
+    }
+    Future<void>.delayed(const Duration(milliseconds: 60), () {
+      if (_classicBluetooth && currentSongNotifier.value?.id == songId) {
+        updatePlaybackState();
+      }
+    });
+  }
+
   void _mediaLog(String message) {
     logger.output('[media] $message');
     debugPrint('[media] $message');
@@ -2857,9 +2951,7 @@ class MyAudioHandler extends BaseAudioHandler {
       return url;
     }
     return uri
-        .replace(
-          queryParameters: {...uri.queryParameters, 'size': '$size'},
-        )
+        .replace(queryParameters: {...uri.queryParameters, 'size': '$size'})
         .toString();
   }
 
@@ -3004,6 +3096,7 @@ class MyAudioHandler extends BaseAudioHandler {
     MyAudioMetadata currentSong, {
     String? lyric,
     MediaUpdateKind kind = MediaUpdateKind.artwork,
+    bool force = false,
   }) {
     final art = _artworkFor(currentSong);
     final line = (lyric != null && lyric.trim().isNotEmpty) ? lyric : null;
@@ -3059,7 +3152,14 @@ class MyAudioHandler extends BaseAudioHandler {
     // Versioned once there is artwork, so a cover that arrived late (or was
     // rebuilt after a failure) is published under an id a consumer has not
     // cached a bitmap for yet.
-    final id = currentSong.id;
+    // A classic Bluetooth unit maps metadata updates to AVRCP track changes
+    // through the media id. Keeping the id when only the lyric title changes
+    // leaves such a unit stuck on the old line until pause/play. Versioning the
+    // id makes every line a fresh item on that route; other routes keep the
+    // stable id so their queue position and cover cache stay untouched.
+    final id = _classicBluetooth
+        ? '${currentSong.id}#${++_classicBluetoothItemVersion}'
+        : currentSong.id;
     final key = Object.hashAll([
       title,
       artist,
@@ -3082,69 +3182,74 @@ class MyAudioHandler extends BaseAudioHandler {
     // hear about it at once. It still waits for the gate's minimum gap, which
     // is what keeps a burst of next-presses from becoming a queue of items the
     // unit walks through one by one, long after the phone has moved on.
-    _broadcast.publish(
-      MediaSnapshot(
-        id: id,
-        key: key,
-        hasArt: bitmapPath != null || fetchUri != null,
-        deliver: (_) {
-          mediaItem.add(
-            buildServiceMediaItem(
-              id: id,
-              songTitle: title,
-              artist: artist,
-              album: album,
-              duration: currentSong.duration,
-              lyric: line,
-              lyricInTitle: lyricsOn,
-              fileArtUri: fileUri,
-              artCacheFile: bitmapPath,
-              fetchableArtUri: fetchUri,
-              carLines: carLines,
-              trackNumber: currentIndex >= 0 ? currentIndex + 1 : null,
-              trackCount: playQueue.isEmpty ? null : playQueue.length,
-            ),
-          );
-
-          // The relay URL of whatever image this item carries. It is only a
-          // diagnostic for the PC inspector: it does not change what the car
-          // receives, but it lets the inspector show the exact bytes behind
-          // either a bitmap or a URI scheme.
-          final debugUri = bitmapPath == null
-              ? null
-              : streamRelay.coverUrlSync(filePath: bitmapPath);
-          broadcastInspector.update(
-            title: title,
+    final snapshot = MediaSnapshot(
+      id: id,
+      key: key,
+      hasArt: bitmapPath != null || fetchUri != null,
+      deliver: (_) {
+        mediaItem.add(
+          buildServiceMediaItem(
+            id: id,
+            songTitle: title,
             artist: artist,
             album: album,
-            lines: carLines,
+            duration: currentSong.duration,
             lyric: line,
-            translation: carLyric.translation,
-            coverPath: bitmapPath,
-            fetchUri: fetchUri,
-            debugUri: debugUri,
-            mode: classicCoverModeNotifier.value.name,
-            bitmap: bitmapPath != null,
-          );
-          _mediaLog(
-            'publish id=$id kind=${kind.name}'
-            ' art=${fileUri == null ? 'none' : 'uri'}'
-            ' bitmap=${bitmapPath == null ? 'none' : 'yes'}'
-            ' fetch=${fetchUri ?? '-'}'
-            ' debug=${debugUri ?? '-'}'
-            ' mode=${_effectiveCoverMode.name}'
-            ' cover=${broadcastCoverNotifier.value}'
-            ' relay=${streamRelay.lanBaseUrl ?? '-'}'
-            ' queue=$currentIndex/${playQueue.length}'
-            ' lyric=${line == null ? '-' : '"$line"'}'
-            ' lines=${carLines.map((line) => '"$line"').join(' | ')}'
-            '${_sinceSwitch()}',
-          );
-        },
-      ),
-      kind: kind,
-      immediate: kind == MediaUpdateKind.track,
+            lyricInTitle: lyricsOn,
+            fileArtUri: fileUri,
+            artCacheFile: bitmapPath,
+            fetchableArtUri: fetchUri,
+            carLines: carLines,
+            trackNumber: currentIndex >= 0 ? currentIndex + 1 : null,
+            trackCount: playQueue.isEmpty ? null : playQueue.length,
+          ),
+        );
+
+        // The relay URL of whatever image this item carries. It is only a
+        // diagnostic for the PC inspector: it does not change what the car
+        // receives, but it lets the inspector show the exact bytes behind
+        // either a bitmap or a URI scheme.
+        final debugUri = bitmapPath == null
+            ? null
+            : streamRelay.coverUrlSync(filePath: bitmapPath);
+        broadcastInspector.update(
+          title: title,
+          artist: artist,
+          album: album,
+          lines: carLines,
+          lyric: line,
+          translation: carLyric.translation,
+          coverPath: bitmapPath,
+          fetchUri: fetchUri,
+          debugUri: debugUri,
+          mode: classicCoverModeNotifier.value.name,
+          bitmap: bitmapPath != null,
+        );
+        _mediaLog(
+          'publish id=$id kind=${kind.name}'
+          ' art=${fileUri == null ? 'none' : 'uri'}'
+          ' bitmap=${bitmapPath == null ? 'none' : 'yes'}'
+          ' fetch=${fetchUri ?? '-'}'
+          ' debug=${debugUri ?? '-'}'
+          ' mode=${_effectiveCoverMode.name}'
+          ' cover=${broadcastCoverNotifier.value}'
+          ' relay=${streamRelay.lanBaseUrl ?? '-'}'
+          ' queue=$currentIndex/${playQueue.length}'
+          ' lyric=${line == null ? '-' : '"$line"'}'
+          ' lines=${carLines.map((line) => '"$line"').join(' | ')}'
+          '${_sinceSwitch()}',
+        );
+      },
     );
+    if (force) {
+      _broadcast.publishNow(snapshot, kind: kind);
+    } else {
+      _broadcast.publish(
+        snapshot,
+        kind: kind,
+        immediate: kind == MediaUpdateKind.track,
+      );
+    }
     _publishQueueWindow();
   }
 
@@ -3259,6 +3364,9 @@ class MyAudioHandler extends BaseAudioHandler {
     _reportServerProgress(force: true);
 
     await updateIsPlaying(true);
+    // The session is foreground and active now. Classic Bluetooth units can
+    // need this second, post-activation publish before they show any metadata.
+    _scheduleClassicBluetoothRefresh();
 
     if (generation != _transportGeneration) {
       return;
@@ -3438,7 +3546,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
     final completer = Completer<void>();
     const tickMs = 16;
-    final totalMs = duration.inMilliseconds <= 0 ? tickMs : duration.inMilliseconds;
+    final totalMs = duration.inMilliseconds <= 0
+        ? tickMs
+        : duration.inMilliseconds;
     var elapsed = 0;
     _fadeTimer = Timer.periodic(const Duration(milliseconds: tickMs), (timer) {
       if (token != _fadeToken) {
@@ -3470,14 +3580,11 @@ class MyAudioHandler extends BaseAudioHandler {
     if (platform is! NativePlayer) {
       return;
     }
-    platform.setProperty(
-      'replaygain',
-      switch (replayGainModeNotifier.value) {
-        ReplayGainMode.off => 'no',
-        ReplayGainMode.track => 'track',
-        ReplayGainMode.album => 'album',
-      },
-    );
+    platform.setProperty('replaygain', switch (replayGainModeNotifier.value) {
+      ReplayGainMode.off => 'no',
+      ReplayGainMode.track => 'track',
+      ReplayGainMode.album => 'album',
+    });
   }
 
   void _applyPlaybackSpeed() {

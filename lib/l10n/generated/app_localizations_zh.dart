@@ -556,12 +556,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get normal => '正常';
 
   @override
-  String get randomizeTemp => '随机(暂时)';
-
-  @override
-  String get randomizePermanent => '随机(永久)';
-
-  @override
   String get modifiedTimeAscending => '修改时间升序';
 
   @override
@@ -2708,6 +2702,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dailyMixHistory => '历史回顾';
+
+  @override
+  String get dailyMixCalendar => '推荐日历';
+
+  @override
+  String get dailyMixBackToday => '回到今天';
+
+  @override
+  String get dailyMixRefreshConfirm => '重新生成今天的推荐？';
 
   @override
   String get dailyMixMissing => '不可用';

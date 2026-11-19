@@ -186,32 +186,20 @@ extension _SongListPage on _SongListState {
                       SortEntry(l10n.track, 15, descValue: 16),
                     if ((isLibrary && isNotStreamSource) || folder != null) ...[
                       SortEntry(l10n.modifiedTime, 9, descValue: 10),
-                      SortEntry(l10n.randomizeTemp, 11),
-                      SortEntry(l10n.randomizePermanent, 12),
+                      SortEntry(l10n.randomize, 11),
                     ],
                   ],
                   selected: sortTypeNotifier,
-                  confirm: (value) async {
-                    if (value == 12) {
-                      return await showConfirmDialog(
-                        context,
-                        l10n.cannotBeUndone,
-                      );
-                    }
-                    return true;
-                  },
                   onSelected: (value) {
-                    if (value == 12) {
-                      sortTypeNotifier.value = 0;
-                      if (isLibrary) {
-                        library.shuffle();
-                      } else {
-                        folder!.shuffle();
+                    if (value == 11) {
+                      // Random is a display order, not a rewrite of the
+                      // library. A repeat tap is the explicit "shuffle again"
+                      // gesture; elsewhere the order stays put while the list
+                      // changes underneath.
+                      _reseedRandom();
+                      if (sortTypeNotifier.value == 11) {
+                        updateSongList();
                       }
-                      return;
-                    }
-                    if (value == 11 && sortTypeNotifier.value == 11) {
-                      updateSongList();
                     }
                     sortTypeNotifier.value = value;
                   },
@@ -367,8 +355,7 @@ extension _SongListPage on _SongListState {
                 return AlphabetIndex(
                   letters: sortType == 2 ? letters.reversed.toList() : letters,
                   color: colorManager.getSpecificTextColor(),
-                  onSelected: (letter) =>
-                      jumpToAlphabetLetter(letter, songs),
+                  onSelected: (letter) => jumpToAlphabetLetter(letter, songs),
                 );
               },
             ),
@@ -872,7 +859,8 @@ extension _SongListPage on _SongListState {
             return SliverFixedExtentList.builder(
               // Rows with a second subtitle line (rediscovery, most played)
               // need a little more height.
-              itemExtent: (isRediscovery || (isFrequently && sourceType != .emby))
+              itemExtent:
+                  (isRediscovery || (isFrequently && sourceType != .emby))
                   ? 74
                   : 60,
               itemCount: currentSongList.length,

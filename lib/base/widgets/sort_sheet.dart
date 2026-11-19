@@ -81,6 +81,13 @@ Future<void> showSortSheet(
                     : Listenable.merge([selected, ascending]),
                 builder: (context, child) {
                   final order = isAscending();
+                  final current = currentEntry();
+                  // Default order and random have no opposite direction; an
+                  // ascending / descending pair that does nothing is worse than
+                  // no pair at all. Collections that own a separate direction
+                  // notifier keep it.
+                  final showDirection =
+                      ascending != null || current?.descValue != null;
                   return ListView(
                     children: [
                       for (final entry in entries)
@@ -94,7 +101,8 @@ Future<void> showSortSheet(
                             vertical: -4,
                           ),
                           onTap: () async {
-                            if (confirm != null && !await confirm(entry.value)) {
+                            if (confirm != null &&
+                                !await confirm(entry.value)) {
                               return;
                             }
                             pick(
@@ -104,45 +112,49 @@ Future<void> showSortSheet(
                             );
                           },
                         ),
-                      MyDivider(thickness: 0.5, height: 1, color: dividerColor),
-                      ListTile(
-                        title: Text(l10n.ascending),
-                        trailing: order ? const Icon(Icons.check) : null,
-                        visualDensity: const VisualDensity(
-                          horizontal: 0,
-                          vertical: -4,
+                      if (showDirection) ...[
+                        MyDivider(
+                          thickness: 0.5,
+                          height: 1,
+                          color: dividerColor,
                         ),
-                        onTap: () {
-                          if (ascending != null) {
-                            ascending.value = true;
-                            setting.save();
-                            return;
-                          }
-                          final entry = currentEntry();
-                          if (entry?.descValue != null) {
-                            pick(entry!.value);
-                          }
-                        },
-                      ),
-                      ListTile(
-                        title: Text(l10n.descending),
-                        trailing: !order ? const Icon(Icons.check) : null,
-                        visualDensity: const VisualDensity(
-                          horizontal: 0,
-                          vertical: -4,
+                        ListTile(
+                          title: Text(l10n.ascending),
+                          trailing: order ? const Icon(Icons.check) : null,
+                          visualDensity: const VisualDensity(
+                            horizontal: 0,
+                            vertical: -4,
+                          ),
+                          onTap: () {
+                            if (ascending != null) {
+                              ascending.value = true;
+                              setting.save();
+                              return;
+                            }
+                            if (current?.descValue != null) {
+                              pick(current!.value);
+                            }
+                          },
                         ),
-                        onTap: () {
-                          if (ascending != null) {
-                            ascending.value = false;
-                            setting.save();
-                            return;
-                          }
-                          final entry = currentEntry();
-                          if (entry?.descValue != null) {
-                            pick(entry!.descValue!);
-                          }
-                        },
-                      ),
+                        ListTile(
+                          title: Text(l10n.descending),
+                          trailing: !order ? const Icon(Icons.check) : null,
+                          visualDensity: const VisualDensity(
+                            horizontal: 0,
+                            vertical: -4,
+                          ),
+                          onTap: () {
+                            if (ascending != null) {
+                              ascending.value = false;
+                              setting.save();
+                              return;
+                            }
+                            if (current?.descValue != null) {
+                              pick(current!.descValue!);
+                            }
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 50),
                     ],
                   );

@@ -209,6 +209,19 @@ class _SongListState extends State<SongList> {
 
   bool prepareing = true;
 
+  /// A random order is a property of this visit, not of the library. The seed
+  /// is chosen when the user picks "random" and every rebuild sorts by a hash
+  /// of (seed, song id), so a background library update or a second frame does
+  /// not reshuffle the list under the user's finger. Picking random again makes
+  /// a new seed and therefore a new order.
+  int _randomSeed = 0;
+
+  int _randomKey(MyAudioMetadata song) => Object.hash(_randomSeed, song.id);
+
+  void _reseedRandom() {
+    _randomSeed = DateTime.now().microsecondsSinceEpoch;
+  }
+
   List<String> similarArtistNames = [];
 
   /// Server description of the album being viewed, fetched once when the page
@@ -316,9 +329,7 @@ class _SongListState extends State<SongList> {
       return '#';
     }
     final first = value[0];
-    return first.codeUnitAt(0) >= 65 && first.codeUnitAt(0) <= 90
-        ? first
-        : '#';
+    return first.codeUnitAt(0) >= 65 && first.codeUnitAt(0) <= 90 ? first : '#';
   }
 
   List<String> alphabetLettersOf(List<MyAudioMetadata> songs) {
@@ -348,9 +359,7 @@ class _SongListState extends State<SongList> {
     if (!scrollController.hasClients || songs.isEmpty) {
       return;
     }
-    final index = songs.indexWhere(
-      (song) => alphabetLetterOf(song) == letter,
-    );
+    final index = songs.indexWhere((song) => alphabetLetterOf(song) == letter);
     if (index < 0) {
       return;
     }
@@ -409,10 +418,7 @@ class _SongListState extends State<SongList> {
   }
 
   /// The artist's most played songs, above the album groups.
-  Widget artistTopSongs(
-    BuildContext context,
-    List<MyAudioMetadata> songs,
-  ) {
+  Widget artistTopSongs(BuildContext context, List<MyAudioMetadata> songs) {
     final top = [
       for (final song in songs)
         if (song.playCount > 0) song,
@@ -434,9 +440,7 @@ class _SongListState extends State<SongList> {
         for (final song in top.take(5))
           SizedBox(
             height: 60,
-            child: Center(
-              child: songListTile(songs.indexOf(song), songs),
-            ),
+            child: Center(child: songListTile(songs.indexOf(song), songs)),
           ),
         const SizedBox(height: 6),
       ],
@@ -514,11 +518,7 @@ class _SongListState extends State<SongList> {
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
         ),
-        artistAlbumStrip(
-          context,
-          artist.songList,
-          excludeAlbum: album!.name,
-        ),
+        artistAlbumStrip(context, artist.songList, excludeAlbum: album!.name),
       ],
     );
   }
@@ -671,11 +671,18 @@ class _SongListState extends State<SongList> {
     } else if (isLibrary) {
       canModify = library.canModify;
     }
-    sortSongList(
-      sortTypeNotifier.value,
-      currentSongList,
-      addedOrder: playlistAddedOrder,
-    );
+    final sortType = sortTypeNotifier.value;
+    if (sortType == 11) {
+      if (_randomSeed == 0) {
+        _reseedRandom();
+      }
+      currentSongList.sort((a, b) {
+        final byKey = _randomKey(a).compareTo(_randomKey(b));
+        return byKey != 0 ? byKey : a.id.compareTo(b.id);
+      });
+    } else {
+      sortSongList(sortType, currentSongList, addedOrder: playlistAddedOrder);
+    }
     currentSongListNotifier.value = currentSongList;
 
     if (searchValue.isEmpty) {
@@ -969,27 +976,27 @@ class _SongListState extends State<SongList> {
               return content;
             }
             return Hero(
-                    // A playlist's tag follows the playlist, not its cover: the
-                    // cover can change while the push transition is running
-                    // (the first song of the chosen order, a sync), and a tag
-                    // that changes mid-flight leaves the destination Hero
-                    // hidden - the blank header.
-                    tag: playlist != null
-                        ? '${playlist!.heroTag}$rootLabel'
-                        : (picture?.id ?? '') +
-                              rootLabel +
-                              getTitleText(AppLocalizations.of(context)),
-                    transitionOnUserGestures: true,
-                    flightShuttleBuilder:
-                        (
-                          flightContext,
-                          animation,
-                          flightDirection,
-                          fromHeroContext,
-                          toHeroContext,
-                        ) => FittedBox(child: toHeroContext.widget),
-                    child: content,
-                  );
+              // A playlist's tag follows the playlist, not its cover: the
+              // cover can change while the push transition is running
+              // (the first song of the chosen order, a sync), and a tag
+              // that changes mid-flight leaves the destination Hero
+              // hidden - the blank header.
+              tag: playlist != null
+                  ? '${playlist!.heroTag}$rootLabel'
+                  : (picture?.id ?? '') +
+                        rootLabel +
+                        getTitleText(AppLocalizations.of(context)),
+              transitionOnUserGestures: true,
+              flightShuttleBuilder:
+                  (
+                    flightContext,
+                    animation,
+                    flightDirection,
+                    fromHeroContext,
+                    toHeroContext,
+                  ) => FittedBox(child: toHeroContext.widget),
+              child: content,
+            );
           },
         );
       },

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
@@ -163,7 +164,7 @@ class _LyricShareDialogState extends State<LyricShareDialog> {
 
 /// The card itself. The share-card settings decide the background,
 /// text size, cover size and whether the translation is shown.
-class LyricShareCard extends StatelessWidget {
+class LyricShareCard extends StatefulWidget {
   final String title;
   final String artist;
   final String album;
@@ -182,7 +183,107 @@ class LyricShareCard extends StatelessWidget {
   });
 
   @override
+  State<LyricShareCard> createState() => _LyricShareCardState();
+}
+
+class _LyricShareCardState extends State<LyricShareCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _flow;
+  List<Color> _palette = const [];
+  String _palettePath = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _flow = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 9),
+    )..repeat();
+    _loadPalette();
+  }
+
+  @override
+  void didUpdateWidget(covariant LyricShareCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.picture?.path != widget.picture?.path) {
+      _loadPalette();
+    }
+  }
+
+  Future<void> _loadPalette() async {
+    final path = widget.picture?.path ?? '';
+    _palettePath = path;
+    if (path.isEmpty) {
+      if (mounted) {
+        setState(() => _palette = const []);
+      }
+      return;
+    }
+    final colors = await _CoverPalette.fromPath(path);
+    if (!mounted || _palettePath != path) {
+      return;
+    }
+    setState(() => _palette = colors);
+  }
+
+  List<Color> _colorsFor(Color accent) {
+    final colors = [..._palette];
+    // A cover that is almost entirely paper/black has no useful palette; a
+    // generated complementary set is livelier than five shades of grey.
+    final vivid = colors.any((color) {
+      final hsv = HSVColor.fromColor(color);
+      return hsv.saturation >= 0.22 && hsv.value >= 0.18;
+    });
+    if (!vivid) {
+      colors.clear();
+    }
+    if (colors.isEmpty) {
+      colors.add(accent);
+    }
+    for (final fallback in _fallbackPalette(accent)) {
+      if (colors.length >= 5) {
+        break;
+      }
+      final distinct = colors.every((color) {
+        final a = HSVColor.fromColor(color);
+        final b = HSVColor.fromColor(fallback);
+        return (a.hue - b.hue).abs() > 24;
+      });
+      if (distinct) {
+        colors.add(fallback);
+      }
+    }
+    return colors;
+  }
+
+  List<Color> _fallbackPalette(Color accent) {
+    final hsv = HSVColor.fromColor(accent);
+    final saturation = hsv.saturation.clamp(0.42, 0.84).toDouble();
+    final value = hsv.value.clamp(0.52, 0.92).toDouble();
+    Color at(double hue, double sat, double val) {
+      return HSVColor.fromAHSV(1, hue % 360, sat, val).toColor();
+    }
+
+    return [
+      at(hsv.hue + 42, saturation, value),
+      at(hsv.hue + 186, saturation * 0.82, value * 0.88),
+      at(hsv.hue + 308, saturation * 0.68, value),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _flow.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final artist = widget.artist;
+    final lyric = widget.lyric;
+    final translation = widget.translation;
+    final picture = widget.picture;
     final background = shareCardBackgroundNotifier.value;
     final textSize = shareCardTextSizeNotifier.value;
     final coverSize = shareCardCoverSizeNotifier.value;
@@ -190,9 +291,13 @@ class LyricShareCard extends StatelessWidget {
     final topText = shareCardTopTextNotifier.value.trim().isEmpty
         ? 'LAIN · 临音'
         : shareCardTopTextNotifier.value.trim();
-    final accent = currentCoverArtColor == Colors.grey
-        ? const Color(0xFF7C5CFF)
-        : currentCoverArtColor;
+    final coverColor = picture?.color;
+    final accent = (coverColor != null && coverColor != Colors.grey)
+        ? coverColor
+        : (currentCoverArtColor == Colors.grey
+              ? const Color(0xFF7C5CFF)
+              : currentCoverArtColor);
+    final palette = _colorsFor(accent);
 
     return Container(
       width: 280,
@@ -204,15 +309,37 @@ class LyricShareCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color.lerp(accent, Colors.black, 0.72)!,
-            const Color(0xFF101014),
-            Color.lerp(accent, Colors.black, 0.55)!,
+            Color.lerp(palette.first, Colors.black, 0.72)!,
+            const Color(0xFF0B0B10),
+            Color.lerp(palette.last, Colors.black, 0.58)!,
           ],
         ),
       ),
       child: Stack(
         children: [
           _background(background, accent),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _flow,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _FlowPainter(
+                      phase: _flow.value,
+                      colors: palette,
+                      strength: switch (background) {
+                        ShareCardBackground.aurora => 1.0,
+                        ShareCardBackground.blur => 0.82,
+                        ShareCardBackground.crop => 0.50,
+                        ShareCardBackground.pixelate => 0.58,
+                        ShareCardBackground.halftone => 0.52,
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
             child: Column(
@@ -306,8 +433,8 @@ class LyricShareCard extends StatelessWidget {
   }
 
   Widget _background(ShareCardBackground mode, Color accent) {
-    final file = File(picture?.path ?? '');
-    final hasImage = picture != null && file.existsSync();
+    final file = File(widget.picture?.path ?? '');
+    final hasImage = widget.picture != null && file.existsSync();
     final cover = hasImage
         ? Image.file(
             file,
@@ -348,9 +475,6 @@ class LyricShareCard extends StatelessWidget {
               child: Opacity(opacity: 0.45, child: cover),
             ),
             Container(color: Colors.black.withValues(alpha: 0.30)),
-            Positioned.fill(
-              child: CustomPaint(painter: _AuroraPainter(accent: accent)),
-            ),
           ],
         );
       case ShareCardBackground.pixelate:
@@ -384,54 +508,120 @@ class LyricShareCard extends StatelessWidget {
   }
 }
 
-class _AuroraPainter extends CustomPainter {
-  final Color accent;
+/// A moving light band over the card. A static gradient reads as a dull
+/// vignette; an actual flow needs a narrow, blurred specular streak whose
+/// position changes every frame, plus a weaker coloured echo behind it. The
+/// overlay is deliberately subtle so the lyric stays readable at thumbnail
+/// size.
+/// A slow liquid mesh built from the cover's own dominant colours. Each blob
+/// is a huge, blurred radial gradient; because they overlap and move on
+/// different orbits, adjacent colours blend into new ones the way a stirred
+/// gradient does. A broad diagonal sheen crosses the card without producing a
+/// hard oval or band.
+class _FlowPainter extends CustomPainter {
+  final double phase;
+  final List<Color> colors;
+  final double strength;
 
-  const _AuroraPainter({required this.accent});
+  const _FlowPainter({
+    required this.phase,
+    required this.colors,
+    required this.strength,
+  });
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  void _blob(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double radius,
+    Color color,
+    double alpha,
+  ) {
+    final rect = Rect.fromCircle(center: center, radius: radius);
     final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      ..blendMode = BlendMode.screen
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 14)
+      ..shader = RadialGradient(
         colors: [
-          Colors.white.withValues(alpha: 0.0),
-          Colors.white.withValues(alpha: 0.12),
-          Color.lerp(accent, Colors.white, 0.25)!.withValues(alpha: 0.20),
-          Colors.white.withValues(alpha: 0.0),
+          color.withValues(alpha: alpha),
+          color.withValues(alpha: alpha * 0.42),
+          color.withValues(alpha: 0),
         ],
-        stops: const [0.0, 0.30, 0.55, 1.0],
-      ).createShader(Offset.zero & size);
-    canvas.save();
-    canvas.rotate(-0.38);
-    canvas.drawOval(
-      Rect.fromLTWH(
-        -size.width * 0.25,
-        size.height * 0.16,
-        size.width * 1.5,
-        size.height * 0.22,
-      ),
-      paint,
-    );
-    canvas.restore();
-    canvas.save();
-    canvas.rotate(0.28);
-    canvas.drawOval(
-      Rect.fromLTWH(
-        size.width * 0.10,
-        size.height * 0.054,
-        size.width * 1.2,
-        size.height * 0.12,
-      ),
-      paint,
-    );
-    canvas.restore();
+        stops: const [0.0, 0.42, 1.0],
+      ).createShader(rect);
+    canvas.drawCircle(center, radius, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _AuroraPainter oldDelegate) =>
-      oldDelegate.accent != accent;
+  void paint(Canvas canvas, Size size) {
+    final t = phase * math.pi * 2;
+    final palette = colors.isEmpty ? const [Colors.white] : colors;
+
+    for (var i = 0; i < palette.length; i++) {
+      final color = Color.lerp(palette[i], Colors.white, 0.16)!;
+      final drift = t * 0.72 + i * 2.399;
+      final center = Offset(
+        size.width * (0.50 + 0.34 * math.sin(drift * 0.93 + i * 1.063)),
+        size.height * (0.48 + 0.28 * math.cos(drift * 0.71 + i * 1.051)),
+      );
+      final radius =
+          size.width * (0.38 + 0.09 * math.sin(drift * 0.57 + i * 1.037));
+      final alpha = (0.20 - i * 0.016).clamp(0.08, 0.22).toDouble() * strength;
+      _blob(canvas, size, center, radius, color, alpha);
+    }
+
+    // The moving specular wash. It covers the whole card, so the top edge does
+    // not show the rounded ends of a rotated oval.
+    final wash = LinearGradient(
+      begin: Alignment(-1.45 + 2.9 * phase, -1),
+      end: Alignment(-0.45 + 2.9 * phase, 1),
+      colors: [
+        Colors.transparent,
+        Colors.white.withValues(alpha: 0.07 * strength),
+        Color.lerp(
+          palette.first,
+          Colors.white,
+          0.45,
+        )!.withValues(alpha: 0.06 * strength),
+        Colors.transparent,
+      ],
+      stops: const [0.0, 0.43, 0.58, 1.0],
+    ).createShader(Offset.zero & size);
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..blendMode = BlendMode.screen
+        ..shader = wash,
+    );
+
+    final echoPhase = (phase + 0.47) % 1.0;
+    final echo = LinearGradient(
+      begin: Alignment(1.35 - 2.8 * echoPhase, 1),
+      end: Alignment(0.35 - 2.8 * echoPhase, -1),
+      colors: [
+        Colors.transparent,
+        Color.lerp(
+          palette.last,
+          Colors.white,
+          0.30,
+        )!.withValues(alpha: 0.055 * strength),
+        Colors.transparent,
+      ],
+      stops: const [0.0, 0.52, 1.0],
+    ).createShader(Offset.zero & size);
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..blendMode = BlendMode.screen
+        ..shader = echo,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _FlowPainter oldDelegate) =>
+      oldDelegate.phase != phase ||
+      oldDelegate.strength != strength ||
+      oldDelegate.colors != colors;
 }
 
 class _MosaicPainter extends CustomPainter {
@@ -478,9 +668,11 @@ class _HalftonePainter extends CustomPainter {
     for (var y = gap / 2; y < size.height; y += gap) {
       for (var x = gap / 2; x < size.width; x += gap) {
         final distance = (x / size.width + y / size.height) / 2;
-        paint.color = Color.lerp(accent, Colors.white, 0.35)!.withValues(
-          alpha: 0.10 + distance * 0.20,
-        );
+        paint.color = Color.lerp(
+          accent,
+          Colors.white,
+          0.35,
+        )!.withValues(alpha: 0.10 + distance * 0.20);
         canvas.drawCircle(Offset(x, y), 1.5 + distance * 1.8, paint);
       }
     }
@@ -493,4 +685,106 @@ class _HalftonePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _HalftonePainter oldDelegate) =>
       oldDelegate.accent != accent;
+}
+
+class _CoverPalette {
+  static Future<List<Color>> fromPath(String path) async {
+    final file = File(path);
+    if (!file.existsSync()) {
+      return const [];
+    }
+    ui.Codec? codec;
+    ui.Image? image;
+    try {
+      final bytes = await file.readAsBytes();
+      codec = await ui.instantiateImageCodec(bytes, targetWidth: 56);
+      final frame = await codec.getNextFrame();
+      image = frame.image;
+      final width = image.width;
+      final height = image.height;
+      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) {
+        return const [];
+      }
+      final pixels = data.buffer.asUint8List();
+      final buckets = <int, _ColorSample>{};
+      for (var y = 0; y < height; y += 2) {
+        for (var x = 0; x < width; x += 2) {
+          final offset = (y * width + x) * 4;
+          final alpha = pixels[offset + 3];
+          if (alpha < 150) {
+            continue;
+          }
+          final r = pixels[offset];
+          final g = pixels[offset + 1];
+          final b = pixels[offset + 2];
+          final key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+          final sample = buckets.putIfAbsent(key, _ColorSample.new);
+          sample.count++;
+          sample.r += r;
+          sample.g += g;
+          sample.b += b;
+        }
+      }
+      final candidates = <_PaletteColor>[];
+      for (final sample in buckets.values) {
+        final count = sample.count;
+        final color = Color.fromARGB(
+          255,
+          sample.r ~/ count,
+          sample.g ~/ count,
+          sample.b ~/ count,
+        );
+        final hsv = HSVColor.fromColor(color);
+        // Paper white and pure black are background, not part of the palette;
+        // they would only wash the flow out.
+        if ((hsv.value > 0.96 && hsv.saturation < 0.08) || hsv.value < 0.08) {
+          continue;
+        }
+        final score =
+            count * (0.22 + hsv.saturation * 1.6) * (0.45 + hsv.value * 0.75);
+        candidates.add(_PaletteColor(color, score, hsv.hue));
+      }
+      candidates.sort((a, b) => b.score.compareTo(a.score));
+
+      final picked = <Color>[];
+      for (final candidate in candidates) {
+        if (picked.length >= 5) {
+          break;
+        }
+        final distinct = picked.every((color) {
+          final hsv = HSVColor.fromColor(color);
+          var distance = (hsv.hue - candidate.hue).abs();
+          if (distance > 180) {
+            distance = 360 - distance;
+          }
+          return distance > 22 || hsv.saturation < 0.12;
+        });
+        if (distinct) {
+          picked.add(candidate.color);
+        }
+      }
+      return picked;
+    } catch (_) {
+      return const [];
+    } finally {
+      image?.dispose();
+      codec?.dispose();
+    }
+  }
+}
+
+class _ColorSample {
+  int count = 0;
+  int r = 0;
+  int g = 0;
+  int b = 0;
+}
+
+class _PaletteColor {
+  final Color color;
+  final double score;
+  final double hue;
+
+  const _PaletteColor(this.color, this.score, this.hue);
 }

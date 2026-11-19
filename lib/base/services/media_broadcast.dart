@@ -291,6 +291,28 @@ class MediaBroadcaster {
     snapshot.deliver(snapshot);
   }
 
+  /// Delivers [snapshot] immediately, bypassing the coalescing gate and the
+  /// "same as delivered" shortcut.
+  ///
+  /// A classic Bluetooth head unit is the reason this exists: it may ignore a
+  /// metadata-only change while playing, and the delayed / deduplicated path
+  /// can leave the unit showing the previous track or lyric. The caller only
+  /// uses it on that route; ordinary playback keeps the cheap gate.
+  void publishNow(
+    MediaSnapshot snapshot, {
+    MediaUpdateKind kind = MediaUpdateKind.track,
+  }) {
+    _timer?.cancel();
+    _timer = null;
+    _pending = null;
+    _deliveredId = snapshot.id;
+    _deliveredKey = snapshot.key.hashCode;
+    _deliveredAt = DateTime.now();
+    _deliveredKind = kind;
+    _publishes++;
+    snapshot.deliver(snapshot);
+  }
+
   /// Whether a cover resolution for [artKey] should be attempted again, or
   /// whether it failed too recently for that to be anything but wasted work.
   /// Failures are keyed by artwork and forgotten when [relayGeneration]
@@ -360,7 +382,8 @@ class MediaBroadcaster {
       _failures.remove(artKey);
     }
 
-    final previous = existing != null && existing.generation == outcome.generation;
+    final previous =
+        existing != null && existing.generation == outcome.generation;
     final updated = CoverFailure(
       generation: outcome.generation,
       relayGeneration: network ?? existing?.relayGeneration ?? -1,

@@ -1160,18 +1160,6 @@ abstract class AppLocalizations {
   /// **'Normal'**
   String get normal;
 
-  /// No description provided for @randomizeTemp.
-  ///
-  /// In en, this message translates to:
-  /// **'Randomize(Temporary)'**
-  String get randomizeTemp;
-
-  /// No description provided for @randomizePermanent.
-  ///
-  /// In en, this message translates to:
-  /// **'Randomize(Permanent)'**
-  String get randomizePermanent;
-
   /// No description provided for @modifiedTimeAscending.
   ///
   /// In en, this message translates to:
@@ -5317,6 +5305,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get dailyMixHistory;
+
+  /// No description provided for @dailyMixCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get dailyMixCalendar;
+
+  /// No description provided for @dailyMixBackToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to today'**
+  String get dailyMixBackToday;
+
+  /// No description provided for @dailyMixRefreshConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate today\'s recommendations again?'**
+  String get dailyMixRefreshConfirm;
 
   /// No description provided for @dailyMixMissing.
   ///
