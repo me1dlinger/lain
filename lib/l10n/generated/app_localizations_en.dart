@@ -2385,6 +2385,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carDisplay => 'Song broadcast';
 
   @override
+  String get classicBluetoothBroadcast => 'Classic Bluetooth broadcast';
+
+  @override
+  String get classicBluetoothBroadcastDesc =>
+      'On: always use the classic Bluetooth (AVRCP) publishing shape. Off: choose it automatically from the current audio output.';
+
+  @override
+  String get classicBluetoothRouteClassic => 'Current output: classic Bluetooth';
+
+  @override
+  String get classicBluetoothRouteOther =>
+      'Current output: not classic Bluetooth';
+
+  @override
   String get carDisplayLines => 'Lines';
 
   @override

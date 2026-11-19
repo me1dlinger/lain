@@ -27,7 +27,8 @@ Currently supports:
 - Artwork can be a server URL, the local relay, a content provider URI, or the bitmap only; the broadcast carries a compressed thumbnail.
 - Car display lives under Song broadcast with Layout, Cover and Lyrics tabs: two or three lines, freely ordered original lyric/translation/title/artist/album fields, custom separators, and a built-in/live preview.
 - Classic Bluetooth offers four cover variants for compatibility testing: bitmap, bitmap + content URI, original large image, and bitmap + relay/server URI.
-- Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title".
+- Car lyrics are a separate switch: on, the primary line carries the current lyric and the secondary line reads "artist - title". A custom layout that contains an original/translation field counts as an explicit request, so it does not need this switch.
+- Classic Bluetooth (AVRCP) keeps one stable item id and publishes directly; it does not publish the browse queue on that route, so a unit cannot read a queue entry that has no current lyric. Song broadcast has a "Classic Bluetooth broadcast" switch: off (the default) is adaptive, on forces the classic publishing shape on every output.
 - On the LAN the phone can serve the artwork to the head unit directly.
 - The media session publishes a 60-song queue window around the current track, so a head unit can browse and pick from the queue. The position still uses the full queue (for example 7/1286), not a number inside the window.
 

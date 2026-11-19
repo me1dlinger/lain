@@ -2342,6 +2342,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get carDisplay => '歌曲广播';
 
   @override
+  String get classicBluetoothBroadcast => '经典蓝牙广播';
+
+  @override
+  String get classicBluetoothBroadcastDesc =>
+      '打开后始终使用经典蓝牙（AVRCP）的发布方式；关闭后根据当前音频输出自动选择。';
+
+  @override
+  String get classicBluetoothRouteClassic => '当前输出：经典蓝牙';
+
+  @override
+  String get classicBluetoothRouteOther => '当前输出：非经典蓝牙';
+
+  @override
   String get carDisplayLines => '显示行数';
 
   @override

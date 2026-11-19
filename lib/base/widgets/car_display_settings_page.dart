@@ -2,6 +2,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/car_display.dart';
+import 'package:lain/base/data/classic_bluetooth_broadcast.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -85,10 +86,13 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
           classicCoverModeNotifier,
           controlCenterLyricsNotifier,
           broadcastCoverNotifier,
+          classicBluetoothBroadcastNotifier,
+          classicBluetoothRouteNotifier,
         ]),
         builder: (context, child) {
           return Column(
             children: [
+              _classicBluetoothTile(l10n),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
                 child: appleSegmented<int>(
@@ -106,6 +110,52 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// The manual override for the classic Bluetooth publisher.
+  ///
+  /// Off is adaptive: the current audio output decides. On forces the classic
+  /// shape on every output, for a unit whose route the phone does not report.
+  Widget _classicBluetoothTile(AppLocalizations l10n) {
+    final textColor = colorManager.getSpecificTextColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(
+          Icons.bluetooth,
+          size: 24,
+          color: colorManager.getSpecificIconColor(),
+        ),
+        title: Text(l10n.classicBluetoothBroadcast),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.classicBluetoothBroadcastDesc,
+              style: TextStyle(fontSize: 12, color: textColor.withAlpha(150)),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              classicBluetoothRouteNotifier.value
+                  ? l10n.classicBluetoothRouteClassic
+                  : l10n.classicBluetoothRouteOther,
+              style: TextStyle(fontSize: 12, color: textColor.withAlpha(200)),
+            ),
+          ],
+        ),
+        trailing: SizedBox(
+          width: 50,
+          child: MySwitch(
+            valueNotifier: classicBluetoothBroadcastNotifier,
+            onToggleCallBack: () {
+              setting.save();
+              audioHandler.refreshServiceMediaItem();
+            },
+          ),
+        ),
       ),
     );
   }
@@ -130,6 +180,9 @@ class _CarDisplaySettingsPageState extends State<CarDisplaySettingsPage> {
       song: currentSongNotifier.value,
       lyricIndex: currentLyricsIndexNotifier.value,
       live: _livePreview,
+      classic:
+          classicBluetoothBroadcastNotifier.value ||
+          classicBluetoothRouteNotifier.value,
       englishLocale: Localizations.localeOf(context).languageCode == 'en',
       onLiveChanged: (value) => setState(() => _livePreview = value),
     );
@@ -414,6 +467,7 @@ class _CarPreview extends StatelessWidget {
   final MyAudioMetadata? song;
   final int lyricIndex;
   final bool live;
+  final bool classic;
   final bool englishLocale;
   final ValueChanged<bool> onLiveChanged;
 
@@ -422,6 +476,7 @@ class _CarPreview extends StatelessWidget {
     required this.song,
     required this.lyricIndex,
     required this.live,
+    required this.classic,
     required this.englishLocale,
     required this.onLiveChanged,
   });
@@ -458,14 +513,22 @@ class _CarPreview extends StatelessWidget {
 
     final lines = live && !hasSong
         ? const <String>[]
-        : composeCarDisplayLines(
-            config,
+        : composeCarLinesForRoute(
+            config: config,
+            classic: classic,
             title: title,
             artist: artist,
             album: album,
             lyric: original,
             translation: translation,
-            lyricsEnabled: live ? controlCenterLyricsNotifier.value : true,
+            lyricsEnabled: live
+                ? carLyricsEnabled(
+                    config: config,
+                    legacySwitch: controlCenterLyricsNotifier.value,
+                    classicRoute: classic,
+                  )
+                : true,
+            lyricOnPrimaryLine: controlCenterLyricsNotifier.value,
           );
 
     return Padding(

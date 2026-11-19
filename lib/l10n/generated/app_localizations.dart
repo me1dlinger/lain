@@ -4585,6 +4585,29 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Song broadcast'**
   String get carDisplay;
+  /// No description provided for @classicBluetoothBroadcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic Bluetooth broadcast'**
+  String get classicBluetoothBroadcast;
+
+  /// No description provided for @classicBluetoothBroadcastDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'On: always use the classic Bluetooth (AVRCP) publishing shape. Off: choose it automatically from the current audio output.'**
+  String get classicBluetoothBroadcastDesc;
+
+  /// No description provided for @classicBluetoothRouteClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'Current output: classic Bluetooth'**
+  String get classicBluetoothRouteClassic;
+
+  /// No description provided for @classicBluetoothRouteOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Current output: not classic Bluetooth'**
+  String get classicBluetoothRouteOther;
 
   /// No description provided for @carDisplayLines.
   ///

@@ -12,6 +12,7 @@ import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
+import 'package:lain/base/data/classic_bluetooth_broadcast.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/car_display.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
@@ -313,6 +314,8 @@ class Setting {
         ClassicCoverMode.values
             .asNameMap()['${json['classicCoverMode']}'] ??
         ClassicCoverMode.bitmap;
+    classicBluetoothBroadcastNotifier.value =
+        json['classicBluetoothBroadcast'] as bool? ?? false;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
         CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
@@ -474,6 +477,7 @@ class Setting {
         'shareCardShowTranslation': shareCardShowTranslationNotifier.value,
         'carDisplay': carDisplayConfigNotifier.value.toJson(),
         'classicCoverMode': classicCoverModeNotifier.value.name,
+        'classicBluetoothBroadcast': classicBluetoothBroadcastNotifier.value,
 
         'streamQuality': streamQualityNotifier.value.name,
         'streamFormat': streamFormatNotifier.value.name,

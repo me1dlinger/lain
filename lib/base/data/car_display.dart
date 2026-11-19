@@ -90,6 +90,31 @@ class CarDisplayConfig {
     lineCount: lineCount,
     lines: [for (final line in lines) line.copy()],
   );
+
+  /// Whether the listener has never changed the layout.
+  ///
+  /// The default layout keeps the old "broadcast lyrics" switch semantics; a
+  /// layout the listener actually configured is treated as an explicit choice.
+  bool get isDefault {
+    final base = defaultCarDisplayConfig();
+    if (lineCount != base.lineCount) {
+      return false;
+    }
+    for (var i = 0; i < base.lines.length; i++) {
+      final line = i < lines.length ? lines[i] : CarDisplayLine();
+      final expected = base.lines[i];
+      if (line.separator != expected.separator ||
+          line.tokens.length != expected.tokens.length) {
+        return false;
+      }
+      for (var j = 0; j < expected.tokens.length; j++) {
+        if (line.tokens[j] != expected.tokens[j]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 }
 
 CarDisplayConfig defaultCarDisplayConfig() => CarDisplayConfig(
@@ -222,4 +247,105 @@ List<String> composeCarDisplayLines(
         i < config.lines.length ? config.lines[i] : CarDisplayLine(),
       ),
   ];
+}
+
+/// Whether [config] has a lyric field in one of the lines it actually shows.
+///
+/// A custom layout is an explicit choice about what the head unit displays: a
+/// line built from "original" or "translation" is a request for lyric text,
+/// so it must not depend on the legacy "broadcast lyrics" switch as well.
+bool carLayoutUsesLyrics(CarDisplayConfig config) {
+  final count = config.lineCount.clamp(2, 3);
+  for (var i = 0; i < count && i < config.lines.length; i++) {
+    for (final token in config.lines[i].tokens) {
+      if (token == CarDisplayToken.lyricOriginal ||
+          token == CarDisplayToken.lyricTranslation) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/// Whether the lyric values are filled for the current layout.
+///
+/// A layout with no lyric field never asks for lyric text, whatever the
+/// legacy switch says. On the classic Bluetooth route any layout that has a
+/// lyric field is honoured: that route exists to put the configured text on
+/// the head unit, so it must not need a second, older switch. The smart-link
+/// route keeps the historical behaviour: an untouched default layout still
+/// follows the switch, while a customised layout is self-sufficient.
+bool carLyricsEnabled({
+  required CarDisplayConfig config,
+  required bool legacySwitch,
+  bool classicRoute = false,
+}) {
+  if (!carLayoutUsesLyrics(config)) {
+    return false;
+  }
+  if (classicRoute) {
+    return true;
+  }
+  return config.isDefault ? legacySwitch : true;
+}
+
+/// The fixed three-line mapping used on the classic Bluetooth route when the
+/// layout is still the untouched default.
+///
+/// This is the shape that route has always been given: the current lyric on
+/// the primary line, "artist - title" on the secondary one and the album on
+/// the third. With [lyricOnPrimaryLine] false the primary line keeps the song
+/// title and the secondary line carries the lyric, which is what a unit that
+/// renders the metadata's artist field reads.
+List<String> composeClassicBroadcastLines({
+  required String title,
+  required String artist,
+  required String album,
+  String? lyric,
+  bool lyricOnPrimaryLine = true,
+}) {
+  final line = lyric != null && lyric.trim().isNotEmpty ? lyric.trim() : null;
+  return [
+    (lyricOnPrimaryLine && line != null) ? line : title,
+    lyricOnPrimaryLine ? '$artist - $title' : (line ?? artist),
+    album,
+  ];
+}
+
+/// Builds the three published lines for [config] on [classic] or smart-link.
+///
+/// A layout the listener configured is always composed exactly as configured:
+/// that is the feature the switch exists for. The untouched default layout has
+/// no custom text to preserve, so on the classic Bluetooth route it uses the
+/// fixed three-line mapping above; elsewhere it keeps the flexible two-line
+/// composition.
+List<String> composeCarLinesForRoute({
+  required CarDisplayConfig config,
+  required bool classic,
+  required String title,
+  required String artist,
+  required String album,
+  String? lyric,
+  String? translation,
+  required bool lyricsEnabled,
+  required bool lyricOnPrimaryLine,
+}) {
+  if (classic && config.isDefault) {
+    return composeClassicBroadcastLines(
+      title: title,
+      artist: artist,
+      album: album,
+      lyric: lyric,
+      lyricOnPrimaryLine: lyricOnPrimaryLine,
+    );
+  }
+  return composeCarDisplayLines(
+    config,
+    title: title,
+    artist: artist,
+    album: album,
+    lyric: lyric,
+    translation: translation,
+    lyricsEnabled: lyricsEnabled,
+  );
 }

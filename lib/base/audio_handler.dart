@@ -9,6 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/car_display.dart';
+import 'package:lain/base/data/classic_bluetooth_broadcast.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
@@ -211,7 +212,13 @@ class MyAudioHandler extends BaseAudioHandler {
   /// this route gets an explicit re-publish after the session is active.
   bool _classicBluetooth = false;
   int _classicBluetoothRefreshToken = 0;
-  int _classicBluetoothItemVersion = 0;
+
+  /// Whether the classic Bluetooth publishing shape is in use.
+  ///
+  /// Adaptive by default: the route decides. The manual switch forces it on
+  /// every output for a head unit whose route the platform does not report.
+  bool get _useClassicPublisher =>
+      classicBluetoothBroadcastNotifier.value || _classicBluetooth;
 
   /// A volume ramp in progress, and the command that owns it. A newer
   /// play/pause/duck cancels the ramp so two of them never fight over the
@@ -671,21 +678,24 @@ class MyAudioHandler extends BaseAudioHandler {
     if (current != currentLyricsIndexNotifier.value) {
       currentLyricsIndexNotifier.value = current;
 
-      // Publish the current lyric line to the system media session, but only
-      // when the user asked for lyrics to be broadcast: every metadata update
-      // costs the head unit a full AVRCP read, and one per lyric line with the
-      // feature off is pure noise. The playback state is not re-sent either -
-      // the line changed, the playback did not, and a playback update on every
-      // line made the unit re-read the item again.
+      // Publish the current lyric line to the system media session. A custom
+      // layout that contains a lyric field is the opt-in: it must not need the
+      // legacy switch as well, or the head unit would show the layout with its
+      // lyric line blank. The untouched default layout keeps the old switch,
+      // so an existing smart-link setup that has lyrics off stays that way.
       final lineText = (current >= 0 && current < lines.length)
           ? lines[current].text
           : null;
+      final wantsLyrics = carLyricsEnabled(
+        config: carDisplayConfigNotifier.value,
+        legacySwitch: controlCenterLyricsNotifier.value,
+        classicRoute: _useClassicPublisher,
+      );
       _mediaLog(
-        'lyric index $current/${lines.length} broadcast='
-        '${controlCenterLyricsNotifier.value} '
+        'lyric index $current/${lines.length} broadcast=$wantsLyrics '
         'line=${lineText == null ? '-' : '"$lineText"'}',
       );
-      if (controlCenterLyricsNotifier.value && lineText != _publishedLyric) {
+      if (wantsLyrics && lineText != _publishedLyric) {
         updateServiceMediaItem(
           currentSong,
           lyric: lineText,
@@ -693,9 +703,9 @@ class MyAudioHandler extends BaseAudioHandler {
           // A classic Bluetooth unit may ignore a gated metadata-only change
           // while playing; send this line directly and follow it with a
           // neutral playback-state event so the unit re-reads the item.
-          force: _classicBluetooth,
+          force: _useClassicPublisher,
         );
-        if (_classicBluetooth) {
+        if (_useClassicPublisher) {
           _nudgeClassicBluetoothPlaybackState(currentSong.id);
         }
       }
@@ -790,6 +800,20 @@ class MyAudioHandler extends BaseAudioHandler {
   /// current one are sent. The track number/count extras still describe the
   /// full queue, so the unit reports the real position rather than the window.
   void _publishQueueWindow() {
+    // A pure Bluetooth head unit reads the now-playing item over AVRCP; it has
+    // no browse tree to fill. Some units do read the queue entry instead, and
+    // the queue entry has no current lyric line - that is how the unit ended
+    // up showing the song and artist while the lyric stayed blank. On this
+    // route the queue is therefore not published (an existing one is cleared);
+    // smart-link cars keep it.
+    if (_useClassicPublisher) {
+      if (_queueWindowSignature != null) {
+        _queueWindowSignature = null;
+        _serviceQueueIndex = null;
+        queue.add(const <MediaItem>[]);
+      }
+      return;
+    }
     if (playQueue.isEmpty) {
       if (_queueWindowSignature != null) {
         _queueWindowSignature = null;
@@ -2576,12 +2600,22 @@ class MyAudioHandler extends BaseAudioHandler {
         return;
       }
       _classicBluetooth = bluetooth;
-      _mediaLog('classic Bluetooth route ${bluetooth ? 'on' : 'off'}');
+      classicBluetoothRouteNotifier.value = bluetooth;
+      _mediaLog(
+        'classic Bluetooth route ${bluetooth ? 'on' : 'off'} '
+        'publisher=${_useClassicPublisher ? 'classic' : 'adaptive'}',
+      );
       if (bluetooth) {
         _scheduleClassicBluetoothRefresh();
       } else {
         // Invalidate staged refreshes from the old route.
         _classicBluetoothRefreshToken++;
+        // The smart-link route publishes the browse queue again, so refresh
+        // the current item to bring it back.
+        final song = currentSongNotifier.value;
+        if (song != null) {
+          updateServiceMediaItem(song, kind: MediaUpdateKind.track);
+        }
       }
     } catch (e) {
       _mediaLog('classic Bluetooth route check failed: $e');
@@ -2593,7 +2627,7 @@ class MyAudioHandler extends BaseAudioHandler {
   /// audio_service activates the session; some older AVRCP units read that as
   /// "not found" until a later metadata event arrives.
   void _scheduleClassicBluetoothRefresh() {
-    if (!_classicBluetooth) {
+    if (!_useClassicPublisher) {
       return;
     }
     final song = currentSongNotifier.value;
@@ -2608,7 +2642,7 @@ class MyAudioHandler extends BaseAudioHandler {
     ]) {
       Timer(delay, () {
         if (token != _classicBluetoothRefreshToken ||
-            !_classicBluetooth ||
+            !_useClassicPublisher ||
             currentSongNotifier.value?.id != song.id) {
           return;
         }
@@ -2622,11 +2656,11 @@ class MyAudioHandler extends BaseAudioHandler {
   /// it makes units that only re-read metadata on a state event notice the new
   /// line; it does not change playing/paused.
   void _nudgeClassicBluetoothPlaybackState(String songId) {
-    if (!_classicBluetooth) {
+    if (!_useClassicPublisher) {
       return;
     }
     Future<void>.delayed(const Duration(milliseconds: 60), () {
-      if (_classicBluetooth && currentSongNotifier.value?.id == songId) {
+      if (_useClassicPublisher && currentSongNotifier.value?.id == songId) {
         updatePlaybackState();
       }
     });
@@ -2710,9 +2744,14 @@ class MyAudioHandler extends BaseAudioHandler {
   void refreshServiceMediaItem() {
     final song = currentSongNotifier.value;
     if (song != null) {
+      final wantsLyrics = carLyricsEnabled(
+        config: carDisplayConfigNotifier.value,
+        legacySwitch: controlCenterLyricsNotifier.value,
+        classicRoute: _useClassicPublisher,
+      );
       updateServiceMediaItem(
         song,
-        lyric: controlCenterLyricsNotifier.value ? _currentLyricText() : null,
+        lyric: wantsLyrics ? _currentLyricText() : null,
       );
     }
   }
@@ -3138,28 +3177,30 @@ class MyAudioHandler extends BaseAudioHandler {
     final title = getTitle(currentSong);
     final artist = getArtist(currentSong);
     final album = getAlbum(currentSong);
-    final lyricsOn = controlCenterLyricsNotifier.value;
+    final displayConfig = carDisplayConfigNotifier.value;
+    final lyricsOn = carLyricsEnabled(
+      config: displayConfig,
+      legacySwitch: controlCenterLyricsNotifier.value,
+      classicRoute: _useClassicPublisher,
+    );
     final carLyric = _currentCarLyricPair();
-    final carLines = composeCarDisplayLines(
-      carDisplayConfigNotifier.value,
+    final carLines = composeCarLinesForRoute(
+      config: displayConfig,
+      classic: _useClassicPublisher,
       title: title,
       artist: artist,
       album: album,
       lyric: carLyric.original,
       translation: carLyric.translation,
       lyricsEnabled: lyricsOn,
+      lyricOnPrimaryLine: controlCenterLyricsNotifier.value,
     );
-    // Versioned once there is artwork, so a cover that arrived late (or was
-    // rebuilt after a failure) is published under an id a consumer has not
-    // cached a bitmap for yet.
-    // A classic Bluetooth unit maps metadata updates to AVRCP track changes
-    // through the media id. Keeping the id when only the lyric title changes
-    // leaves such a unit stuck on the old line until pause/play. Versioning the
-    // id makes every line a fresh item on that route; other routes keep the
-    // stable id so their queue position and cover cache stay untouched.
-    final id = _classicBluetooth
-        ? '${currentSong.id}#${++_classicBluetoothItemVersion}'
-        : currentSong.id;
+    // One media id for the whole track. AVRCP units treat a new id as another
+    // item, and the session queue publishes this track under the same id, so a
+    // per-line suffix leaves the unit unable to match what is playing to its
+    // queue entry. The classic Bluetooth route gets its re-reads from a direct
+    // publish plus a playback-state nudge instead.
+    final id = currentSong.id;
     final key = Object.hashAll([
       title,
       artist,
