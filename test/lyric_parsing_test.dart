@@ -43,11 +43,27 @@ void main() {
       expect(result.lines.first.text, _noLyrics);
     });
 
-    test('falls back to parseFailedMessage for whitespace-only lines '
-        '(only exactly-empty strings are filtered before parsing)', () {
+    test('treats whitespace-only lines as no lyrics, not a parse failure', () {
       final result = parse(['   ', '\t']);
       expect(result.lines, hasLength(1));
-      expect(result.lines.first.text, _parseFailed);
+      expect(result.lines.first.text, _noLyrics);
+    });
+
+    test('treats tag-only and timestamp-only LRC as no lyrics', () {
+      final result = parse([
+        '[ar:Artist]',
+        '[ti:Title]',
+        '[00:00.000]',
+        '[00:05.500]   ',
+      ]);
+      expect(result.lines, hasLength(1));
+      expect(result.lines.first.text, _noLyrics);
+    });
+
+    test('treats a byte-order mark alone as no lyrics', () {
+      final result = parse(['\uFEFF']);
+      expect(result.lines, hasLength(1));
+      expect(result.lines.first.text, _noLyrics);
     });
 
     test(
@@ -187,15 +203,23 @@ void main() {
     });
 
     test(
-      'falls back to parseFailedMessage when there are no p elements',
+      'treats a valid document with no p elements as no lyrics',
       () {
         final result = parseTtml(
           '<tt><body><div>nothing here</div></body></tt>',
         );
         expect(result.lines, hasLength(1));
-        expect(result.lines.first.text, _parseFailed);
+        expect(result.lines.first.text, _noLyrics);
       },
     );
+
+    test('treats empty paragraphs as no lyrics', () {
+      final result = parseTtml(
+        '<tt><body><div><p begin="00:00:01.000">   </p></div></body></tt>',
+      );
+      expect(result.lines, hasLength(1));
+      expect(result.lines.first.text, _noLyrics);
+    });
 
     test('parses line-timed TTML without karaoke', () {
       final result = parseTtml('''

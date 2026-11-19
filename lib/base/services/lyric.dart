@@ -307,6 +307,22 @@ Future<String> _readFileWithEncodingFallback(File file) async {
   return '';
 }
 
+/// Whether [raw] carries any lyric text at all.
+///
+/// An LRC file can exist and still have no lyrics in it: only metadata tags
+/// (`[ar:]`, `[ti:]`), timestamp tags or whitespace. That is "no lyrics", not
+/// a parse failure. Only text that is genuinely unparseable (plain prose with
+/// no timestamps, malformed XML) is reported as a failure.
+bool hasLyricText(String raw) {
+  final withoutTags = raw
+      .replaceAll('\uFEFF', '')
+      // LRC metadata and line timestamps: [ar:...], [00:01.23]
+      .replaceAll(RegExp(r'\[[^\]]*\]'), '')
+      // Enhanced LRC word timestamps and stray angle-bracket tags.
+      .replaceAll(RegExp(r'<[^>]*>'), '');
+  return withoutTags.trim().isNotEmpty;
+}
+
 /// Fills in [result] from already-fetched raw LRC lines: parses word/line
 /// timestamps, detects karaoke (multiple timed tokens per line) and
 /// translation lines (a second line sharing the same timestamp as the one
@@ -321,6 +337,10 @@ void applyLrcParsing(
   required String parseFailedMessage,
   Duration? songDuration,
 }) {
+  if (!hasLyricText(rawLines.join('\n'))) {
+    result.lines.add(LyricLine(Duration.zero, noLyricsMessage, []));
+    return;
+  }
   final lines = List<String>.from(rawLines)..removeWhere((e) => e.isEmpty);
   if (lines.isEmpty) {
     result.lines.add(LyricLine(Duration.zero, noLyricsMessage, []));
@@ -518,7 +538,9 @@ void applyTtmlParsing(
   }
 
   if (result.lines.isEmpty) {
-    result.lines.add(LyricLine(Duration.zero, parseFailedMessage, []));
+    // The document parsed but contains no usable lyric paragraph: that is an
+    // empty lyric file, not a parse failure.
+    result.lines.add(LyricLine(Duration.zero, noLyricsMessage, []));
   } else {
     if (result.lines.last.tokens.last.end == null) {
       result.lines.last.tokens.last.end = songDuration;
