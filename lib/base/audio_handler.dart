@@ -105,7 +105,7 @@ Future<void> initAudioService() async {
     ),
   );
   _session = await AudioSession.instance;
-  audioHandler.startClassicBluetoothMonitoring();
+  await audioHandler.startClassicBluetoothMonitoring();
   // Configure for the playback mode in effect (the handler re-reads the
   // setting from disk when it starts, so this is the persisted choice).
   adopt(_session, playbackModeNotifier.value);
@@ -696,15 +696,7 @@ class MyAudioHandler extends BaseAudioHandler {
         'line=${lineText == null ? '-' : '"$lineText"'}',
       );
       if (wantsLyrics && lineText != _publishedLyric) {
-        updateServiceMediaItem(
-          currentSong,
-          lyric: lineText,
-          kind: MediaUpdateKind.lyric,
-          // A classic Bluetooth unit may ignore a gated metadata-only change
-          // while playing; send this line directly and follow it with a
-          // neutral playback-state event so the unit re-reads the item.
-          force: _useClassicPublisher,
-        );
+        refreshServiceMediaItem(force: true, kind: MediaUpdateKind.lyric);
         if (_useClassicPublisher) {
           _nudgeClassicBluetoothPlaybackState(currentSong.id);
         }
@@ -1771,7 +1763,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _mediaLog('gapless promoted ${next.id} at index $currentIndex');
 
-    updateServiceMediaItem(next, kind: MediaUpdateKind.track);
+    updateServiceMediaItem(next, kind: MediaUpdateKind.track, force: true);
     updatePlaybackState(postion: Duration.zero);
     _scheduleClassicBluetoothRefresh();
     _reportServerProgress(force: true);
@@ -2227,8 +2219,13 @@ class MyAudioHandler extends BaseAudioHandler {
         ).timeout(const Duration(milliseconds: 300), onTimeout: () {});
       }
       if (_isCurrentLoad(loadGeneration)) {
-        updateServiceMediaItem(currentSong, kind: MediaUpdateKind.track);
-        _scheduleClassicBluetoothRefresh();
+        // A classic Bluetooth unit gets its first item only after the player
+        // has opened. Publishing while the session is still inactive leaves
+        // the unit on "not provided" until something else forces a re-read;
+        // the post-open publish below is the first item it sees.
+        if (!_useClassicPublisher) {
+          updateServiceMediaItem(currentSong, kind: MediaUpdateKind.track);
+        }
       }
     }
 
@@ -2410,12 +2407,13 @@ class MyAudioHandler extends BaseAudioHandler {
     // Publish the line the song opens on, instead of waiting for the first
     // position tick to notice it.
     _updateCurrentLyricIndex(getPosition());
-    if (controlCenterLyricsNotifier.value) {
-      updateServiceMediaItem(
-        currentSong,
-        lyric: _currentLyricText(),
-        kind: MediaUpdateKind.lyric,
-      );
+    // The first announce happened before the player opened and before
+    // audio_service activated the session. Re-publish after that point so a
+    // head unit that ignored the early item still gets the current track (and
+    // the current lyric) together with a fresh playback state.
+    refreshServiceMediaItem(force: true, kind: MediaUpdateKind.track);
+    if (_useClassicPublisher) {
+      _scheduleClassicBluetoothRefresh();
     }
     _planNextTransition();
     unawaited(_prepareGaplessNext());
@@ -2576,14 +2574,18 @@ class MyAudioHandler extends BaseAudioHandler {
   /// Starts watching the output route. A classic Bluetooth car is the only
   /// route that needs the compatibility re-publish; Android Auto, USB and the
   /// built-in speaker keep the normal gated broadcasts.
-  void startClassicBluetoothMonitoring() {
+  Future<void> startClassicBluetoothMonitoring() async {
     if (!isMobile) {
       return;
     }
     _session.devicesChangedEventStream.listen((_) {
       unawaited(_refreshClassicBluetoothRoute());
     });
-    unawaited(_refreshClassicBluetoothRoute());
+    // Resolve the initial route before the first track is published. A classic
+    // head unit can miss a metadata item that was written while the media
+    // session was inactive; knowing the route here lets the first announce be
+    // delayed until the player has opened.
+    await _refreshClassicBluetoothRoute();
   }
 
   Future<void> _refreshClassicBluetoothRoute() async {
@@ -2741,7 +2743,10 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   /// Refreshes the system media session with the current song and lyric line.
-  void refreshServiceMediaItem() {
+  void refreshServiceMediaItem({
+    bool force = false,
+    MediaUpdateKind kind = MediaUpdateKind.artwork,
+  }) {
     final song = currentSongNotifier.value;
     if (song != null) {
       final wantsLyrics = carLyricsEnabled(
@@ -2752,7 +2757,12 @@ class MyAudioHandler extends BaseAudioHandler {
       updateServiceMediaItem(
         song,
         lyric: wantsLyrics ? _currentLyricText() : null,
+        kind: kind,
+        force: force,
       );
+      if (force) {
+        updatePlaybackState();
+      }
     }
   }
 
@@ -3008,7 +3018,12 @@ class MyAudioHandler extends BaseAudioHandler {
   /// kind of artwork still has one.
   String? _classicCoverUri(
     MyAudioMetadata song,
-    ({String? fileUri, String? coverPath, String? smallArtPath, String? fetchUri})
+    ({
+      String? fileUri,
+      String? coverPath,
+      String? smallArtPath,
+      String? fetchUri,
+    })
     art,
   ) {
     if (isStreamSource && song.picture.id.isNotEmpty) {
@@ -3133,9 +3148,15 @@ class MyAudioHandler extends BaseAudioHandler {
       _mediaLog('art for ${song.id} arrived for an older broadcast');
       return;
     }
-    // A copy that could not be made stays unpublished (and is retried by the
-    // next publish) instead of being replaced by the original: the original is
-    // several megabytes, exactly what the broadcast is trying to avoid.
+    // The broadcast-sized copy is preferred, but a cover that cannot be
+    // decoded or shrunk must not disappear from the session. For a local file
+    // the original is already on disk and is a valid bitmap for audio_service;
+    // publishing it is slower but far better than no artwork at all. A stream
+    // that has no local file yet is retried by the cover-ready path instead.
+    if (small == null && path.isNotEmpty && File(path).existsSync()) {
+      small = path;
+      _mediaLog('small art unavailable for ${song.id}, using original');
+    }
     if (small == null) {
       final verdict = _broadcast.handleCoverOutcome(
         key,
@@ -3152,7 +3173,7 @@ class MyAudioHandler extends BaseAudioHandler {
     );
     _pubSmallArtPath = small;
     _mediaLog('small art${_sinceSwitch()}: $small');
-    refreshServiceMediaItem();
+    refreshServiceMediaItem(force: true, kind: MediaUpdateKind.artwork);
   }
 
   /// Publishes the current track to the system media session.
@@ -3456,7 +3477,11 @@ class MyAudioHandler extends BaseAudioHandler {
     await updateIsPlaying(true);
     // The session is foreground and active now. Classic Bluetooth units can
     // need this second, post-activation publish before they show any metadata.
-    _scheduleClassicBluetoothRefresh();
+    if (_useClassicPublisher) {
+      _scheduleClassicBluetoothRefresh();
+    } else {
+      refreshServiceMediaItem(force: true, kind: MediaUpdateKind.track);
+    }
 
     if (generation != _transportGeneration) {
       return;

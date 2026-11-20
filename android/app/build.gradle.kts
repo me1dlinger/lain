@@ -76,3 +76,47 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Flutter names the split artifacts after the Gradle module (`app-...`). The
+// release is published as Lain, so give the APK the same name here instead of
+// requiring a manual rename after every build. Keep the ABI in the name: the
+// arm64 split is the only one distributed.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters.firstOrNull {
+                it.filterType ==
+                    com.android.build.api.variant.FilterConfiguration.FilterType.ABI
+            }?.identifier
+            val name = buildString {
+                append("lain-")
+                if (abi != null) {
+                    append(abi)
+                    append("-")
+                }
+                append(variant.name)
+                append(".apk")
+            }
+            val implementation =
+                output as? com.android.build.api.variant.impl.VariantOutputImpl
+            implementation?.outputFileName?.set(name)
+        }
+    }
+}
+
+// The Flutter tool copies the Gradle APK into `outputs/flutter-apk` under the
+// module name. Keep the Lain-named copy there as well, so the path documented
+// in BUILDING.md is the one that actually exists after `flutter build apk`.
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    doLast {
+        val buildDir = project.layout.buildDirectory.get().asFile
+        val releaseDir = File(buildDir, "outputs/apk/release")
+        val apkDir = File(buildDir, "outputs/flutter-apk")
+        apkDir.mkdirs()
+        releaseDir.listFiles { file ->
+            file.isFile && file.name.startsWith("lain-") && file.name.endsWith(".apk")
+        }?.forEach { source ->
+            source.copyTo(File(apkDir, source.name), overwrite = true)
+        }
+    }
+}

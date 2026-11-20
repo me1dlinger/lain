@@ -13,15 +13,15 @@
 | 包名 / applicationId | `com.meidlinger.lain` |
 | 显示版本 versionName | `1.0.0-beta1` |
 | 发布 ABI | 只发 **arm64-v8a** |
-| Flutter 产物 | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` |
-| 最近一次规范构建的 versionCode | **951199**（对应 `--build-number 949199`） |
-| 下一次打包的 build number | **949200**（预期 versionCode **951200**） |
+| Flutter 产物 | `build/app/outputs/flutter-apk/lain-arm64-v8a-release.apk` |
+| 最近一次规范构建的 versionCode | **951201**（对应 `--build-number 949201`） |
+| 下一次打包的 build number | **949202**（预期 versionCode **951202**） |
 
-**当前状态（2026-11-19）**
+**当前状态（2026-11-20）**
 
-- 规范产物是 arm64 split APK；最近一次是 versionCode 951199（已核对 `aapt dump badging`，APK 约 72.2MB）。
+- 规范产物是 arm64 split APK；最近一次是 versionCode 951201（已核对 `aapt dump badging`，APK 约 72.2MB）。
 - `build/app/outputs/flutter-apk/app-release.apk` 是误打的全量包（约 213MB、versionCode 1），**不要分发，也不要把它当作版本基线**；可以直接删除。
-- 下一次打包用 `--build-number 949200`，得到 versionCode 951200；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
+- 下一次打包用 `--build-number 949202`，得到 versionCode 951202；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
 
 **版本号规则**
 
@@ -135,14 +135,17 @@ flutter build apk --release \
 产物固定为：
 
 ```text
-build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+build/app/outputs/flutter-apk/lain-arm64-v8a-release.apk
 ```
+
+> Gradle 已经按 `lain-` 命名输出；`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
+> 是 Flutter 工具按模块名额外复制的一份，可以忽略或删除。分发时使用 `lain-` 文件。
 
 预期版本：versionName `1.0.0-beta1`，versionCode `946105`。打包后必须核对：
 
 ```bash
 AAPT=/e/android-sdk/build-tools/37.0.0/aapt.exe
-"$AAPT" dump badging build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | head -1
+"$AAPT" dump badging build/app/outputs/flutter-apk/lain-arm64-v8a-release.apk | head -1
 ```
 
 > **不要省略 `--target-platform android-arm64 --split-per-abi`，也不要省略 `--build-number`。**
@@ -179,7 +182,7 @@ flutter build apk --release --target-platform android-arm --split-per-abi --no-p
 2. `flutter analyze lib`，必须 0 error。
 3. 用 3.2 节的命令，`--build-number` 取第 0 节的“下一次 build number”。
 4. 用 aapt 核对 versionName/versionCode；versionCode 必须大于设备上已安装的版本。
-5. 产物就留在 `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`，不要拷到工程根目录；需要分发时再自行拷出。
+5. 产物就留在 `build/app/outputs/flutter-apk/lain-arm64-v8a-release.apk`，不要拷到工程根目录；需要分发时再自行拷出。
 6. 把第 0 节的“最近一次 versionCode”和“下一次 build number”各加 1，再提交。
 
 如果设备连接了电脑，可以先查已安装版本：
