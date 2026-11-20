@@ -77,7 +77,9 @@ List<String> settingsCategoryKeywords(SettingsCategory category) {
     case SettingsCategory.notifications:
       return const [
         'notification', 'car', 'bluetooth', 'broadcast', 'lyrics', 'cover',
-        'mobile', 'data', '通知', '车机', '蓝牙', '广播', '歌词', '封面', '流量',
+        'mobile', 'data', 'scrobble', 'lastfm', 'listenbrainz', 'history',
+        '通知', '车机', '蓝牙', '广播', '歌词', '封面', '流量', '记录',
+        '记录上报', '听歌记录', '个性化',
       ];
     case SettingsCategory.startupBackground:
       return const [

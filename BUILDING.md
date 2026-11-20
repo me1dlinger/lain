@@ -14,14 +14,14 @@
 | 显示版本 versionName | `1.0.0-beta1` |
 | 发布 ABI | 只发 **arm64-v8a** |
 | Flutter 产物 | `build/app/outputs/flutter-apk/lain-arm64-v8a-release.apk` |
-| 最近一次规范构建的 versionCode | **951201**（对应 `--build-number 949201`） |
-| 下一次打包的 build number | **949202**（预期 versionCode **951202**） |
+| 最近一次规范构建的 versionCode | **951205**（对应 `--build-number 949205`） |
+| 下一次打包的 build number | **949206**（预期 versionCode **951206**） |
 
 **当前状态（2026-11-20）**
 
-- 规范产物是 arm64 split APK；最近一次是 versionCode 951201（已核对 `aapt dump badging`，APK 约 72.2MB）。
+- 规范产物是 arm64 split APK；最近一次是 versionCode 951205（已核对 `aapt dump badging`，APK 约 72.2MB）。
 - `build/app/outputs/flutter-apk/app-release.apk` 是误打的全量包（约 213MB、versionCode 1），**不要分发，也不要把它当作版本基线**；可以直接删除。
-- 下一次打包用 `--build-number 949202`，得到 versionCode 951202；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
+- 下一次打包用 `--build-number 949206`，得到 versionCode 951206；成功后把本节的“最近一次 versionCode”和“下一次 build number”各加 1。
 
 **版本号规则**
 
@@ -253,15 +253,12 @@ C++ 元数据生成会在 `build/jni/...` 写一个 timing 文件，**杀毒软�
    ```kotlin
    subprojects {
        if (project.name == "jni") {
-           project.layout.buildDirectory.value(
-               project.objects.directoryProperty().fileValue(
-                   File(System.getProperty("java.io.tmpdir"), "lain-jni"),
-               ),
-           )
+           project.layout.buildDirectory.set(File("E:/jni_build_1"))
        }
    }
    ```
-   **这是本机绕行补丁，打包成功后请删掉**（APK 输出路径不变）。
+   路径要**短且每次新建**；复用上次失败的目录或过长的 Temp 路径仍可能被扫描器锁住。
+   打包成功后删掉这段临时补丁，APK 输出路径不变。
 
 > `:jni` 这个模块不是本工程加的，它来自 `path_provider` → `path_provider_android` → `jni` 这条
 > 普通插件依赖链，和 USB/DAC 分支无关，任何分支打包都会有。

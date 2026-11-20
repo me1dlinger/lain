@@ -125,7 +125,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsPlaybackLyrics => '播放和歌词';
 
   @override
-  String get settingsNotifications => '通知';
+  String get settingsNotifications => '通知和广播';
+
+  @override
+  String get personalScrobble => '个性化记录';
+
+  @override
+  String get lastFm => 'Last.fm';
+
+  @override
+  String get listenBrainz => 'ListenBrainz';
+
+  @override
+  String get scrobbleOff => '关闭';
+
+  @override
+  String get scrobbleLocalOnly => '仅本地音乐';
+
+  @override
+  String get scrobbleAll => '开启';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get apiSecret => 'API Secret';
+
+  @override
+  String get disconnect => '断开连接';
 
   @override
   String get settingsStartupBackground => '启动和后台';

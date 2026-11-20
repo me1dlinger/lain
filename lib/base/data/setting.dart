@@ -22,6 +22,7 @@ import 'package:lain/base/data/library_naming.dart';
 import 'package:lain/base/data/notice_setting.dart';
 import 'package:lain/base/data/offline_setting.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
+import 'package:lain/base/data/personal_scrobble.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/random_songs.dart';
@@ -289,6 +290,12 @@ class Setting {
     trackTransitionSecondsNotifier.value = transitionSeconds.clamp(2, 12);
     reportPlaybackProgressNotifier.value =
         json['reportPlaybackProgress'] as bool? ?? true;
+    lastFmScrobbleModeNotifier.value = personalScrobbleModeFromName(
+      json['lastFmScrobbleMode'] as String?,
+    );
+    listenBrainzScrobbleModeNotifier.value = personalScrobbleModeFromName(
+      json['listenBrainzScrobbleMode'] as String?,
+    );
     useServerRandomNotifier.value =
         json['useServerRandom'] as bool? ?? true;
     playerCoverStyleNotifier.value =
@@ -474,6 +481,9 @@ class Setting {
         'trackTransitionMode': trackTransitionModeNotifier.value.name,
         'trackTransitionSeconds': trackTransitionSecondsNotifier.value,
         'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
+        'lastFmScrobbleMode': lastFmScrobbleModeNotifier.value.name,
+        'listenBrainzScrobbleMode':
+            listenBrainzScrobbleModeNotifier.value.name,
         'useServerRandom': useServerRandomNotifier.value,
         'playerCoverStyle': playerCoverStyleNotifier.value.name,
         'shareCardTopText': shareCardTopTextNotifier.value,

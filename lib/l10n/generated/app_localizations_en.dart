@@ -125,7 +125,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPlaybackLyrics => 'Playback & Lyrics';
 
   @override
-  String get settingsNotifications => 'Notifications';
+  String get settingsNotifications => 'Notifications & broadcast';
+
+  @override
+  String get personalScrobble => 'Personalized history';
+
+  @override
+  String get lastFm => 'Last.fm';
+
+  @override
+  String get listenBrainz => 'ListenBrainz';
+
+  @override
+  String get scrobbleOff => 'Off';
+
+  @override
+  String get scrobbleLocalOnly => 'Local music only';
+
+  @override
+  String get scrobbleAll => 'On';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get apiSecret => 'API Secret';
+
+  @override
+  String get disconnect => 'Disconnect';
 
   @override
   String get settingsStartupBackground => 'Startup & Background';
@@ -2392,7 +2419,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'On: always use the classic Bluetooth (AVRCP) publishing shape. Off: choose it automatically from the current audio output.';
 
   @override
-  String get classicBluetoothRouteClassic => 'Current output: classic Bluetooth';
+  String get classicBluetoothRouteClassic =>
+      'Current output: classic Bluetooth';
 
   @override
   String get classicBluetoothRouteOther =>

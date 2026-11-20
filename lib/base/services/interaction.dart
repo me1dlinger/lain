@@ -1099,11 +1099,19 @@ void showSongCopySheet(BuildContext context, MyAudioMetadata song) {
 
 /// Opens the information for [song]: editable for a local file, read-only for
 /// a streamed one that has no file to write.
-void showSongInformation(BuildContext context, MyAudioMetadata song) {
-  showAnimationDialog(
-    context: context,
-    child: isLocalLibrary ? EditMetadata(song: song) : SongInfo(song: song),
-  );
+Future<void> showSongInformation(
+  BuildContext context,
+  MyAudioMetadata song,
+) async {
+  enterMainPagePalette();
+  try {
+    await showAnimationDialog(
+      context: context,
+      child: isLocalLibrary ? EditMetadata(song: song) : SongInfo(song: song),
+    );
+  } finally {
+    leaveMainPagePalette();
+  }
 }
 
 void showSongOptions({

@@ -4,7 +4,6 @@ import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/utils/contrast_color_generator.dart';
 import 'package:lain/layer/lyrics_page_layer.dart';
 
-
 /// The app's Material colour scheme. It is deliberately neutral: grey and
 /// black instead of Material's default purple seed, with the light/dark pair
 /// following the current page theme. Every default control - buttons, progress
@@ -53,8 +52,9 @@ void leavePlayerPalette() {
 }
 
 void updateHoverFocusColor() {
-  if ((displayLyricsPage && lyricsPageThemeNotifier.value == .vivid) ||
-      viewModeNotifier.value == .mini) {
+  if (!_mainPagePalette &&
+      ((displayLyricsPage && lyricsPageThemeNotifier.value == .vivid) ||
+          viewModeNotifier.value == .mini)) {
     double r = currentCoverArtColor.r;
     double g = currentCoverArtColor.g;
     double b = currentCoverArtColor.b;
@@ -277,6 +277,22 @@ final MyColor miniViewMenuColor = MyColor(
   pageType: 2,
 );
 
+/// While a dialog opened from the player is on screen, its surface and text
+/// must use the main-page palette. The player's lyrics palette follows the
+/// cover and can be light while the dialog's Material surface is dark (or the
+/// other way round), which mixed black and white text in one card.
+int _mainPagePaletteDepth = 0;
+
+bool get _mainPagePalette => _mainPagePaletteDepth > 0;
+
+void enterMainPagePalette() => _mainPagePaletteDepth++;
+
+void leaveMainPagePalette() {
+  if (_mainPagePaletteDepth > 0) {
+    _mainPagePaletteDepth--;
+  }
+}
+
 class ColorManager {
   late final List<MyColor> myMainPageColors;
   late final List<MyColor> myLyricsPageColors;
@@ -392,12 +408,16 @@ class ColorManager {
   }
 
   Color getSpecificBgBaseColor() {
-    return viewModeNotifier.value == .mini || displayLyricsPage
+    return !_mainPagePalette &&
+            (viewModeNotifier.value == .mini || displayLyricsPage)
         ? currentCoverArtColor
         : backgroundCoverArtColor;
   }
 
   Color getSpecificBgColor() {
+    if (_mainPagePalette) {
+      return isMobile ? pageBackgroundColor.value : panelColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? Colors.transparent
         : displayLyricsPage
@@ -424,6 +444,9 @@ class ColorManager {
   }
 
   Color getSpecificTextColor() {
+    if (_mainPagePalette) {
+      return textColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewForegroundColor.value
         : displayLyricsPage
@@ -432,6 +455,9 @@ class ColorManager {
   }
 
   Color getSpecificHighlightTextColor() {
+    if (_mainPagePalette) {
+      return highlightTextColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewHighlightTextColor.value
         : displayLyricsPage
@@ -440,6 +466,9 @@ class ColorManager {
   }
 
   Color getSpecificIconColor() {
+    if (_mainPagePalette) {
+      return iconColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewForegroundColor.value
         : displayLyricsPage
@@ -448,6 +477,9 @@ class ColorManager {
   }
 
   Color getSpecificButtonColor() {
+    if (_mainPagePalette) {
+      return buttonColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewButtonColor.value
         : displayLyricsPage
@@ -456,6 +488,9 @@ class ColorManager {
   }
 
   Color getSpecificDividerColor() {
+    if (_mainPagePalette) {
+      return dividerColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewDividerColor.value
         : displayLyricsPage
@@ -464,6 +499,9 @@ class ColorManager {
   }
 
   Color getSpecificSelectedItemColor() {
+    if (_mainPagePalette) {
+      return selectedItemColor.value;
+    }
     return viewModeNotifier.value == .mini
         ? miniViewSelectedItemColor.value
         : displayLyricsPage

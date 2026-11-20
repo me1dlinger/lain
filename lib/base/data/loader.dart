@@ -14,6 +14,7 @@ import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/comment_client.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/services/lyric_index.dart';
+import 'package:lain/base/services/personal_scrobble.dart';
 import 'package:lain/base/services/scrobble_queue.dart';
 import 'package:lain/base/services/source_health.dart';
 import 'package:lain/base/data/music_server.dart';
@@ -79,6 +80,7 @@ class Loader {
       logger.output('[startup] settings load failed: $e');
     }
     unawaited(scrobbleQueue.start());
+    unawaited(personalScrobble.start());
     unawaited(sourceHealth.start());
 
     // A comment server that answered is written through to the settings, so

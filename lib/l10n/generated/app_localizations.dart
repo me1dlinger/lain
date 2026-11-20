@@ -329,8 +329,62 @@ abstract class AppLocalizations {
   /// No description provided for @settingsNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Notifications'**
+  /// **'Notifications & broadcast'**
   String get settingsNotifications;
+
+  /// No description provided for @personalScrobble.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized history'**
+  String get personalScrobble;
+
+  /// No description provided for @lastFm.
+  ///
+  /// In en, this message translates to:
+  /// **'Last.fm'**
+  String get lastFm;
+
+  /// No description provided for @listenBrainz.
+  ///
+  /// In en, this message translates to:
+  /// **'ListenBrainz'**
+  String get listenBrainz;
+
+  /// No description provided for @scrobbleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get scrobbleOff;
+
+  /// No description provided for @scrobbleLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Local music only'**
+  String get scrobbleLocalOnly;
+
+  /// No description provided for @scrobbleAll.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get scrobbleAll;
+
+  /// No description provided for @apiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API Key'**
+  String get apiKey;
+
+  /// No description provided for @apiSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'API Secret'**
+  String get apiSecret;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
 
   /// No description provided for @settingsStartupBackground.
   ///
@@ -4585,6 +4639,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Song broadcast'**
   String get carDisplay;
+
   /// No description provided for @classicBluetoothBroadcast.
   ///
   /// In en, this message translates to:

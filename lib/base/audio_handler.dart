@@ -24,6 +24,7 @@ import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
 import 'package:lain/base/services/my_window_listener.dart';
+import 'package:lain/base/services/personal_scrobble.dart';
 import 'package:lain/base/services/picture_service.dart';
 import 'package:lain/base/services/play_queue_logic.dart';
 import 'package:lain/base/services/stream_relay.dart';
@@ -189,6 +190,8 @@ class MyAudioHandler extends BaseAudioHandler {
   Duration _clearedPosition = Duration.zero;
   DateTime? _playLastSyncTime;
   Duration _playedDuration = Duration.zero;
+  DateTime? _trackStartedAt;
+  String? _personalScrobbledSongId;
 
   /// The next track whose audio is being fetched for the queue's upcoming
   /// switch, and the token that lets a later queue change stop it.
@@ -1740,9 +1743,12 @@ class MyAudioHandler extends BaseAudioHandler {
     _playLastSyncTime = DateTime.now();
     _playedDuration = Duration.zero;
     _lastCompletionKey = null;
+    _trackStartedAt = DateTime.now();
+    _personalScrobbledSongId = null;
 
     currentIndex = nextIndex;
     currentSongNotifier.value = next;
+    unawaited(personalScrobble.updateNowPlaying(next, duration: next.duration));
     if (!_journalSuppressed) {
       unawaited(
         playbackJournal.noteSong(next, index: currentIndex).then((_) {
@@ -2160,6 +2166,8 @@ class MyAudioHandler extends BaseAudioHandler {
     _trackEndReason = 'switch';
     _playLastSyncTime = null;
     _playedDuration = Duration.zero;
+    _trackStartedAt = DateTime.now();
+    _personalScrobbledSongId = null;
 
     // save currentIndex
     savePlayState();
@@ -2181,6 +2189,12 @@ class MyAudioHandler extends BaseAudioHandler {
     // while the phone has already moved on. Losing the cover for a moment is
     // far cheaper than losing the title, the artist and the lyric line.
     currentSongNotifier.value = currentSong;
+    unawaited(
+      personalScrobble.updateNowPlaying(
+        currentSong,
+        duration: currentSong.duration,
+      ),
+    );
     if (!_journalSuppressed && _isCurrentLoad(loadGeneration)) {
       unawaited(
         playbackJournal.noteSong(currentSong, index: currentIndex).then((_) {
@@ -3475,6 +3489,15 @@ class MyAudioHandler extends BaseAudioHandler {
     _reportServerProgress(force: true);
 
     await updateIsPlaying(true);
+    final resumeSong = currentSongNotifier.value;
+    if (resumeSong != null) {
+      unawaited(
+        personalScrobble.updateNowPlaying(
+          resumeSong,
+          duration: resumeSong.duration,
+        ),
+      );
+    }
     // The session is foreground and active now. Classic Bluetooth units can
     // need this second, post-activation publish before they show any metadata.
     if (_useClassicPublisher) {
@@ -3489,6 +3512,36 @@ class MyAudioHandler extends BaseAudioHandler {
     _startPositionTimer();
   }
 
+  /// Last.fm/ListenBrainz scrobble at the standard listening threshold: half
+  /// the track, or four minutes for long tracks. Local play counts still go
+  /// through the existing history path at the end of a listen.
+  void _maybePersonalScrobble() {
+    if (!isPlayingNotifier.value || loadingSong) {
+      return;
+    }
+    final song = currentSongNotifier.value;
+    if (song == null) {
+      return;
+    }
+    final duration = song.duration ?? _player.state.duration;
+    if (duration <= const Duration(seconds: 30)) {
+      return;
+    }
+    final played =
+        _playedDuration +
+        (_playLastSyncTime == null
+            ? Duration.zero
+            : DateTime.now().difference(_playLastSyncTime!));
+    final threshold = duration > const Duration(minutes: 4)
+        ? const Duration(minutes: 4)
+        : Duration(seconds: duration.inSeconds ~/ 2);
+    if (played < threshold || _personalScrobbledSongId == song.id) {
+      return;
+    }
+    _personalScrobbledSongId = song.id;
+    unawaited(personalScrobble.enqueue(song, 1, startedAt: _trackStartedAt));
+  }
+
   /// Writes the resume position and keeps the media session's progress moving.
   /// A notification, a car and the OS lock screen read the position from the
   /// session; without a periodic update it only changes on play/pause/seek.
@@ -3498,6 +3551,7 @@ class MyAudioHandler extends BaseAudioHandler {
       if (isPlayingNotifier.value && !loadingSong) {
         updatePlaybackState();
         _reportServerProgress();
+        _maybePersonalScrobble();
       }
     });
   }

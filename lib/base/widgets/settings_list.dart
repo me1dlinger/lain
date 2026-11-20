@@ -37,6 +37,7 @@ import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
 import 'package:lain/base/widgets/playback_mode_page.dart';
+import 'package:lain/base/widgets/personal_scrobble_page.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/share_card_settings_page.dart';
 import 'package:lain/base/widgets/audio_quality_dashboard.dart';
@@ -612,6 +613,7 @@ class _SettingsListState extends State<SettingsList> {
           mobileDataWarningListTile(l10n),
           if (isMobile && viewModeNotifier.value != .bigPicture)
             carDisplayListTile(context, l10n),
+          personalScrobbleListTile(context, l10n),
         ];
       case SettingsCategory.startupBackground:
         return [
@@ -2581,6 +2583,27 @@ class _SettingsListState extends State<SettingsList> {
         pushSettingsPage<void>(
           context,
           settingsPageRoute<void>(() => const CarDisplaySettingsPage()),
+        );
+      },
+    );
+  }
+
+  Widget personalScrobbleListTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      leading: Icon(
+        Icons.history_toggle_off_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.personalScrobble),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+      onTap: () {
+        pushSettingsPage<void>(
+          context,
+          settingsPageRoute<void>(() => const PersonalScrobblePage()),
         );
       },
     );

@@ -124,18 +124,19 @@ Widget appleTextField(
   String? placeholder,
   TextAlign? textAlign,
   ValueChanged<String>? onSubmitted,
+  ValueChanged<String>? onChanged,
 }) {
   final textColor = colorManager.getSpecificTextColor();
 
   return TextField(
     controller: controller,
     onSubmitted: onSubmitted,
+    onChanged: onChanged,
     keyboardType: number ? TextInputType.number : null,
     obscureText: obscure,
     maxLines: maxLines,
     minLines: maxLines > 1 ? 3 : 1,
-    textAlign:
-        textAlign ?? (maxLines > 1 ? TextAlign.start : TextAlign.right),
+    textAlign: textAlign ?? (maxLines > 1 ? TextAlign.start : TextAlign.right),
     style: TextStyle(fontSize: 15, color: textColor),
     cursorColor: textColor,
     decoration: InputDecoration(
@@ -157,6 +158,7 @@ Widget appleTextFieldRow(
   String? placeholder,
   TextAlign? textAlign,
   ValueChanged<String>? onSubmitted,
+  ValueChanged<String>? onChanged,
 }) {
   return appleFormRow(
     label,
@@ -167,6 +169,7 @@ Widget appleTextFieldRow(
       placeholder: placeholder,
       textAlign: textAlign,
       onSubmitted: onSubmitted,
+      onChanged: onChanged,
     ),
   );
 }
@@ -302,11 +305,7 @@ Widget appleFilledButton(
 }
 
 /// A plain text action, for cancel / destructive actions.
-Widget appleTextButton(
-  String label,
-  VoidCallback? onPressed, {
-  Color? color,
-}) {
+Widget appleTextButton(String label, VoidCallback? onPressed, {Color? color}) {
   return TextButton(
     onPressed: onPressed,
     child: Text(
@@ -318,6 +317,7 @@ Widget appleTextButton(
     ),
   );
 }
+
 /// A route for these pages: not opaque, so the app's own background - and the
 /// vivid mode's frosted cover art - stays visible behind them, as it is on every
 /// other page.
