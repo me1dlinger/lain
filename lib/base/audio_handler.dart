@@ -41,6 +41,7 @@ import 'package:lain/base/services/media_session_item.dart';
 import 'package:lain/base/services/media_art.dart';
 import 'package:lain/base/services/media_broadcast.dart';
 import 'package:lain/base/services/audio_focus.dart';
+import 'package:lain/base/services/audio_output.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/utils/dynamic_lyrics_page_route.dart';
@@ -111,7 +112,7 @@ Future<void> initAudioService() async {
   // setting from disk when it starts, so this is the persisted choice).
   adopt(_session, playbackModeNotifier.value);
 
-  await _session.setActive(true);
+  await activateAudioSession(true);
 
   // Start the LAN cover relay now, so the first track can be published with a
   // car-fetchable artwork URI straight away instead of a beat later.
@@ -1473,6 +1474,10 @@ class MyAudioHandler extends BaseAudioHandler {
   InterruptionController? _interruptions;
   AudioPlaybackMode _appliedPlaybackMode = playbackModeNotifier.value;
   bool _playbackVolumeDucked = false;
+  double _volumeBeforeDuck = 0;
+  bool _pausingFromInterruption = false;
+  bool _resumeAfterOtherAudio = false;
+  Timer? _otherAudioResumeTimer;
 
   /// Whether the player was already playing last time it was reported, so
   /// ducking never starts a paused player and unducking never resumes one the
@@ -1488,7 +1493,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
     _interruptions = InterruptionController(
       modeOf: () => playbackModeNotifier.value,
-      pause: () => unawaited(pause()),
+      isPlaying: () => isPlayingNotifier.value,
+      pause: _pauseForInterruption,
+      resume: () => unawaited(play()),
       duck: _duckVolume,
       unduck: _unduckVolume,
     );
@@ -1520,7 +1527,59 @@ class MyAudioHandler extends BaseAudioHandler {
     if (mode != AudioPlaybackMode.duck && _playbackVolumeDucked) {
       _unduckVolume();
     }
+    if (mode != AudioPlaybackMode.exclusive) {
+      _cancelOtherAudioResumeWatch();
+    }
     unawaited(applyPlaybackMode(mode));
+  }
+
+  /// Exclusive mode pauses when another app takes focus. Android may never
+  /// send a matching focus-gain event after a permanent loss, so watch the
+  /// music stream and resume once the interrupting app has really stopped.
+  void _pauseForInterruption() {
+    if (!isPlayingNotifier.value) {
+      return;
+    }
+    _pausingFromInterruption = true;
+    unawaited(
+      pause().whenComplete(() {
+        _pausingFromInterruption = false;
+        _startOtherAudioResumeWatch();
+      }),
+    );
+  }
+
+  void _startOtherAudioResumeWatch() {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    _resumeAfterOtherAudio = true;
+    _otherAudioResumeTimer?.cancel();
+    _otherAudioResumeTimer = Timer.periodic(const Duration(seconds: 2), (
+      _,
+    ) async {
+      if (!_resumeAfterOtherAudio || isPlayingNotifier.value) {
+        _cancelOtherAudioResumeWatch();
+        return;
+      }
+      final active = await audioOutputService.isMusicActive();
+      if (!_resumeAfterOtherAudio || isPlayingNotifier.value) {
+        return;
+      }
+      if (!active) {
+        _resumeAfterOtherAudio = false;
+        _otherAudioResumeTimer?.cancel();
+        _otherAudioResumeTimer = null;
+        await activateAudioSession(true);
+        await play();
+      }
+    });
+  }
+
+  void _cancelOtherAudioResumeWatch() {
+    _resumeAfterOtherAudio = false;
+    _otherAudioResumeTimer?.cancel();
+    _otherAudioResumeTimer = null;
   }
 
   /// Lowers the volume for a duck without pausing. A paused player stays
@@ -1530,8 +1589,12 @@ class MyAudioHandler extends BaseAudioHandler {
       _wasPlayingOnLastDuck = false;
       return;
     }
+    if (_playbackVolumeDucked) {
+      return;
+    }
     _wasPlayingOnLastDuck = true;
     _playbackVolumeDucked = true;
+    _volumeBeforeDuck = _volumeTarget;
     _cancelFade();
     _player.setVolume(duckedVolumeScaled * 100);
   }
@@ -1546,7 +1609,10 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     _wasPlayingOnLastDuck = false;
-    setVolume(volumeNotifier.value);
+    _cancelFade();
+    _player.setVolume(
+      _volumeBeforeDuck > 0 ? _volumeBeforeDuck : _volumeTarget,
+    );
   }
 
   /// Starts downloading the queue's next track.
@@ -3458,7 +3524,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
+    _cancelOtherAudioResumeWatch();
     if (playQueue.isEmpty) return;
+    // A pause released focus; every resume asks for the current mode again.
+    await activateAudioSession(true);
     if (_needsReload) {
       _needsReload = false;
       await load();
@@ -3558,6 +3627,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
+    if (!_pausingFromInterruption) {
+      _cancelOtherAudioResumeWatch();
+      _interruptions?.clearPendingResume();
+    }
     _cancelTrackFade();
     final generation = ++_transportGeneration;
     if (audioFadeNotifier.value && isPlayingNotifier.value) {
@@ -3569,6 +3642,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _player.pause();
     _restorePlayerVolume();
+    await activateAudioSession(false);
     await updateIsPlaying(false);
     updatePlaybackState();
     _reportServerProgress(force: true, paused: true);
@@ -3579,12 +3653,14 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    _cancelOtherAudioResumeWatch();
     _transportGeneration++;
     _cancelFade();
     _restorePlayerVolume();
     await _endLoadGrace();
     await _endStallGrace();
     _player.stop();
+    await activateAudioSession(false);
     await updateIsPlaying(false);
     updatePlaybackState(stop: true);
     _positionTimer?.cancel();
@@ -3673,7 +3749,14 @@ class MyAudioHandler extends BaseAudioHandler {
   void setVolume(double volume) {
     _cancelFade();
     _volumeTarget = _scaleVolume(volume);
-    _player.setVolume(_volumeTarget);
+    // Keep the duck while another app owns the speakers. The new setting is
+    // applied when the duck ends instead of briefly blasting over that app.
+    if (_playbackVolumeDucked) {
+      _volumeBeforeDuck = _volumeTarget;
+    }
+    _player.setVolume(
+      _playbackVolumeDucked ? duckedVolumeScaled * 100 : _volumeTarget,
+    );
   }
 
   /// The player's own 0..100 scale for the user's 0..1 volume setting. The log

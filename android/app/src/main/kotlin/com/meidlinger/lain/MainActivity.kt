@@ -89,6 +89,14 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
                         result.success(false)
                     }
                 }
+                "isMusicActive" -> {
+                    try {
+                        val manager = getSystemService(AUDIO_SERVICE) as AudioManager
+                        result.success(manager.isMusicActive)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
                 "getAudioOutputInfo" -> {
                     try {
                         val manager = getSystemService(AUDIO_SERVICE) as AudioManager

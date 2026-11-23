@@ -23,9 +23,7 @@ bool get _audioFocusSupported => Platform.isAndroid || Platform.isIOS;
 /// - [AudioPlaybackMode.mix]: sides with the other apps: `mix` focus that never
 ///   pauses when ducked on Android, `playback` + `mixWithOthers` on iOS, so
 ///   everything stays at full volume together.
-AudioSessionConfiguration configurationForPlaybackMode(
-  AudioPlaybackMode mode,
-) {
+AudioSessionConfiguration configurationForPlaybackMode(AudioPlaybackMode mode) {
   switch (mode) {
     case AudioPlaybackMode.exclusive:
       return const AudioSessionConfiguration.music();
@@ -37,18 +35,24 @@ AudioSessionConfiguration configurationForPlaybackMode(
           contentType: AndroidAudioContentType.music,
           usage: AndroidAudioUsage.media,
         ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientMayDuck,
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
         androidWillPauseWhenDucked: false,
       );
     case AudioPlaybackMode.mix:
       return const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.mixWithOthers,
         androidAudioAttributes: AndroidAudioAttributes(
           contentType: AndroidAudioContentType.music,
           usage: AndroidAudioUsage.media,
         ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        // A plain GAIN pauses every other player. A transient, duckable
+        // focus is the closest Android equivalent of "mix": the other app
+        // keeps running, and mix ignores the matching duck event.
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
         androidWillPauseWhenDucked: false,
       );
   }
@@ -79,9 +83,47 @@ Future<void> applyPlaybackMode(AudioPlaybackMode mode) async {
   }
   _configuredMode = mode;
   try {
+    // configure() only changes the configuration used by the next focus
+    // request; while the session is active Android keeps the old focus type.
+    // Release and re-request it so exclusive/duck/mix actually takes effect.
+    if (_sessionActive) {
+      await session.setActive(false);
+    }
     await session.configure(configurationForPlaybackMode(mode));
+    if (_sessionActive) {
+      await session.setActive(true);
+    }
   } catch (error) {
     debugPrint('applyPlaybackMode($mode) failed: $error');
+  }
+}
+
+bool _sessionActive = false;
+
+/// `setActive` is called here rather than directly in `initAudioService`, so a
+/// later playback-mode change knows whether the app currently owns focus and
+/// can release/re-request it.
+Future<void> activateAudioSession(bool active) async {
+  if (!_audioFocusSupported) {
+    _sessionActive = active;
+    return;
+  }
+  final session = _sharedSession;
+  if (session == null) {
+    return;
+  }
+  try {
+    if (active) {
+      await session.configure(
+        configurationForPlaybackMode(
+          _configuredMode ?? AudioPlaybackMode.exclusive,
+        ),
+      );
+    }
+    await session.setActive(active);
+    _sessionActive = active;
+  } catch (error) {
+    debugPrint('activateAudioSession($active) failed: $error');
   }
 }
 
@@ -102,7 +144,7 @@ AudioPlaybackMode? get configuredPlaybackMode => _configuredMode;
 /// failing channel can never break `initAudioService`.
 void adopt(AudioSession session, AudioPlaybackMode mode) {
   _sharedSession = session;
-  unawaited(applyPlaybackMode(mode));
+  _configuredMode = mode;
 }
 
 /// Whether [mode] keeps playing while another app ducks this one instead of
@@ -112,35 +154,41 @@ bool pausesOnInterruption(AudioPlaybackMode mode) =>
 
 /// Plays the "another app took over the speakers" handling for [mode]:
 ///
-/// - exclusive: [pause] on begin and nothing on end - an interruption only
-///   ever pauses this app; playback does not start again behind the user's
-///   back when the other app goes quiet.
+/// - exclusive: pause on begin, and resume on end if this app was playing
+///   when the other app took focus. When the other app pauses or closes,
+///   Lain continues by itself.
 /// - duck: [duck] (lower the volume, no pause) on begin, [unduck] on end. A
 ///   [duckFallbackDuration] timer calls [unduck] if no end event arrives.
 /// - mix: nothing at all.
-///
-/// Exclusive never resumes by itself; a play command is the user's to give.
 class InterruptionController {
   InterruptionController({
     required this.modeOf,
+    required this.isPlaying,
     required this.pause,
+    required this.resume,
     required this.duck,
     required this.unduck,
   });
 
   final AudioPlaybackMode Function() modeOf;
+  final bool Function() isPlaying;
   final void Function() pause;
+  final void Function() resume;
   final void Function() duck;
   final void Function() unduck;
 
   Timer? _restoreTimer;
+  bool _pausedByInterruption = false;
 
   void handle(bool begin) {
     final mode = modeOf();
     if (begin) {
       switch (mode) {
         case AudioPlaybackMode.exclusive:
-          pause();
+          if (isPlaying()) {
+            _pausedByInterruption = true;
+            pause();
+          }
         case AudioPlaybackMode.duck:
           // Keep the deadline of the first duck: some platforms report the
           // interrupting app again and again while it holds focus, and
@@ -161,12 +209,14 @@ class InterruptionController {
 
     switch (mode) {
       case AudioPlaybackMode.exclusive:
-        // The user paused it (by the interruption); ending the interruption is
-        // not a request to start playing again.
-        break;
+        if (_pausedByInterruption) {
+          _pausedByInterruption = false;
+          resume();
+        }
       case AudioPlaybackMode.duck:
         unduck();
       case AudioPlaybackMode.mix:
+        _pausedByInterruption = false;
         break;
     }
   }
@@ -176,9 +226,16 @@ class InterruptionController {
     unduck();
   }
 
+  /// A manual pause after an interruption must not be undone by a late
+  /// focus-gain event.
+  void clearPendingResume() {
+    _pausedByInterruption = false;
+  }
+
   /// Forgets a pending fallback, e.g. when the controller is replaced.
   void dispose() {
     _restoreTimer?.cancel();
     _restoreTimer = null;
+    _pausedByInterruption = false;
   }
 }

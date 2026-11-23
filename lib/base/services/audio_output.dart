@@ -73,6 +73,16 @@ class AudioOutputInfo {
 class AudioOutputService {
   static const _channel = MethodChannel('com.meidlinger.lain.media');
 
+  /// Whether any app is currently using the music stream. Used by the
+  /// exclusive mode to resume after the app that interrupted us has stopped.
+  Future<bool> isMusicActive() async {
+    try {
+      return await _channel.invokeMethod<bool>('isMusicActive') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<AudioOutputInfo?> query() async {
     try {
       final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
