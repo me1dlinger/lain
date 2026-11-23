@@ -29,6 +29,8 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
     var keyListener: ((KeyEvent) -> Boolean)? = null
     var motionListener: ((MotionEvent) -> Boolean)? = null
 
+    private var audioFocusController: AudioFocusController? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -39,6 +41,37 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.meidlinger.lain.system_proxy").setMethodCallHandler { call, result ->
             when (call.method) {
                 "getProxy" -> result.success(getSystemProxy())
+                else -> result.notImplemented()
+            }
+        }
+
+        // Audio focus is owned here, not by audio_session: Android's focus
+        // request cannot be changed in place, so switching exclusive/duck/mix
+        // needs an explicit abandon + request. The raw focus code is forwarded
+        // to the Dart interruption controller.
+        val focusChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.meidlinger.lain.audio_focus"
+        )
+        audioFocusController = AudioFocusController(
+            this,
+            onFocusChange = { code ->
+                focusChannel.invokeMethod("onAudioFocusChange", code)
+            },
+            onNoisy = {
+                focusChannel.invokeMethod("onAudioBecomingNoisy", null)
+            },
+        )
+        focusChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "request" -> {
+                    val mode = call.argument<String>("mode") ?: "exclusive"
+                    result.success(audioFocusController?.request(mode) ?: false)
+                }
+                "abandon" -> {
+                    audioFocusController?.abandon()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -295,5 +328,11 @@ class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
 
     override fun registerMotionEventHandler(handler: (MotionEvent) -> Boolean) {
         motionListener = handler
+    }
+
+    override fun onDestroy() {
+        audioFocusController?.abandon()
+        audioFocusController = null
+        super.onDestroy()
     }
 }

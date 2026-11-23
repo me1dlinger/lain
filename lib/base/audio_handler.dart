@@ -41,6 +41,7 @@ import 'package:lain/base/services/media_session_item.dart';
 import 'package:lain/base/services/media_art.dart';
 import 'package:lain/base/services/media_broadcast.dart';
 import 'package:lain/base/services/audio_focus.dart';
+import 'package:lain/base/services/audio_focus_service.dart';
 import 'package:lain/base/services/audio_output.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
@@ -1502,6 +1503,21 @@ class MyAudioHandler extends BaseAudioHandler {
     session.interruptionEventStream.listen((event) {
       _interruptions?.handle(event.begin);
     });
+    if (Platform.isAndroid) {
+      audioFocusService.noisyEvents.listen((_) {
+        unawaited(pause());
+      });
+      audioFocusService.events.listen((code) {
+        switch (code) {
+          case 1: // AUDIOFOCUS_GAIN
+            _interruptions?.handle(false);
+          case -1: // AUDIOFOCUS_LOSS
+          case -2: // AUDIOFOCUS_LOSS_TRANSIENT
+          case -3: // AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK
+            _interruptions?.handle(true);
+        }
+      });
+    }
 
     // Let a live change of mode reach the audio output even when the page that
     // changed it did not write the settings file itself.

@@ -5,6 +5,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:lain/base/data/playback_mode.dart';
+import 'package:lain/base/services/audio_focus_service.dart';
 
 /// Android and iOS expose "how do I share the speakers?" through their audio
 /// session APIs; the desktop backends simply mix everything, so the modes only
@@ -77,11 +78,17 @@ Future<void> applyPlaybackMode(AudioPlaybackMode mode) async {
   if (!_audioFocusSupported) {
     return;
   }
+  _configuredMode = mode;
+  if (Platform.isAndroid) {
+    if (_sessionActive) {
+      await audioFocusService.request(mode.name);
+    }
+    return;
+  }
   final session = _sharedSession;
   if (session == null) {
     return;
   }
-  _configuredMode = mode;
   try {
     // configure() only changes the configuration used by the next focus
     // request; while the session is active Android keeps the old focus type.
@@ -106,6 +113,17 @@ bool _sessionActive = false;
 Future<void> activateAudioSession(bool active) async {
   if (!_audioFocusSupported) {
     _sessionActive = active;
+    return;
+  }
+  if (Platform.isAndroid) {
+    _sessionActive = active;
+    if (active) {
+      await audioFocusService.request(
+        (_configuredMode ?? AudioPlaybackMode.exclusive).name,
+      );
+    } else {
+      await audioFocusService.abandon();
+    }
     return;
   }
   final session = _sharedSession;
@@ -137,11 +155,8 @@ AudioPlaybackMode? _configuredMode;
 /// The mode currently configured, or null before [adopt] has done its work.
 AudioPlaybackMode? get configuredPlaybackMode => _configuredMode;
 
-/// Hands the app-wide session to this library and applies [mode] to it.
-///
-/// Deliberately not async and not awaited by the caller: the actual platform
-/// call goes through [applyPlaybackMode], which catches its own errors, so a
-/// failing channel can never break `initAudioService`.
+/// Hands the app-wide session and the initial mode to this library. The mode
+/// is applied when the session is activated or when the user changes it.
 void adopt(AudioSession session, AudioPlaybackMode mode) {
   _sharedSession = session;
   _configuredMode = mode;
