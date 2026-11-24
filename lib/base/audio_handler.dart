@@ -1501,7 +1501,10 @@ class MyAudioHandler extends BaseAudioHandler {
       unduck: _unduckVolume,
     );
     session.interruptionEventStream.listen((event) {
-      _interruptions?.handle(event.begin);
+      _interruptions?.handle(
+        event.begin,
+        canDuck: event.type == AudioInterruptionType.duck,
+      );
     });
     if (Platform.isAndroid) {
       audioFocusService.noisyEvents.listen((_) {
@@ -1513,8 +1516,9 @@ class MyAudioHandler extends BaseAudioHandler {
             _interruptions?.handle(false);
           case -1: // AUDIOFOCUS_LOSS
           case -2: // AUDIOFOCUS_LOSS_TRANSIENT
+            _interruptions?.handle(true, canDuck: false);
           case -3: // AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK
-            _interruptions?.handle(true);
+            _interruptions?.handle(true, canDuck: true);
         }
       });
     }
@@ -1583,10 +1587,13 @@ class MyAudioHandler extends BaseAudioHandler {
         return;
       }
       if (!active) {
+        if (!await activateAudioSession(true) &&
+            playbackModeNotifier.value != AudioPlaybackMode.mix) {
+          return;
+        }
         _resumeAfterOtherAudio = false;
         _otherAudioResumeTimer?.cancel();
         _otherAudioResumeTimer = null;
-        await activateAudioSession(true);
         await play();
       }
     });
@@ -3543,7 +3550,13 @@ class MyAudioHandler extends BaseAudioHandler {
     _cancelOtherAudioResumeWatch();
     if (playQueue.isEmpty) return;
     // A pause released focus; every resume asks for the current mode again.
-    await activateAudioSession(true);
+    // If Android refuses the focus request another app still owns the
+    // speakers: staying paused is correct, even if this play() came from the
+    // interruption watchdog.
+    if (!await activateAudioSession(true) &&
+        playbackModeNotifier.value != AudioPlaybackMode.mix) {
+      return;
+    }
     if (_needsReload) {
       _needsReload = false;
       await load();

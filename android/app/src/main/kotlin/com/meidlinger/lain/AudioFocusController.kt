@@ -44,17 +44,22 @@ class AudioFocusController(
             registerNoisy()
             return true
         }
-        val gain = if (mode == "duck") {
-            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
-        } else {
-            AudioManager.AUDIOFOCUS_GAIN
-        }
+        // Music always requests AUDIOFOCUS_GAIN, as ExoPlayer does. The
+        // player's mode decides how to react when another app asks us to duck;
+        // requesting GAIN_TRANSIENT_MAY_DUCK here would make this app the
+        // transient one and it would never receive a can-duck event.
+        val gain = AudioManager.AUDIOFOCUS_GAIN
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val attributes = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build()
             val listener = AudioManager.OnAudioFocusChangeListener { focus ->
+                // A permanent loss invalidates this request. Release it here,
+                // like ExoPlayer, instead of leaving a dead request registered.
+                if (focus == AudioManager.AUDIOFOCUS_LOSS) {
+                    abandon()
+                }
                 onFocusChange(focus)
             }
             val next = AudioFocusRequest.Builder(gain)
@@ -75,6 +80,9 @@ class AudioFocusController(
         }
 
         val listener = AudioManager.OnAudioFocusChangeListener { focus ->
+            if (focus == AudioManager.AUDIOFOCUS_LOSS) {
+                abandon()
+            }
             onFocusChange(focus)
         }
         val status = audioManager.requestAudioFocus(

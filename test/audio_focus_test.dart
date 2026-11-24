@@ -66,7 +66,7 @@ void main() {
       unduck: () => unducked++,
     );
 
-    controller.handle(true);
+    controller.handle(true, canDuck: true);
     controller.handle(false);
     expect(ducked, 1);
     expect(unducked, 1);

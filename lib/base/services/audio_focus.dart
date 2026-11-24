@@ -110,25 +110,26 @@ bool _sessionActive = false;
 /// `setActive` is called here rather than directly in `initAudioService`, so a
 /// later playback-mode change knows whether the app currently owns focus and
 /// can release/re-request it.
-Future<void> activateAudioSession(bool active) async {
+Future<bool> activateAudioSession(bool active) async {
   if (!_audioFocusSupported) {
     _sessionActive = active;
-    return;
+    return active;
   }
   if (Platform.isAndroid) {
-    _sessionActive = active;
     if (active) {
-      await audioFocusService.request(
+      final granted = await audioFocusService.request(
         (_configuredMode ?? AudioPlaybackMode.exclusive).name,
       );
-    } else {
-      await audioFocusService.abandon();
+      _sessionActive = granted;
+      return granted;
     }
-    return;
+    await audioFocusService.abandon();
+    _sessionActive = false;
+    return true;
   }
   final session = _sharedSession;
   if (session == null) {
-    return;
+    return false;
   }
   try {
     if (active) {
@@ -138,10 +139,13 @@ Future<void> activateAudioSession(bool active) async {
         ),
       );
     }
-    await session.setActive(active);
-    _sessionActive = active;
+    final granted = await session.setActive(active);
+    _sessionActive = active && granted;
+    return granted;
   } catch (error) {
     debugPrint('activateAudioSession($active) failed: $error');
+    _sessionActive = false;
+    return false;
   }
 }
 
@@ -195,7 +199,7 @@ class InterruptionController {
   Timer? _restoreTimer;
   bool _pausedByInterruption = false;
 
-  void handle(bool begin) {
+  void handle(bool begin, {bool canDuck = false}) {
     final mode = modeOf();
     if (begin) {
       switch (mode) {
@@ -205,6 +209,14 @@ class InterruptionController {
             pause();
           }
         case AudioPlaybackMode.duck:
+          if (!canDuck) {
+            // A full focus loss is not a duck: pause and wait for gain.
+            if (isPlaying()) {
+              _pausedByInterruption = true;
+              pause();
+            }
+            return;
+          }
           // Keep the deadline of the first duck: some platforms report the
           // interrupting app again and again while it holds focus, and
           // restarting the timer each time is how the volume stayed ducked
