@@ -2934,4 +2934,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String sessionTracks(int count) {
     return '$count tracks';
   }
+
+  @override
+  String get cloudQueueSync => 'Sync play queue';
+
+  @override
+  String get cloudQueueRestore => 'Restore from server';
+
+  @override
+  String get cloudQueueRestoreConfirm =>
+      'Replace the current queue with the server queue?';
+
+  @override
+  String get cloudQueueEmpty => 'No queue on the server';
+
+  @override
+  String get cloudQueueUnavailable => 'Server queue unavailable';
+
+  @override
+  String get cloudQueueRestored => 'Queue restored';
+
+  @override
+  String cloudQueueSkipped(int count) {
+    return '$count unavailable';
+  }
 }

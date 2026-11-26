@@ -13,6 +13,7 @@ import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/quality_badge_setting.dart';
 import 'package:lain/base/data/cover_broadcast_mode.dart';
 import 'package:lain/base/data/classic_bluetooth_broadcast.dart';
+import 'package:lain/base/data/cloud_queue_setting.dart';
 import 'package:lain/base/data/cache_download_settings.dart';
 import 'package:lain/base/data/car_display.dart';
 import 'package:lain/base/data/folder_scan_settings.dart';
@@ -285,6 +286,8 @@ class Setting {
     trackTransitionSecondsNotifier.value = transitionSeconds.clamp(2, 12);
     reportPlaybackProgressNotifier.value =
         json['reportPlaybackProgress'] as bool? ?? true;
+    cloudQueueEnabledNotifier.value =
+        json['cloudQueueEnabled'] as bool? ?? true;
     lastFmScrobbleModeNotifier.value = personalScrobbleModeFromName(
       json['lastFmScrobbleMode'] as String?,
     );
@@ -488,6 +491,7 @@ class Setting {
         'trackTransitionMode': trackTransitionModeNotifier.value.name,
         'trackTransitionSeconds': trackTransitionSecondsNotifier.value,
         'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
+        'cloudQueueEnabled': cloudQueueEnabledNotifier.value,
         'lastFmScrobbleMode': lastFmScrobbleModeNotifier.value.name,
         'listenBrainzScrobbleMode': listenBrainzScrobbleModeNotifier.value.name,
         'useServerRandom': useServerRandomNotifier.value,

@@ -20,6 +20,7 @@ import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
+import 'package:lain/base/services/cloud_queue_sync.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
@@ -53,6 +54,7 @@ import 'package:lain/base/widgets/cache_storage_dashboard.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
+import 'package:lain/base/data/cloud_queue_setting.dart';
 import 'package:lain/base/widgets/comment_settings_page.dart';
 import 'package:lain/base/services/download_manager.dart';
 import 'package:lain/base/services/cache_download_manager.dart';
@@ -541,6 +543,7 @@ class _SettingsListState extends State<SettingsList> {
             streamFormatListTile(context, l10n),
             useServerRandomListTile(l10n),
             if (sourceType == .navidrome) playbackReportListTile(l10n),
+            cloudQueueListTile(context, l10n),
           ],
           // WebDAV caches to disk too, so the cache dashboard applies to it.
           if (isStreamSource || sourceType == .webdav)
@@ -1216,6 +1219,98 @@ class _SettingsListState extends State<SettingsList> {
         );
       },
     );
+  }
+
+  /// The server-side play queue shared between devices.
+  ///
+  /// Only an OpenSubsonic source that actually answers the queue endpoints
+  /// builds these tiles; Emby, Feiniu and WebDAV never see them.
+  Widget cloudQueueListTile(BuildContext context, AppLocalizations l10n) {
+    final client = streamClient;
+    if (client == null || !client.supportsCloudPlayQueue) {
+      return const SizedBox.shrink();
+    }
+    // Cached per client: a rebuild does not ask the server again.
+    unawaited(cloudQueueSync.probeAvailability());
+    return ValueListenableBuilder<bool>(
+      valueListenable: cloudQueueSync.availableNotifier,
+      builder: (context, available, child) {
+        if (!available) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.cloud_queue_rounded,
+                size: iconSize,
+                color: colorManager.getSpecificIconColor(),
+              ),
+              title: Text(l10n.cloudQueueSync),
+              trailing: SizedBox(
+                width: 50,
+                child: MySwitch(
+                  valueNotifier: cloudQueueEnabledNotifier,
+                  onToggleCallBack: () => setting.save(),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.cloud_download_outlined,
+                size: iconSize,
+                color: iconColor.value,
+              ),
+              title: Text(l10n.cloudQueueRestore),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => _restoreCloudQueue(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _restoreCloudQueue(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final queue = await cloudQueueSync.fetchRemote();
+    if (!context.mounted) {
+      return;
+    }
+    if (queue == null) {
+      showCenterMessage(l10n.cloudQueueUnavailable);
+      return;
+    }
+    if (queue.isEmpty) {
+      showCenterMessage(l10n.cloudQueueEmpty);
+      return;
+    }
+
+    final confirmed = await showConfirmDialog(
+      context,
+      l10n.cloudQueueRestoreConfirm,
+    );
+    if (!confirmed || !context.mounted) {
+      return;
+    }
+
+    final result = await cloudQueueSync.applyRemote(queue);
+    if (!context.mounted) {
+      return;
+    }
+    switch (result.status) {
+      case CloudQueueRestoreStatus.restored:
+        showCenterMessage(
+          result.missing > 0
+              ? '${l10n.cloudQueueRestored} · '
+                    '${l10n.cloudQueueSkipped(result.missing)}'
+              : l10n.cloudQueueRestored,
+        );
+      case CloudQueueRestoreStatus.empty:
+        showCenterMessage(l10n.cloudQueueEmpty);
+      case CloudQueueRestoreStatus.unavailable:
+        showCenterMessage(l10n.cloudQueueUnavailable);
+    }
   }
 
   Widget selectMusicFoldersListTile(

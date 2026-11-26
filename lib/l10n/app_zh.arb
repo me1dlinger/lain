@@ -1176,5 +1176,13 @@
   "scrobbleAttempts": "{count} 次尝试",
   "@scrobbleAttempts": {"placeholders": {"count": {"type": "int"}}},
   "sessionTracks": "{count} 首",
-  "@sessionTracks": {"placeholders": {"count": {"type": "int"}}}
+  "@sessionTracks": {"placeholders": {"count": {"type": "int"}}},
+  "cloudQueueSync": "同步播放队列",
+  "cloudQueueRestore": "从服务器恢复",
+  "cloudQueueRestoreConfirm": "用服务器上的队列替换当前队列？",
+  "cloudQueueEmpty": "服务器上还没有队列",
+  "cloudQueueUnavailable": "服务器队列不可用",
+  "cloudQueueRestored": "已恢复队列",
+  "cloudQueueSkipped": "{count} 首不可用",
+  "@cloudQueueSkipped": {"placeholders": {"count": {"type": "int"}}}
 }

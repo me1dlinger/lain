@@ -2878,4 +2878,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String sessionTracks(int count) {
     return '$count 首';
   }
+
+  @override
+  String get cloudQueueSync => '同步播放队列';
+
+  @override
+  String get cloudQueueRestore => '从服务器恢复';
+
+  @override
+  String get cloudQueueRestoreConfirm => '用服务器上的队列替换当前队列？';
+
+  @override
+  String get cloudQueueEmpty => '服务器上还没有队列';
+
+  @override
+  String get cloudQueueUnavailable => '服务器队列不可用';
+
+  @override
+  String get cloudQueueRestored => '已恢复队列';
+
+  @override
+  String cloudQueueSkipped(int count) {
+    return '$count 首不可用';
+  }
 }
