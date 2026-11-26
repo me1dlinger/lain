@@ -72,6 +72,10 @@ String? playQueueForStreamId;
 
 final ValueNotifier<MyAudioMetadata?> currentSongNotifier = ValueNotifier(null);
 final isPlayingNotifier = ValueNotifier(false);
+
+/// True while a volume fade is in progress; the transport button shows a
+/// progress ring instead of pretending the new state was instant.
+final isAudioFadingNotifier = ValueNotifier(false);
 final playModeNotifier = ValueNotifier(0);
 final volumeNotifier = ValueNotifier(0.3);
 
@@ -3845,6 +3849,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _fadeToken++;
     _fadeTimer?.cancel();
     _fadeTimer = null;
+    isAudioFadingNotifier.value = false;
   }
 
   /// Puts the player back at the level it was playing at, e.g. after a
@@ -3864,12 +3869,16 @@ class MyAudioHandler extends BaseAudioHandler {
   }) {
     _fadeTimer?.cancel();
     final token = ++_fadeToken;
+    isAudioFadingNotifier.value = true;
     // A fade-in starts from silence explicitly: the player's reported volume
     // can still be the old value right after setVolume(0), which made the
     // "ramp" a no-op.
     final start = from ?? _player.state.volume;
     if ((start - target).abs() < 0.5) {
       _player.setVolume(target);
+      if (token == _fadeToken) {
+        isAudioFadingNotifier.value = false;
+      }
       return Future.value();
     }
 
@@ -3882,6 +3891,9 @@ class MyAudioHandler extends BaseAudioHandler {
     _fadeTimer = Timer.periodic(const Duration(milliseconds: tickMs), (timer) {
       if (token != _fadeToken) {
         timer.cancel();
+        if (token == _fadeToken) {
+          isAudioFadingNotifier.value = false;
+        }
         if (!completer.isCompleted) {
           completer.complete();
         }
@@ -3895,6 +3907,9 @@ class MyAudioHandler extends BaseAudioHandler {
         timer.cancel();
         _fadeTimer = null;
         _player.setVolume(target);
+        if (token == _fadeToken) {
+          isAudioFadingNotifier.value = false;
+        }
         if (!completer.isCompleted) {
           completer.complete();
         }

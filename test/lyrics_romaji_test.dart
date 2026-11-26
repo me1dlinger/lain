@@ -29,14 +29,14 @@ void main() {
 
       final result = await service.convertLines([
         'こんにちは',
+        '君名前',
         'Hello world',
-        '你好世界',
         '',
       ]);
 
       expect(result, hasLength(4));
       expect(result[0], 'konnichiwa');
-      expect(result[1], isNull);
+      expect(result[1], isNotNull);
       expect(result[2], isNull);
       expect(result[3], isNull);
     }, timeout: const Timeout(Duration(minutes: 2)));

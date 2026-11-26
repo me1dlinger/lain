@@ -15,16 +15,21 @@ import 'package:lain/l10n/generated/app_localizations.dart';
 /// player and the full lyrics page. All values are the ones the lyrics page
 /// already uses: the size offset and weight live beside the lyric widgets,
 /// and the font is the app-wide font family from settings.
-Future<void> showLyricsStyleSheet(BuildContext context) {
+Future<void> showLyricsStyleSheet(
+  BuildContext context, {
+  bool fullscreen = false,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => const _LyricsStyleSheet(),
+    builder: (context) => _LyricsStyleSheet(fullscreen: fullscreen),
   );
 }
 
 class _LyricsStyleSheet extends StatelessWidget {
-  const _LyricsStyleSheet();
+  final bool fullscreen;
+
+  const _LyricsStyleSheet({required this.fullscreen});
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +40,11 @@ class _LyricsStyleSheet extends StatelessWidget {
         listenable: Listenable.merge([
           lyricsPageForegroundColor.valueNotifier,
           lyricsFontSizeOffsetNotifier,
+          lyricsFullscreenFontSizeOffsetNotifier,
           lyricsFontWeightNotifier,
+          lyricsFullscreenFontWeightNotifier,
           lyricsTextAlignNotifier,
+          lyricsFullscreenTextAlignNotifier,
           lyricsRomajiNotifier,
           fontFamilyNotifier,
         ]),
@@ -85,7 +93,10 @@ class _LyricsStyleSheet extends StatelessWidget {
   }
 
   Widget _fontSizeRow(AppLocalizations l10n, Color textColor) {
-    final offset = lyricsFontSizeOffsetNotifier.value;
+    final notifier = fullscreen
+        ? lyricsFullscreenFontSizeOffsetNotifier
+        : lyricsFontSizeOffsetNotifier;
+    final offset = notifier.value;
     return _LyricsRow(
       label: l10n.fontSize,
       textColor: textColor,
@@ -97,7 +108,7 @@ class _LyricsStyleSheet extends StatelessWidget {
             onPressed: offset <= -6
                 ? null
                 : () {
-                    lyricsFontSizeOffsetNotifier.value = offset - 2;
+                    notifier.value = offset - 2;
                     setting.save();
                   },
             icon: const Icon(Icons.remove_rounded),
@@ -115,7 +126,7 @@ class _LyricsStyleSheet extends StatelessWidget {
             onPressed: offset >= 24
                 ? null
                 : () {
-                    lyricsFontSizeOffsetNotifier.value = offset + 2;
+                    notifier.value = offset + 2;
                     setting.save();
                   },
             icon: const Icon(Icons.add_rounded),
@@ -126,6 +137,9 @@ class _LyricsStyleSheet extends StatelessWidget {
   }
 
   Widget _offsetRow(AppLocalizations l10n, Color textColor) {
+    if (fullscreen) {
+      return const SizedBox.shrink();
+    }
     final currentSong = currentSongNotifier.value;
     if (currentSong == null) {
       return const SizedBox.shrink();
@@ -193,7 +207,10 @@ class _LyricsStyleSheet extends StatelessWidget {
       FontWeight.w800,
       FontWeight.w900,
     ];
-    final index = weights.indexOf(lyricsFontWeightNotifier.value);
+    final notifier = fullscreen
+        ? lyricsFullscreenFontWeightNotifier
+        : lyricsFontWeightNotifier;
+    final index = weights.indexOf(notifier.value);
     final sliderIndex = index < 0 ? 6 : index;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 12, 0),
@@ -228,7 +245,7 @@ class _LyricsStyleSheet extends StatelessWidget {
                 max: (weights.length - 1).toDouble(),
                 divisions: weights.length - 1,
                 onChanged: (value) {
-                  lyricsFontWeightNotifier.value = weights[value.round()];
+                  notifier.value = weights[value.round()];
                 },
                 onChangeEnd: (_) => setting.save(),
               ),
@@ -244,6 +261,9 @@ class _LyricsStyleSheet extends StatelessWidget {
     AppLocalizations l10n,
     Color textColor,
   ) {
+    if (fullscreen) {
+      return const SizedBox.shrink();
+    }
     return InkWell(
       onTap: () {
         if (!isPremiumNotifier.value) {
@@ -288,7 +308,10 @@ class _LyricsStyleSheet extends StatelessWidget {
 
   Widget _alignmentRow(AppLocalizations l10n, Color textColor) {
     Widget option(LyricsTextAlign value, IconData icon, String label) {
-      final selected = lyricsTextAlignNotifier.value == value;
+      final notifier = fullscreen
+          ? lyricsFullscreenTextAlignNotifier
+          : lyricsTextAlignNotifier;
+      final selected = notifier.value == value;
       return IconButton(
         color: selected ? textColor : textColor.withAlpha(120),
         style: IconButton.styleFrom(
@@ -296,7 +319,7 @@ class _LyricsStyleSheet extends StatelessWidget {
         ),
         tooltip: label,
         onPressed: () {
-          lyricsTextAlignNotifier.value = value;
+          notifier.value = value;
           setting.save();
         },
         icon: Icon(icon, size: 20),
@@ -330,6 +353,9 @@ class _LyricsStyleSheet extends StatelessWidget {
   }
 
   Widget _romajiRow(AppLocalizations l10n, Color textColor) {
+    if (fullscreen) {
+      return const SizedBox.shrink();
+    }
     return _LyricsRow(
       label: l10n.lyricsRomaji,
       textColor: textColor,

@@ -135,6 +135,9 @@ Future<void> showTrackTransitionDialog(
     fontWeight: FontWeight.w500,
     color: color.withAlpha(165),
   );
+  final dropdownColor = color.computeLuminance() > 0.5
+      ? const Color(0xF21A1A1A)
+      : const Color(0xFFF3F3F3);
 
   await showAnimationDialog<void>(
     context: context,

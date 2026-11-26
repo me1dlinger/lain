@@ -53,5 +53,12 @@ final lyricsFontSizeOffsetNotifier = ValueNotifier(0.0);
 final lyricsFontWeightNotifier = ValueNotifier(FontWeight.bold);
 final lyricsTextAlignNotifier = ValueNotifier(LyricsTextAlign.auto);
 
+/// The full-screen lyrics page has its own visual scale. It follows the
+/// cover-page offset, font family and romaji switch, but keeps its own size,
+/// weight and alignment so tuning one page cannot shrink the other.
+final lyricsFullscreenFontSizeOffsetNotifier = ValueNotifier(0.0);
+final lyricsFullscreenFontWeightNotifier = ValueNotifier(FontWeight.bold);
+final lyricsFullscreenTextAlignNotifier = ValueNotifier(LyricsTextAlign.auto);
+
 /// Whether Japanese lyric lines get a romaji pronunciation line below them.
 final lyricsRomajiNotifier = ValueNotifier(false);

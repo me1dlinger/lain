@@ -90,34 +90,34 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-                if (lyricsPageThemeNotifier.value == .vivid) ...[
-                  Positioned.fill(
-                    child: ColoredBox(
+              if (lyricsPageThemeNotifier.value == .vivid) ...[
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: colorManager
+                        .getSpecificLyricsPageCoverArtBaseColor(),
+                  ),
+                ),
+                Positioned.fill(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: pageWidth * 0.03,
+                      sigmaY: pageHight * 0.03,
+                    ),
+                    child: CoverArtWidget(
+                      picture: currentSong?.picture,
                       color: colorManager
                           .getSpecificLyricsPageCoverArtBaseColor(),
                     ),
                   ),
-                  Positioned.fill(
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(
-                        sigmaX: pageWidth * 0.03,
-                        sigmaY: pageHight * 0.03,
-                      ),
-                      child: CoverArtWidget(
-                        picture: currentSong?.picture,
-                        color: colorManager
-                            .getSpecificLyricsPageCoverArtBaseColor(),
-                      ),
-                    ),
+                ),
+                RepaintBoundary(
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.easeInOutCubic,
+                    color: currentCoverArtColor.withAlpha(180),
                   ),
-                  RepaintBoundary(
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOutCubic,
-                      color: currentCoverArtColor.withAlpha(180),
-                    ),
-                  ),
-                ],
+                ),
+              ],
 
               ValueListenableBuilder(
                 valueListenable: lyricsPageBackgroundColor.valueNotifier,
@@ -241,7 +241,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
                           tryVibrate();
-                          showLyricsStyleSheet(context);
+                          showLyricsStyleSheet(
+                            context,
+                            fullscreen: pageHight >= 600,
+                          );
                         },
                         icon: const Icon(Icons.text_fields_rounded, size: 20),
                       ),

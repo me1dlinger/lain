@@ -1082,7 +1082,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 icon: const Icon(Icons.text_fields_rounded, size: 28),
                 onPressed: () {
                   tryVibrate();
-                  showLyricsStyleSheet(context);
+                  showLyricsStyleSheet(context, fullscreen: true);
                 },
               );
             },

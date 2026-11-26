@@ -12,6 +12,11 @@ final _kanaPattern = RegExp(r'[\u3040-\u30ff\u31f0-\u31ff]');
 /// Whether [text] contains Japanese kana, i.e. is worth romanising.
 bool hasJapaneseKana(String text) => _kanaPattern.hasMatch(text);
 
+/// CJK ideographs. A kanji-only line cannot be classified on its own, but
+/// once another line in the same lyric contains kana, it is almost certainly a
+/// Japanese line and should be romanised too.
+bool hasCjkIdeographs(String text) => RegExp(r'[㐀-鿿]').hasMatch(text);
+
 /// Kuroshiro's spaced mode separates tokens with several spaces around
 /// non-Japanese words; a lyric line reads better with single spaces.
 String normalizeRomajiSpacing(String text) {
@@ -183,9 +188,15 @@ Future<void> _romajiWorkerMain(SendPort reply) async {
 
     try {
       kuroshiro ??= await Kuroshiro().init();
+      final texts = rawLines.whereType<String>().toList();
+      // Detect the song once, not each line: a Japanese lyric often has
+      // kanji-only lines between kana lines. Per-line detection dropped those
+      // lines and made romaji look intermittent.
+      final songIsJapanese = texts.any(hasJapaneseKana);
       final result = <String?>[];
-      for (final raw in rawLines.whereType<String>()) {
-        if (!hasJapaneseKana(raw)) {
+      for (final raw in texts) {
+        if (!hasJapaneseKana(raw) &&
+            !(songIsJapanese && hasCjkIdeographs(raw))) {
           result.add(null);
           continue;
         }

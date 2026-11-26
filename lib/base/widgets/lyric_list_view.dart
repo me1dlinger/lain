@@ -291,20 +291,33 @@ class LyricLineWidget extends StatelessWidget {
           child: ListenableBuilder(
             listenable: Listenable.merge([
               lyricsFontSizeOffsetNotifier,
+              lyricsFullscreenFontSizeOffsetNotifier,
               lyricsFontWeightNotifier,
+              lyricsFullscreenFontWeightNotifier,
               lyricsTextAlignNotifier,
+              lyricsFullscreenTextAlignNotifier,
               fontFamilyNotifier,
               currentLyricsIndexNotifier,
             ]),
             builder: (context, _) {
               final isCurrent = currentLyricsIndexNotifier.value == index;
+              final alignSetting = expanded
+                  ? lyricsFullscreenTextAlignNotifier.value
+                  : lyricsTextAlignNotifier.value;
               final textAlign = lyricsTextAlignFor(
-                lyricsTextAlignNotifier.value,
+                alignSetting,
                 expanded: expanded,
               );
               final centered = textAlign == TextAlign.center;
+              final weight = expanded
+                  ? lyricsFullscreenFontWeightNotifier.value
+                  : lyricsFontWeightNotifier.value;
 
-              double fontSize = 16 + lyricsFontSizeOffsetNotifier.value;
+              double fontSize =
+                  16 +
+                  (expanded
+                      ? lyricsFullscreenFontSizeOffsetNotifier.value
+                      : lyricsFontSizeOffsetNotifier.value);
 
               if (expanded) {
                 fontSize += isMobile ? 16 : 8;
@@ -323,7 +336,7 @@ class LyricLineWidget extends StatelessWidget {
                 alignment: centered ? .center : .centerLeft,
                 child: Column(
                   crossAxisAlignment: lyricsCrossAxisAlignmentFor(
-                    lyricsTextAlignNotifier.value,
+                    alignSetting,
                     expanded: expanded,
                   ),
                   children: [
@@ -335,6 +348,7 @@ class LyricLineWidget extends StatelessWidget {
                             line: line,
                             position: audioHandler.getPosition(),
                             fontSize: fontSize,
+                            fontWeight: weight,
                             expanded: expanded,
                             textAlign: textAlign,
                           );
@@ -346,7 +360,7 @@ class LyricLineWidget extends StatelessWidget {
                         textAlign: textAlign,
                         style: TextStyle(
                           fontSize: fontSize,
-                          fontWeight: lyricsFontWeightNotifier.value,
+                          fontWeight: weight,
                           fontFamily: fontFamily,
                           color: isCurrent
                               ? textColor
@@ -371,7 +385,7 @@ class LyricLineWidget extends StatelessWidget {
                         textAlign: textAlign,
                         style: TextStyle(
                           fontSize: fontSize - (expanded ? 8 : 4),
-                          fontWeight: lyricsFontWeightNotifier.value,
+                          fontWeight: weight,
                           fontFamily: fontFamily,
                           color: textColor.withAlpha(128),
                         ),
@@ -391,6 +405,7 @@ class KaraokeText extends StatefulWidget {
   final LyricLine line;
   final Duration position;
   final double fontSize;
+  final FontWeight fontWeight;
   final bool expanded;
   final TextAlign textAlign;
   final bool isDesktopLyrics;
@@ -400,6 +415,7 @@ class KaraokeText extends StatefulWidget {
     required this.line,
     required this.position,
     required this.fontSize,
+    required this.fontWeight,
     required this.expanded,
     this.textAlign = TextAlign.left,
     this.isDesktopLyrics = false,
@@ -493,6 +509,7 @@ class KaraokeTextState extends State<KaraokeText>
                 token: token,
                 position: positionNotifier,
                 fontSize: widget.fontSize,
+                fontWeight: widget.fontWeight,
                 textColor: textColor,
                 isDesktopLyrics: widget.isDesktopLyrics,
               ),
@@ -510,6 +527,7 @@ class _KaraokeTokenText extends StatefulWidget {
   final LyricToken token;
   final ValueListenable<Duration> position;
   final double fontSize;
+  final FontWeight fontWeight;
   final Color textColor;
   final bool isDesktopLyrics;
 
@@ -517,6 +535,7 @@ class _KaraokeTokenText extends StatefulWidget {
     required this.token,
     required this.position,
     required this.fontSize,
+    required this.fontWeight,
     required this.textColor,
     required this.isDesktopLyrics,
   });
@@ -620,7 +639,7 @@ class _KaraokeTokenTextState extends State<_KaraokeTokenText> {
             token.text,
             style: TextStyle(
               fontSize: widget.fontSize,
-              fontWeight: lyricsFontWeightNotifier.value,
+              fontWeight: widget.fontWeight,
               fontFamily: fontFamily,
               color: widget.textColor,
             ),

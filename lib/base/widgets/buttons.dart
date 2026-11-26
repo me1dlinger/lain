@@ -94,13 +94,32 @@ Widget playOrPauseButton(double size, {Color? iconColor}) {
   return IconButton(
     autofocus: viewModeNotifier.value == .bigPicture,
     color: iconColor,
-    icon: ValueListenableBuilder(
-      valueListenable: isPlayingNotifier,
-      builder: (_, isPlaying, _) {
-        return MorphPlayPauseIcon(
-          playing: isPlaying,
-          size: size,
-          color: iconColor,
+    icon: ListenableBuilder(
+      listenable: Listenable.merge([isPlayingNotifier, isAudioFadingNotifier]),
+      builder: (context, child) {
+        final isPlaying = isPlayingNotifier.value;
+        final fading = isAudioFadingNotifier.value;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(
+              opacity: fading ? 0.4 : 1,
+              child: MorphPlayPauseIcon(
+                playing: isPlaying,
+                size: size,
+                color: iconColor,
+              ),
+            ),
+            if (fading)
+              SizedBox(
+                width: size * 0.82,
+                height: size * 0.82,
+                child: CircularProgressIndicator(
+                  strokeWidth: max(1.6, size * 0.07),
+                  color: iconColor,
+                ),
+              ),
+          ],
         );
       },
     ),

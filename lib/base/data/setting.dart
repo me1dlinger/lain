@@ -241,15 +241,31 @@ class Setting {
       orElse: () => ThemeType.vivid,
     );
 
-    lyricsFontSizeOffsetNotifier.value =
-        json['lyricsFontSizeOffset'] as double? ??
-        lyricsFontSizeOffsetNotifier.value;
+    final savedLyricsOffset = json['lyricsFontSizeOffset'] as double?;
+    final savedFullscreenOffset = json['lyricsFullscreenFontSizeOffset'];
+    if (savedFullscreenOffset is num) {
+      lyricsFullscreenFontSizeOffsetNotifier.value = savedFullscreenOffset
+          .toDouble();
+      lyricsFontSizeOffsetNotifier.value = savedLyricsOffset ?? 0;
+    } else {
+      // The old single offset was tuned on the full-screen page. Keep that
+      // appearance there and give the cover page a neutral size.
+      lyricsFullscreenFontSizeOffsetNotifier.value = savedLyricsOffset ?? 0;
+      lyricsFontSizeOffsetNotifier.value = 0;
+    }
     lyricsFontWeightNotifier.value = lyricsFontWeightFromValue(
       json['lyricsFontWeight'],
       fallback: lyricsFontWeightNotifier.value,
     );
+    lyricsFullscreenFontWeightNotifier.value = lyricsFontWeightFromValue(
+      json['lyricsFullscreenFontWeight'],
+      fallback: lyricsFullscreenFontWeightNotifier.value,
+    );
     lyricsTextAlignNotifier.value = lyricsTextAlignFromName(
       json['lyricsTextAlign'],
+    );
+    lyricsFullscreenTextAlignNotifier.value = lyricsTextAlignFromName(
+      json['lyricsFullscreenTextAlign'],
     );
     lyricsRomajiNotifier.value = json['lyricsRomaji'] as bool? ?? false;
     lyricsCoverMotionNotifier.value =
@@ -472,8 +488,14 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'lyricsFullscreenFontSizeOffset':
+            lyricsFullscreenFontSizeOffsetNotifier.value,
         'lyricsFontWeight': lyricsFontWeightNotifier.value.value,
+        'lyricsFullscreenFontWeight':
+            lyricsFullscreenFontWeightNotifier.value.value,
         'lyricsTextAlign': lyricsTextAlignNotifier.value.name,
+        'lyricsFullscreenTextAlign':
+            lyricsFullscreenTextAlignNotifier.value.name,
         'lyricsRomaji': lyricsRomajiNotifier.value,
         'lyricsCoverMotion': lyricsCoverMotionNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
