@@ -20,6 +20,7 @@ import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/services/background_task_service.dart';
 import 'package:lain/base/services/ab_loop.dart';
 import 'package:lain/base/services/broadcast_inspector.dart';
+import 'package:lain/base/services/cloud_queue_sync.dart';
 import 'package:lain/base/services/home_widget_service.dart';
 import 'package:lain/base/services/interaction.dart';
 import 'package:lain/base/services/mobile_data_notice.dart';
@@ -723,6 +724,10 @@ class MyAudioHandler extends BaseAudioHandler {
     needPause = false;
     isPlayingNotifier.value = isPlaying;
     unawaited(playbackJournal.notePlaying(isPlaying));
+    if (isPlaying) {
+      // Starting or resuming is a queue the other devices may want next.
+      cloudQueueSync.noteQueueChanged();
+    }
     if (Platform.isWindows) {
       if (!windowIsClosed) {
         setupTaskbar();
@@ -1038,6 +1043,7 @@ class MyAudioHandler extends BaseAudioHandler {
   void saveAllStates() async {
     await audioHandler._savePlayQueueState();
     audioHandler.savePlayState();
+    cloudQueueSync.noteQueueChanged();
   }
 
   /// Rebuilds everything derived from the queue after it is edited in place.
@@ -2307,6 +2313,11 @@ class MyAudioHandler extends BaseAudioHandler {
     // while the phone has already moved on. Losing the cover for a moment is
     // far cheaper than losing the title, the artist and the lyric line.
     currentSongNotifier.value = currentSong;
+    if (_started) {
+      // A track change is a queue update; the first load at launch is only
+      // restoring what was already here and must not replace the server's.
+      cloudQueueSync.noteQueueChanged();
+    }
     unawaited(
       personalScrobble.updateNowPlaying(
         currentSong,
@@ -3710,6 +3721,9 @@ class MyAudioHandler extends BaseAudioHandler {
     _positionTimer?.cancel();
     _positionTimer = null;
     _positionState.writeAsString(getPosition().inMilliseconds.toString());
+    // Pausing is the point where the real listening position is known and the
+    // user is likely to pick the queue up elsewhere.
+    unawaited(cloudQueueSync.flush());
   }
 
   @override
@@ -3720,6 +3734,8 @@ class MyAudioHandler extends BaseAudioHandler {
     _restorePlayerVolume();
     await _endLoadGrace();
     await _endStallGrace();
+    // Capture the queue and where it was before the player forgets it.
+    unawaited(cloudQueueSync.flush());
     _player.stop();
     await activateAudioSession(false);
     await updateIsPlaying(false);

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lain/base/data/cloud_play_queue.dart';
 import 'package:lain/base/data/lan_direct_setting.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/server_stats.dart';
@@ -1137,6 +1138,110 @@ class NavidromeClient extends StreamClient {
       },
     );
   }
+
+  /// Tri-state: null until a probe has run, then whether this server answers
+  /// the OpenSubsonic play-queue endpoints.
+  bool? _cloudPlayQueueSupported;
+
+  @override
+  bool get supportsCloudPlayQueue => _cloudPlayQueueSupported != false;
+
+  /// One read of the server's queue that also settles support.
+  ///
+  /// `status=ok` is the normal answer. Error code 0 is what a server that does
+  /// not implement the endpoint returns; code 70 (not found) is how some
+  /// servers say the user simply has no queue yet, which is still a working
+  /// endpoint. Anything else - a timeout, a login problem - is not cached, so
+  /// the next probe can still find the feature.
+  Future<({bool supported, CloudPlayQueue? queue})> _readPlayQueue() async {
+    try {
+      final res = await getWithFailover(
+        '/rest/getPlayQueue.view',
+        queryParameters: params(),
+      );
+      final data = res.data;
+      final response = data is Map ? data['subsonic-response'] : null;
+      if (response is Map && response['status'] == 'ok') {
+        _cloudPlayQueueSupported = true;
+        return (
+          supported: true,
+          queue: CloudPlayQueue.fromSubsonic(response['playQueue']),
+        );
+      }
+
+      final error = response is Map ? response['error'] : null;
+      final code = error is Map ? error['code'] : null;
+      if (code == 0) {
+        _cloudPlayQueueSupported = false;
+        return (supported: false, queue: null);
+      }
+      if (code == 70) {
+        _cloudPlayQueueSupported = true;
+        return (supported: true, queue: CloudPlayQueue.empty);
+      }
+    } catch (error) {
+      logger.output('[Navidrome] play queue read: $error');
+    }
+
+    return (supported: _cloudPlayQueueSupported ?? false, queue: null);
+  }
+
+  @override
+  Future<bool> probeCloudPlayQueue() async {
+    final cached = _cloudPlayQueueSupported;
+    if (cached != null) {
+      return cached;
+    }
+    return (await _readPlayQueue()).supported;
+  }
+
+  @override
+  Future<CloudPlayQueue?> getPlayQueue() async {
+    if (_cloudPlayQueueSupported == false) {
+      return null;
+    }
+    return (await _readPlayQueue()).queue;
+  }
+
+  @override
+  Future<bool> savePlayQueue(
+    List<String> songIds, {
+    required String? currentId,
+    Duration position = Duration.zero,
+  }) async {
+    if (songIds.isEmpty) {
+      return false;
+    }
+    if (!await probeCloudPlayQueue()) {
+      return false;
+    }
+    final response = await safeRequest(
+      '/rest/savePlayQueue.view',
+      query: buildSavePlayQueueQuery(
+        songIds,
+        currentId: currentId,
+        position: position,
+      ),
+    );
+    return response != null;
+  }
+}
+
+/// The query `savePlayQueue` takes. Kept out of the request so the shape the
+/// endpoint expects is testable without a server: repeated `id` parameters,
+/// the current song's id and the position in milliseconds.
+@visibleForTesting
+Map<String, dynamic> buildSavePlayQueueQuery(
+  List<String> songIds, {
+  required String? currentId,
+  Duration position = Duration.zero,
+}) {
+  final positionMs = position.inMilliseconds;
+  return {
+    'id': List.of(songIds),
+    if (currentId != null && currentId.isNotEmpty) 'current': currentId,
+    'position': positionMs < 0 ? 0 : positionMs,
+  };
 }
 
 /// Formats milliseconds as `MM:SS.mmm`, the timestamp shape the LRC parser

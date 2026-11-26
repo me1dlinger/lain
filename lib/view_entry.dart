@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/playback_journal.dart';
+import 'package:lain/base/services/cloud_queue_sync.dart';
 import 'package:lain/base/services/scrobble_queue.dart';
 import 'package:lain/base/data/config.dart';
 import 'package:lain/base/data/library.dart';
@@ -94,6 +95,11 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
       if (state == AppLifecycleState.resumed) {
         unawaited(scrobbleQueue.flush());
       }
+    }
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Leaving the app is the last moment to record where the queue was.
+      unawaited(cloudQueueSync.flush());
     }
   }
 

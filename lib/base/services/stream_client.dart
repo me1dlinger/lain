@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:lain/base/data/cloud_play_queue.dart';
 import 'package:lain/base/services/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lain/base/data/playlist.dart';
@@ -280,4 +281,23 @@ abstract class StreamClient {
   /// Asks the server to rescan its library. False when the source cannot, or
   /// the server refused.
   Future<bool> startScan() async => false;
+
+  /// Whether this source has an OpenSubsonic play queue shared between
+  /// devices. Sources without one keep everything local.
+  bool get supportsCloudPlayQueue => false;
+
+  /// Confirms with the server that it answers the play-queue endpoints. A
+  /// source that cannot is never asked again for this session.
+  Future<bool> probeCloudPlayQueue() async => supportsCloudPlayQueue;
+
+  /// The queue the server holds for this user, or null when it cannot be read.
+  Future<CloudPlayQueue?> getPlayQueue() async => null;
+
+  /// Replaces the server's queue with [songIds], pointing at [currentId] and
+  /// [position].
+  Future<bool> savePlayQueue(
+    List<String> songIds, {
+    required String? currentId,
+    Duration position = Duration.zero,
+  }) async => false;
 }

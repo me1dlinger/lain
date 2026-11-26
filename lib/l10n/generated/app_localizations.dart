@@ -5707,6 +5707,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} tracks'**
   String sessionTracks(int count);
+
+  /// No description provided for @cloudQueueSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync play queue'**
+  String get cloudQueueSync;
+
+  /// No description provided for @cloudQueueRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from server'**
+  String get cloudQueueRestore;
+
+  /// No description provided for @cloudQueueRestoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the current queue with the server queue?'**
+  String get cloudQueueRestoreConfirm;
+
+  /// No description provided for @cloudQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No queue on the server'**
+  String get cloudQueueEmpty;
+
+  /// No description provided for @cloudQueueUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server queue unavailable'**
+  String get cloudQueueUnavailable;
+
+  /// No description provided for @cloudQueueRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue restored'**
+  String get cloudQueueRestored;
+
+  /// No description provided for @cloudQueueSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unavailable'**
+  String cloudQueueSkipped(int count);
 }
 
 class _AppLocalizationsDelegate

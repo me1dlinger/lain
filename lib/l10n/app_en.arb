@@ -1263,5 +1263,13 @@
   "scrobbleAttempts": "{count} attempts",
   "@scrobbleAttempts": {"placeholders": {"count": {"type": "int"}}},
   "sessionTracks": "{count} tracks",
-  "@sessionTracks": {"placeholders": {"count": {"type": "int"}}}
+  "@sessionTracks": {"placeholders": {"count": {"type": "int"}}},
+  "cloudQueueSync": "Sync play queue",
+  "cloudQueueRestore": "Restore from server",
+  "cloudQueueRestoreConfirm": "Replace the current queue with the server queue?",
+  "cloudQueueEmpty": "No queue on the server",
+  "cloudQueueUnavailable": "Server queue unavailable",
+  "cloudQueueRestored": "Queue restored",
+  "cloudQueueSkipped": "{count} unavailable",
+  "@cloudQueueSkipped": {"placeholders": {"count": {"type": "int"}}}
 }
