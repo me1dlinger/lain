@@ -17,7 +17,6 @@ import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/widgets/playback_options.dart';
-import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/buttons.dart';
 import 'package:lain/base/widgets/morph_icon.dart';
@@ -631,11 +630,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 listenable: Listenable.merge([
                   replayGainModeNotifier,
                   playbackSpeedNotifier,
-                  audioFadeNotifier,
                   gaplessPlaybackNotifier,
                   trackTransitionModeNotifier,
                   trackTransitionSecondsNotifier,
-                  playbackModeNotifier,
                   playerCoverStyleNotifier,
                 ]),
                 builder: (context, child) {
@@ -784,17 +781,6 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         onTap: () => showPlaybackSpeedDialog(sheetContext),
                       ),
                       ActionMenuTile(
-                        icon: Icons.volume_up_rounded,
-                        label: l10n.audioFade,
-                        trailing: SizedBox(
-                          width: 50,
-                          child: MySwitch(
-                            valueNotifier: audioFadeNotifier,
-                            onToggleCallBack: setting.save,
-                          ),
-                        ),
-                      ),
-                      ActionMenuTile(
                         icon: Icons.link_rounded,
                         label: l10n.gaplessPlayback,
                         trailing: SizedBox(
@@ -819,17 +805,10 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         label: l10n.trackTransition,
                         subtitle: _transitionSubtitle(l10n),
                         trailing: chevron,
-                        onTap: () => _showTransitionDialog(sheetContext),
-                      ),
-                      ActionMenuTile(
-                        icon: Icons.graphic_eq_rounded,
-                        label: l10n.playbackMode,
-                        subtitle: PlaybackModePage.modeLabel(
-                          l10n,
-                          playbackModeNotifier.value,
+                        onTap: () => showTrackTransitionDialog(
+                          sheetContext,
+                          textColor: lyricsPageForegroundColor.value,
                         ),
-                        trailing: chevron,
-                        onTap: () => showAudioPlaybackModeDialog(sheetContext),
                       ),
                     ],
                   );
@@ -851,140 +830,6 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         '${l10n.transitionFixed} · ${trackTransitionSecondsNotifier.value}s',
       TrackTransitionMode.adaptive => l10n.transitionAdaptive,
     };
-  }
-
-  Future<void> _showTransitionDialog(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return showAnimationDialog<void>(
-      context: context,
-      child: SizedBox(
-        width: 320,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              trackTransitionModeNotifier,
-              trackTransitionSecondsNotifier,
-            ]),
-            builder: (context, child) {
-              final mode = trackTransitionModeNotifier.value;
-              final textColor = lyricsPageForegroundColor.value;
-              return DefaultTextStyle.merge(
-                style: TextStyle(color: textColor),
-                child: IconTheme(
-                  data: IconThemeData(color: textColor),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                        child: Text(
-                          l10n.trackTransition,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                      for (final value in TrackTransitionMode.values)
-                        Builder(
-                          builder: (dialogContext) => ListTile(
-                            textColor: textColor,
-                            iconColor: textColor,
-                            titleTextStyle: TextStyle(
-                              fontSize: 15,
-                              color: textColor,
-                            ),
-                            title: Text(switch (value) {
-                              TrackTransitionMode.off => l10n.transitionOff,
-                              TrackTransitionMode.fixed => l10n.transitionFixed,
-                              TrackTransitionMode.adaptive =>
-                                l10n.transitionAdaptive,
-                            }, style: TextStyle(color: textColor)),
-                            trailing: mode == value
-                                ? Icon(Icons.check_rounded, color: textColor)
-                                : null,
-                            onTap: () {
-                              trackTransitionModeNotifier.value = value;
-                              if (value != TrackTransitionMode.off) {
-                                gaplessPlaybackNotifier.value = false;
-                              }
-                              setting.save();
-                            },
-                          ),
-                        ),
-                      if (mode == TrackTransitionMode.fixed)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                          child: Row(
-                            children: [
-                              Text(
-                                l10n.transitionSeconds,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: textColor,
-                                ),
-                              ),
-                              const Spacer(),
-                              DropdownButton<int>(
-                                value: trackTransitionSecondsNotifier.value,
-                                dropdownColor: colorManager
-                                    .getSpecificOpaqueBgColor(),
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 14,
-                                ),
-                                iconEnabledColor: textColor,
-                                underline: const SizedBox.shrink(),
-                                items: [
-                                  for (final value in const [
-                                    2,
-                                    4,
-                                    6,
-                                    8,
-                                    10,
-                                    12,
-                                  ])
-                                    DropdownMenuItem(
-                                      value: value,
-                                      child: Text(
-                                        '$value s',
-                                        style: TextStyle(color: textColor),
-                                      ),
-                                    ),
-                                ],
-                                onChanged: (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  trackTransitionSecondsNotifier.value = value;
-                                  setting.save();
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: textColor,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(l10n.confirm),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   void showAdjustLyrics(BuildContext context) {

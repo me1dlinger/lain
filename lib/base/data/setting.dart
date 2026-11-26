@@ -373,10 +373,9 @@ class Setting {
       }
     }
 
-    playbackModeNotifier.value =
-        AudioPlaybackMode.values.asNameMap()[json['playbackMode']
-            ?.toString()] ??
-        defaultPlaybackMode();
+    // Audio focus coexistence is now the only mode. The old exclusive/duck
+    // choice is hidden and ignored, even if an older backup still contains it.
+    playbackModeNotifier.value = AudioPlaybackMode.mix;
 
     final naming = LibraryNamingFormat.fromJson(json['libraryNaming']);
     libraryDirTemplateNotifier.value = naming.dirTemplate;

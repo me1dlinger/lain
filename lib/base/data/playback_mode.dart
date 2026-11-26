@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:material_ui/material_ui.dart';
 
 /// How a stream shares the output device with other apps.
@@ -25,9 +23,4 @@ final playbackModeNotifier = ValueNotifier<AudioPlaybackMode>(
   defaultPlaybackMode(),
 );
 
-AudioPlaybackMode defaultPlaybackMode() {
-  if (Platform.isAndroid || Platform.isIOS) {
-    return AudioPlaybackMode.exclusive;
-  }
-  return AudioPlaybackMode.mix;
-}
+AudioPlaybackMode defaultPlaybackMode() => AudioPlaybackMode.mix;

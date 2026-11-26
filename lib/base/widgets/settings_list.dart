@@ -36,7 +36,6 @@ import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/media_query.dart';
 import 'package:lain/base/widgets/server_manager.dart';
 import 'package:lain/base/widgets/equalizer.dart';
-import 'package:lain/base/widgets/playback_mode_page.dart';
 import 'package:lain/base/widgets/personal_scrobble_page.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/share_card_settings_page.dart';
@@ -50,7 +49,6 @@ import 'package:lain/base/widgets/source_health_page.dart';
 import 'package:lain/base/widgets/sync_preview_page.dart';
 import 'package:lain/base/widgets/audio_output_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
-import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
 import 'package:lain/base/widgets/comment_settings_page.dart';
@@ -285,7 +283,11 @@ class _SettingsListState extends State<SettingsList> {
         child: Row(
           children: [
             const SizedBox(width: 12),
-            Icon(Icons.search_rounded, size: 18, color: textColor.withAlpha(150)),
+            Icon(
+              Icons.search_rounded,
+              size: 18,
+              color: textColor.withAlpha(150),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
@@ -346,7 +348,11 @@ class _SettingsListState extends State<SettingsList> {
       padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
       child: Column(
         children: [
-          Icon(Icons.search_off_rounded, size: 38, color: textColor.withAlpha(70)),
+          Icon(
+            Icons.search_off_rounded,
+            size: 38,
+            color: textColor.withAlpha(70),
+          ),
           const SizedBox(height: 10),
           Text(
             l10n.settingsNoResults,
@@ -376,9 +382,9 @@ class _SettingsListState extends State<SettingsList> {
       valueListenable: settingsCategoryOrderNotifier,
       builder: (context, order, child) {
         final query = _searchController.text.trim().toLowerCase();
-        final filtered = _uniqueOrder(order)
-            .where((category) => _categoryMatches(category, l10n, query))
-            .toList();
+        final filtered = _uniqueOrder(
+          order,
+        ).where((category) => _categoryMatches(category, l10n, query)).toList();
         final categorySlivers = <Widget>[];
         final grouped = <SettingsGroup, List<SettingsCategory>>{};
         for (final category in filtered) {
@@ -584,11 +590,8 @@ class _SettingsListState extends State<SettingsList> {
           equalizerListTile(context, l10n),
           replayGainListTile(context, l10n),
           playbackSpeedListTile(context, l10n),
-          audioFadeListTile(l10n),
           gaplessListTile(l10n),
           trackTransitionListTile(context, l10n),
-          transitionSecondsListTile(context, l10n),
-          playbackModeListTile(context, l10n),
           ListTile(
             leading: Icon(
               Icons.speaker_rounded,
@@ -1042,7 +1045,9 @@ class _SettingsListState extends State<SettingsList> {
     BuildContext context,
     AppLocalizations l10n,
   ) {
-    final cachedCount = library.songList.where((song) => song.cacheExist).length;
+    final cachedCount = library.songList
+        .where((song) => song.cacheExist)
+        .length;
     return showAnimationDialog<bool>(
       context: context,
       child: SizedBox(
@@ -1149,11 +1154,7 @@ class _SettingsListState extends State<SettingsList> {
   /// track re-resolves its source, so the current one is never interrupted.
   Widget lanDirectListTile(AppLocalizations l10n) {
     return ListTile(
-      leading: Icon(
-        Icons.lan_rounded,
-        size: iconSize,
-        color: iconColor.value,
-      ),
+      leading: Icon(Icons.lan_rounded, size: iconSize, color: iconColor.value),
       title: Text(l10n.lanDirect),
       subtitle: Text(l10n.lanDirectDescription),
       trailing: SizedBox(
@@ -1179,10 +1180,7 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget scrobbleQueueListTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget scrobbleQueueListTile(BuildContext context, AppLocalizations l10n) {
     return ValueListenableBuilder(
       valueListenable: scrobbleQueue.events,
       builder: (context, events, child) {
@@ -1453,7 +1451,8 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.cacheSongs),
       trailing: ValueListenableBuilder(
         valueListenable: cacheSizeNotifier,
-        builder: (context, size, child) => Text('${size.toStringAsFixed(1)}MB  '),
+        builder: (context, size, child) =>
+            Text('${size.toStringAsFixed(1)}MB  '),
       ),
       onTap: () {
         pushSettingsPage<void>(
@@ -1477,10 +1476,7 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget downloadQualityListTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget downloadQualityListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(equalizerImage, size: iconSize),
       title: Text(l10n.downloadQuality),
@@ -1630,9 +1626,7 @@ class _SettingsListState extends State<SettingsList> {
         valueListenable: cacheLimitGbNotifier,
         builder: (context, value, child) {
           return Text(
-            value == 0
-                ? l10n.cacheLimitUnlimited
-                : l10n.cacheLimitGb(value),
+            value == 0 ? l10n.cacheLimitUnlimited : l10n.cacheLimitGb(value),
           );
         },
       ),
@@ -1801,7 +1795,9 @@ class _SettingsListState extends State<SettingsList> {
               await entity.delete();
             }
           } catch (e) {
-            logger.output('[settings] cache move failed for ${entity.path}: $e');
+            logger.output(
+              '[settings] cache move failed for ${entity.path}: $e',
+            );
           }
         }
       }
@@ -2078,8 +2074,8 @@ class _SettingsListState extends State<SettingsList> {
                             title: Text(
                               '${candidate.interfaceName} · ${candidate.address}',
                             ),
-                            trailing: relayAddressNotifier.value ==
-                                    candidate.address
+                            trailing:
+                                relayAddressNotifier.value == candidate.address
                                 ? const Icon(Icons.check)
                                 : null,
                             onTap: () =>
@@ -2343,11 +2339,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget gaplessListTile(AppLocalizations l10n) {
     return ListTile(
-      leading: Icon(
-        Icons.link_rounded,
-        size: iconSize,
-        color: iconColor.value,
-      ),
+      leading: Icon(Icons.link_rounded, size: iconSize, color: iconColor.value),
       title: Text(l10n.gaplessPlayback),
       trailing: SizedBox(
         width: 50,
@@ -2366,10 +2358,7 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  String _transitionLabel(
-    AppLocalizations l10n,
-    TrackTransitionMode mode,
-  ) {
+  String _transitionLabel(AppLocalizations l10n, TrackTransitionMode mode) {
     return switch (mode) {
       TrackTransitionMode.off => l10n.transitionOff,
       TrackTransitionMode.fixed => l10n.transitionFixed,
@@ -2377,10 +2366,7 @@ class _SettingsListState extends State<SettingsList> {
     };
   }
 
-  Widget trackTransitionListTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget trackTransitionListTile(BuildContext context, AppLocalizations l10n) {
     return ListenableBuilder(
       listenable: Listenable.merge([
         trackTransitionModeNotifier,
@@ -2397,176 +2383,17 @@ class _SettingsListState extends State<SettingsList> {
           ),
           title: Text(l10n.trackTransition),
           trailing: Text(
-            mode == TrackTransitionMode.fixed
-                ? '${_transitionLabel(l10n, mode)} · ${seconds}s  '
-                : '${_transitionLabel(l10n, mode)}  ',
+            mode == TrackTransitionMode.off
+                ? '${_transitionLabel(l10n, mode)}  '
+                : '${_transitionLabel(l10n, mode)} · ${seconds}s  ',
             style: TextStyle(
               fontSize: 13,
               color: colorManager.getSpecificTextColor().withAlpha(170),
             ),
           ),
-          onTap: () async {
-            final choice = await showAnimationDialog<TrackTransitionMode>(
-              context: context,
-              child: SizedBox(
-                width: 300,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final value in TrackTransitionMode.values)
-                        Builder(
-                          builder: (dialogContext) => ListTile(
-                            title: Text(_transitionLabel(l10n, value)),
-                            trailing: mode == value
-                                ? const Icon(Icons.check_rounded)
-                                : null,
-                            onTap: () => Navigator.pop(dialogContext, value),
-                          ),
-                        ),
-                      if (mode == TrackTransitionMode.fixed)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                          child: Row(
-                            children: [
-                              Text(
-                                l10n.transitionSeconds,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const Spacer(),
-                              DropdownButton<int>(
-                                value: seconds,
-                                underline: const SizedBox.shrink(),
-                                items: [
-                                  for (final value in const [2, 4, 6, 8, 10, 12])
-                                    DropdownMenuItem(
-                                      value: value,
-                                      child: Text('$value s'),
-                                    ),
-                                ],
-                                onChanged: (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  trackTransitionSecondsNotifier.value = value;
-                                  setting.save();
-                                  setState(() {});
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            if (choice == null) {
-              return;
-            }
-            trackTransitionModeNotifier.value = choice;
-            if (choice != TrackTransitionMode.off) {
-              // A long fade and gapless cannot run together.
-              gaplessPlaybackNotifier.value = false;
-            }
-            setting.save();
-            if (mounted) {
-              setState(() {});
-            }
-          },
+          onTap: () => showTrackTransitionDialog(context),
         );
       },
-    );
-  }
-
-  Widget transitionSecondsListTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        trackTransitionModeNotifier,
-        trackTransitionSecondsNotifier,
-      ]),
-      builder: (context, child) {
-        if (trackTransitionModeNotifier.value != TrackTransitionMode.fixed) {
-          return const SizedBox.shrink();
-        }
-        return ListTile(
-          leading: Icon(
-            Icons.timer_outlined,
-            size: iconSize,
-            color: iconColor.value,
-          ),
-          title: Text(l10n.transitionSeconds),
-          trailing: Text(
-            '${trackTransitionSecondsNotifier.value}s  ',
-            style: TextStyle(
-              fontSize: 13,
-              color: colorManager.getSpecificTextColor().withAlpha(170),
-            ),
-          ),
-          onTap: () async {
-            final choice = await showAnimationDialog<int>(
-              context: context,
-              child: SizedBox(
-                width: 280,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final value in const [2, 4, 6, 8, 10, 12])
-                        Builder(
-                          builder: (dialogContext) => ListTile(
-                            title: Text('$value s'),
-                            subtitle: Text(
-                              '${value ~/ 2}s + ${value ~/ 2}s',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            trailing:
-                                trackTransitionSecondsNotifier.value == value
-                                ? const Icon(Icons.check_rounded)
-                                : null,
-                            onTap: () => Navigator.pop(dialogContext, value),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            if (choice == null) {
-              return;
-            }
-            trackTransitionSecondsNotifier.value = choice;
-            setting.save();
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        );
-      },
-    );
-  }
-
-  Widget audioFadeListTile(AppLocalizations l10n) {
-    return ListTile(
-      leading: Icon(
-        Icons.volume_up_rounded,
-        size: iconSize,
-        color: iconColor.value,
-      ),
-      title: Text(l10n.audioFade),
-      subtitle: Text(l10n.audioFadeDescription),
-      trailing: SizedBox(
-        width: 50,
-        child: MySwitch(
-          valueNotifier: audioFadeNotifier,
-          onToggleCallBack: () => setting.save(),
-        ),
-      ),
     );
   }
 
@@ -2588,10 +2415,7 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget personalScrobbleListTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget personalScrobbleListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: Icon(
         Icons.history_toggle_off_rounded,
@@ -2629,30 +2453,6 @@ class _SettingsListState extends State<SettingsList> {
 
   /// How this app shares the output device with other apps. The subtitle shows
   /// the mode in effect, so leaving the page needs no second look.
-  Widget playbackModeListTile(BuildContext context, AppLocalizations l10n) {
-    return ValueListenableBuilder<AudioPlaybackMode>(
-      valueListenable: playbackModeNotifier,
-      builder: (context, mode, child) {
-        return ListTile(
-          leading: Icon(
-            Icons.graphic_eq_rounded,
-            size: iconSize,
-            color: iconColor.value,
-          ),
-          title: Text(l10n.playbackMode),
-          subtitle: Text(PlaybackModePage.modeLabel(l10n, mode)),
-          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-          onTap: () {
-            pushSettingsPage<void>(
-              context,
-              settingsPageRoute<void>(() => const PlaybackModePage()),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget shareCardSettingsListTile(
     BuildContext context,
     AppLocalizations l10n,

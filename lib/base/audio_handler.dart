@@ -789,6 +789,13 @@ class MyAudioHandler extends BaseAudioHandler {
   int _fadeOutGeneration = 0;
   double _pendingFadeInSeconds = 0;
 
+  bool get _fadeEnabled =>
+      trackTransitionModeNotifier.value != TrackTransitionMode.off;
+
+  Duration get _fadeHalf => Duration(
+    milliseconds: (trackTransitionSecondsNotifier.value * 500).round(),
+  );
+
   /// Publishes a window of the queue around the current song.
   ///
   /// A MediaSession queue is what a head unit browses and what gives it the
@@ -1033,6 +1040,25 @@ class MyAudioHandler extends BaseAudioHandler {
     audioHandler.savePlayState();
   }
 
+  /// Rebuilds everything derived from the queue after it is edited in place.
+  /// The old gapless item and transition plan point at the previous neighbour;
+  /// leaving them alive makes the player start that song for a moment before
+  /// the newly inserted next track.
+  void _refreshQueueDerivedState() {
+    if (_fadeOutRunning) {
+      _cancelFade();
+      _restorePlayerVolume();
+    }
+    _cancelTrackFade();
+    _clearGaplessNext();
+    _planNextTransition();
+    _publishQueueWindow();
+    _prefetchNeighbours();
+    if (!loadingSong) {
+      unawaited(_prepareGaplessNext());
+    }
+  }
+
   bool insert2Next(MyAudioMetadata song) {
     final result = PlayQueueLogic.insert2Next(playQueue, currentIndex, song);
     if (result == null) {
@@ -1045,7 +1071,7 @@ class MyAudioHandler extends BaseAudioHandler {
       _playQueueTmp.add(song);
     }
     // The queue changed, so what is next/previous changed too.
-    _prefetchNeighbours();
+    _refreshQueueDerivedState();
     return true;
   }
 
@@ -1065,6 +1091,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (current != null && current.cacheExist) {
       _cacheNextSong();
     }
+    _refreshQueueDerivedState();
     return true;
   }
 
@@ -1142,7 +1169,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (currentIndex < 0) {
       currentIndex = 0;
     }
-    _prefetchNeighbours();
+    _refreshQueueDerivedState();
     saveAllStates();
   }
 
@@ -1162,7 +1189,7 @@ class MyAudioHandler extends BaseAudioHandler {
       ..shuffle();
     playQueue = [current, ...others];
     currentIndex = 0;
-    _prefetchNeighbours();
+    _refreshQueueDerivedState();
   }
 
   void changePlayMode(int newPlayMode) async {
@@ -1214,7 +1241,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (newPlayMode != 2) {
       await _savePlayQueueState();
     }
-    _prefetchNeighbours();
+    _refreshQueueDerivedState();
     savePlayState();
   }
 
@@ -1274,7 +1301,7 @@ class MyAudioHandler extends BaseAudioHandler {
       _playQueueTmp.removeWhere((song) => song.id == tmp.id);
     }
     playQueue.removeAt(index);
-    _prefetchNeighbours();
+    _refreshQueueDerivedState();
   }
 
   Future<void> clear({bool notifyUndo = true}) async {
@@ -2387,7 +2414,7 @@ class MyAudioHandler extends BaseAudioHandler {
     // at full level is what makes a track change click on a head unit.
     final longFadeIn = _pendingFadeInSeconds;
     _pendingFadeInSeconds = 0;
-    final fadeEnabled = audioFadeNotifier.value || longFadeIn > 0;
+    final fadeEnabled = _fadeEnabled || longFadeIn > 0;
     if (fadeEnabled) {
       _cancelFade();
       _player.setVolume(0);
@@ -2440,7 +2467,7 @@ class MyAudioHandler extends BaseAudioHandler {
           ),
         );
       } else if (fadeEnabled && isPlayingNotifier.value) {
-        unawaited(_fadeTo(_volumeTarget, from: 0));
+        unawaited(_fadeTo(_volumeTarget, from: 0, duration: _fadeHalf));
       } else if (!fadeEnabled) {
         _restorePlayerVolume();
       }
@@ -3568,7 +3595,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
     final longFadeIn = _pendingFadeInSeconds;
     _pendingFadeInSeconds = 0;
-    final fadeEnabled = audioFadeNotifier.value || longFadeIn > 0;
+    final fadeEnabled = _fadeEnabled || longFadeIn > 0;
     if (fadeEnabled) {
       _cancelFade();
       _player.setVolume(0);
@@ -3577,7 +3604,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _player.play();
     if (fadeEnabled) {
-      unawaited(_fadeTo(_volumeTarget, from: 0));
+      unawaited(_fadeTo(_volumeTarget, from: 0, duration: _fadeHalf));
     }
 
     // Publish "playing" before the widget bookkeeping below, which can throw on
@@ -3665,8 +3692,8 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _cancelTrackFade();
     final generation = ++_transportGeneration;
-    if (audioFadeNotifier.value && isPlayingNotifier.value) {
-      await _fadeTo(0, duration: const Duration(milliseconds: 180));
+    if (_fadeEnabled && isPlayingNotifier.value) {
+      await _fadeTo(0, duration: _fadeHalf);
     }
     // A play() that arrived while the volume ramped down owns the player now.
     if (generation != _transportGeneration) {

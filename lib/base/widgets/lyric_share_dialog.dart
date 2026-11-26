@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:lain/base/app.dart';
+import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/data/share_card_settings.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -70,6 +71,16 @@ class _LyricShareDialogState extends State<LyricShareDialog> {
     return text.isEmpty ? getTitle(widget.song) : text;
   }
 
+  String _backgroundLabel(AppLocalizations l10n, ShareCardBackground mode) {
+    return switch (mode) {
+      ShareCardBackground.blur => l10n.shareCardBlur,
+      ShareCardBackground.crop => l10n.shareCardCrop,
+      ShareCardBackground.aurora => l10n.shareCardAurora,
+      ShareCardBackground.pixelate => l10n.shareCardPixelate,
+      ShareCardBackground.halftone => l10n.shareCardHalftone,
+    };
+  }
+
   Future<void> _share() async {
     if (_sharing || !_ready) {
       return;
@@ -122,40 +133,62 @@ class _LyricShareDialogState extends State<LyricShareDialog> {
       width: 300,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!_ready)
-              const SizedBox(
-                height: 498,
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              RepaintBoundary(
-                key: _cardKey,
-                child: LyricShareCard(
-                  title: getTitle(widget.song),
-                  artist: getArtist(widget.song),
-                  album: getAlbum(widget.song),
-                  lyric: _lyric,
-                  translation: widget.translation ?? '',
-                  picture: widget.song.picture,
+        child: ListenableBuilder(
+          listenable: shareCardBackgroundNotifier,
+          builder: (context, child) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final mode in ShareCardBackground.values)
+                    applePill(
+                      _backgroundLabel(l10n, mode),
+                      selected: shareCardBackgroundNotifier.value == mode,
+                      showCheck: true,
+                      compact: true,
+                      onTap: () {
+                        shareCardBackgroundNotifier.value = mode;
+                        setting.save();
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (!_ready)
+                const SizedBox(
+                  height: 498,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                RepaintBoundary(
+                  key: _cardKey,
+                  child: LyricShareCard(
+                    title: getTitle(widget.song),
+                    artist: getArtist(widget.song),
+                    album: getAlbum(widget.song),
+                    lyric: _lyric,
+                    translation: widget.translation ?? '',
+                    picture: widget.song.picture,
+                  ),
+                ),
+              const SizedBox(height: 12),
+              appleFilledButton(
+                l10n.share,
+                _ready && !_sharing ? _share : null,
+                busy: _sharing,
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  l10n.cancel,
+                  style: TextStyle(color: textColor.withAlpha(170)),
                 ),
               ),
-            const SizedBox(height: 12),
-            appleFilledButton(
-              l10n.share,
-              _ready && !_sharing ? _share : null,
-              busy: _sharing,
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                l10n.cancel,
-                style: TextStyle(color: textColor.withAlpha(170)),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
