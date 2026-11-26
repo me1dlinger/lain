@@ -17,6 +17,7 @@ import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/artist_album.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/recommendation_weights.dart';
 import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -50,6 +51,7 @@ import 'package:lain/base/widgets/source_health_page.dart';
 import 'package:lain/base/widgets/sync_preview_page.dart';
 import 'package:lain/base/widgets/audio_output_page.dart';
 import 'package:lain/base/widgets/cache_storage_dashboard.dart';
+import 'package:lain/base/widgets/daily_recommendation_page.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -657,6 +659,25 @@ class _SettingsListState extends State<SettingsList> {
         ];
       case SettingsCategory.listeningReport:
         return [listeningReportListTile(context, l10n)];
+      case SettingsCategory.recommendations:
+        return [
+          skipAwareRecommendationsListTile(l10n),
+          ListTile(
+            leading: Icon(
+              Icons.auto_awesome_motion_rounded,
+              size: iconSize,
+              color: iconColor.value,
+            ),
+            title: Text(l10n.dailyMix),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              pushSettingsPage<void>(
+                context,
+                settingsPageRoute<void>(() => const DailyRecommendationPage()),
+              );
+            },
+          ),
+        ];
       case SettingsCategory.dataBackup:
         return [
           ListTile(
@@ -1136,6 +1157,31 @@ class _SettingsListState extends State<SettingsList> {
         width: 50,
         child: MySwitch(
           valueNotifier: useServerRandomNotifier,
+          onToggleCallBack: () {
+            setting.save();
+            unawaited(refreshRandomSongs(force: true));
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Songs that are skipped again and again are worth less in a recommendation
+  /// than a song the listener actually hears out. The signal comes from the
+  /// playback journal, so it works for every source without a server.
+  Widget skipAwareRecommendationsListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.auto_awesome_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.skipAwareRecommendations),
+      subtitle: Text(l10n.skipAwareRecommendationsDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: skipAwareRecommendationsNotifier,
           onToggleCallBack: () {
             setting.save();
             unawaited(refreshRandomSongs(force: true));

@@ -12,6 +12,7 @@ enum SettingsCategory {
   cacheDownloads,
   dataBackup,
   listeningReport,
+  recommendations,
   helpFeedback,
 }
 
@@ -33,6 +34,7 @@ SettingsGroup settingsCategoryGroup(SettingsCategory category) {
     case SettingsCategory.dataBackup:
       return SettingsGroup.library;
     case SettingsCategory.listeningReport:
+    case SettingsCategory.recommendations:
     case SettingsCategory.helpFeedback:
       return SettingsGroup.more;
   }
@@ -101,6 +103,11 @@ List<String> settingsCategoryKeywords(SettingsCategory category) {
         'stats', 'report', 'history', 'year', 'plays',
         '统计', '报告', '历史', '年度', '播放次数',
       ];
+    case SettingsCategory.recommendations:
+      return const [
+        'recommend', 'daily', 'mix', 'random', 'skip', 'suggestion',
+        '推荐', '每日', '随机', '跳过', '建议',
+      ];
     case SettingsCategory.helpFeedback:
       return const [
         'help', 'feedback', 'debug', 'log', 'about', 'version',
@@ -133,6 +140,8 @@ String settingsCategoryTitle(AppLocalizations l10n, SettingsCategory category) {
       return l10n.settingsDataBackup;
     case SettingsCategory.listeningReport:
       return l10n.listeningReport;
+    case SettingsCategory.recommendations:
+      return l10n.settingsRecommendations;
     case SettingsCategory.helpFeedback:
       return l10n.settingsHelpFeedback;
   }
@@ -156,6 +165,8 @@ IconData settingsCategoryIcon(SettingsCategory category) {
       return Icons.backup_rounded;
     case SettingsCategory.listeningReport:
       return Icons.insights_rounded;
+    case SettingsCategory.recommendations:
+      return Icons.auto_awesome_rounded;
     case SettingsCategory.helpFeedback:
       return Icons.help_outline_rounded;
   }

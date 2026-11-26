@@ -26,6 +26,7 @@ import 'package:lain/base/data/personal_scrobble.dart';
 import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/data/player_cover_style.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/recommendation_weights.dart';
 import 'package:lain/base/data/share_card_settings.dart';
 import 'package:lain/base/data/settings_category.dart';
 import 'package:lain/base/data/stream_quality.dart';
@@ -292,6 +293,8 @@ class Setting {
       json['listenBrainzScrobbleMode'] as String?,
     );
     useServerRandomNotifier.value = json['useServerRandom'] as bool? ?? true;
+    skipAwareRecommendationsNotifier.value =
+        json['skipAwareRecommendations'] as bool? ?? true;
     playerCoverStyleNotifier.value =
         PlayerCoverStyle.values.asNameMap()['${json['playerCoverStyle']}'] ??
         PlayerCoverStyle.square;
@@ -491,6 +494,7 @@ class Setting {
         'lastFmScrobbleMode': lastFmScrobbleModeNotifier.value.name,
         'listenBrainzScrobbleMode': listenBrainzScrobbleModeNotifier.value.name,
         'useServerRandom': useServerRandomNotifier.value,
+        'skipAwareRecommendations': skipAwareRecommendationsNotifier.value,
         'playerCoverStyle': playerCoverStyleNotifier.value.name,
         'shareCardTopText': shareCardTopTextNotifier.value,
         'shareCardBackground': shareCardBackgroundNotifier.value.name,

@@ -4,7 +4,10 @@ import 'dart:math';
 
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/config.dart';
+import 'package:lain/base/data/history.dart';
 import 'package:lain/base/data/library.dart';
+import 'package:lain/base/data/playback_journal.dart';
+import 'package:lain/base/data/recommendation_weights.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/utils/metadata_utils.dart';
 import 'package:lain/base/utils/path.dart';
@@ -160,11 +163,17 @@ class DailyRecommendations {
     final exclude = refresh
         ? (existing?.songs.map((song) => song.id).toSet() ?? const <String>{})
         : const <String>{};
+    final signals = await _loadListeningSignals();
     final generated = buildDailyMix(
       library.songList,
       DateTime.now(),
       excludeIds: exclude,
       seed: refresh ? DateTime.now().millisecondsSinceEpoch : null,
+      sourceKey: sourceKey,
+      listening: signals,
+      skipAware: skipAwareRecommendationsNotifier.value,
+      rediscoveryIds: {for (final song in history.rediscoverySongList) song.id},
+      recentRecommendationCounts: _recentRecommendationCounts(),
     );
     final day = DailyMixDay(
       date: key,
@@ -193,6 +202,38 @@ class DailyRecommendations {
     ];
   }
 
+  /// Journal events for the active source only. A song's history on another
+  /// server or in the local library must not steer this source's mix.
+  Future<ListeningSignals> _loadListeningSignals() async {
+    await playbackJournal.ensureLoaded();
+    final key = sourceKey;
+    return ListeningSignals.fromJournal(
+      playbackJournal.sessions.where((session) => session.sourceKey == key),
+    );
+  }
+
+  /// How often each song appeared in the last two weeks, so a mix rotates
+  /// instead of returning the same small set. Today's snapshot is skipped:
+  /// it is the list being replaced.
+  Map<String, int> _recentRecommendationCounts({int days = 14}) {
+    final counts = <String, int>{};
+    final today = _dateKey(DateTime.now());
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    for (final day in this.days()) {
+      if (day.date == today) {
+        continue;
+      }
+      final date = DateTime.tryParse(day.date);
+      if (date == null || date.isBefore(cutoff)) {
+        continue;
+      }
+      for (final entry in day.songs) {
+        counts[entry.id] = (counts[entry.id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   void _save() {
     try {
       _file?.writeAsStringSync(
@@ -213,77 +254,48 @@ class DailyRecommendations {
 
 final dailyRecommendations = DailyRecommendations();
 
-/// Picks 20 songs from the loaded library. The weights favour songs the
-/// listener actually returns to, but quietly: a low-play favourite, a
-/// rediscovered song and a fresh addition can all outrank a heavily played
-/// one that was heard five minutes ago.
+/// Picks up to 20 songs from the loaded library.
+///
+/// The score is the sum of a few bounded dimensions: play count, favourites,
+/// recency, new additions, artist/album affinity, rediscovery, journal
+/// completion and repeated skips. Rotation against the last two weeks keeps
+/// the draw from settling on the same small set. Everything is derived from
+/// data the app already stores, and the day plus the source salt make an
+/// unrefreshed day reproducible.
 List<MyAudioMetadata> buildDailyMix(
   List<MyAudioMetadata> songs,
   DateTime day, {
   Set<String> excludeIds = const {},
   int? seed,
+  String sourceKey = '',
+  ListeningSignals? listening,
+  bool skipAware = false,
+  Set<String> rediscoveryIds = const {},
+  Map<String, int> recentRecommendationCounts = const {},
 }) {
   if (songs.isEmpty) {
     return const [];
   }
-  final now = DateTime.now();
-  final artistPlays = <String, int>{};
-  final albumPlays = <String, int>{};
-  for (final song in songs) {
-    final artist = getArtist(song);
-    if (artist.isNotEmpty) {
-      artistPlays[artist] = (artistPlays[artist] ?? 0) + song.playCount;
-    }
-    final album = getAlbum(song);
-    if (album.isNotEmpty) {
-      albumPlays[album] = (albumPlays[album] ?? 0) + song.playCount;
-    }
-  }
 
-  double weightOf(MyAudioMetadata song) {
-    var weight = 1 + log(1 + song.playCount) * 2.2;
-    if (song.isFavoriteNotifier.value) {
-      weight += 4;
-    }
-    final last = song.lastPlayed;
-    if (last == null) {
-      weight += 1.2;
-    } else {
-      final days = now.difference(last).inDays;
-      if (days < 2) {
-        weight *= 0.18;
-      } else if (days < 7) {
-        weight *= 0.38;
-      } else if (days < 30) {
-        weight *= 0.72;
-      } else {
-        weight *= 1.5;
-      }
-    }
-    final created = song.created ?? song.modified;
-    if (created != null && now.difference(created).inDays < 14) {
-      weight += 1.4;
-    }
-    final artist = getArtist(song);
-    final album = getAlbum(song);
-    if (artist.isNotEmpty) {
-      weight += min(3.0, log(1 + (artistPlays[artist] ?? 0)) * 0.35);
-    }
-    if (album.isNotEmpty) {
-      weight += min(2.0, log(1 + (albumPlays[album] ?? 0)) * 0.22);
-    }
-    if (excludeIds.contains(song.id)) {
-      weight *= 0.22;
-    }
-    return max(0.05, weight);
-  }
+  // Using [day] as the reference point rather than DateTime.now() keeps the
+  // score stable for that date; the stored snapshot then stays still.
+  final scorer = RecommendationScorer.fromSongs(
+    songs,
+    now: day,
+    rediscoveryIds: rediscoveryIds,
+    recentRecommendationCounts: recentRecommendationCounts,
+    listening: listening,
+    skipAware: skipAware,
+    excludeIds: excludeIds,
+  );
+  final weights = {for (final song in songs) song.id: scorer.weightOf(song)};
+  double weightOf(MyAudioMetadata song) => weights[song.id] ?? 0.03;
 
   // A fixed seed for the day makes the list stable until the user refreshes;
   // refresh passes a different day-time-derived seed through the random call
-  // below, so it prefers a different draw without becoming random noise.
-  final random = Random(
-    seed ?? (day.day * 100003 + day.month * 1009 + day.year),
-  );
+  // below, so it prefers a different draw without becoming random noise. The
+  // source key is part of the seed so two sources do not draw the same list.
+  final random = Random(seed ?? _dailySeed(day, sourceKey));
   final pool = List<MyAudioMetadata>.from(songs);
   final picked = <MyAudioMetadata>[];
   final perArtist = <String, int>{};
@@ -318,6 +330,8 @@ List<MyAudioMetadata> buildDailyMix(
   }
 
   while (picked.length < maxItems && pool.isNotEmpty) {
+    // The final places relax the artist/album caps so a small library can
+    // still fill the day instead of stopping at a handful.
     final strict = picked.length < maxItems - 3;
     final candidates = [
       for (final song in pool)
@@ -338,4 +352,12 @@ List<MyAudioMetadata> buildDailyMix(
     pool.remove(chosen);
   }
   return picked;
+}
+
+int _dailySeed(DateTime day, String sourceKey) {
+  var sourceHash = 17;
+  for (final unit in sourceKey.codeUnits) {
+    sourceHash = (sourceHash * 31 + unit) & 0x7fffffff;
+  }
+  return day.year * 1000003 + day.month * 1009 + day.day * 100003 + sourceHash;
 }
