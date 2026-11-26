@@ -5420,6 +5420,24 @@ abstract class AppLocalizations {
   /// **'No songs to recommend yet'**
   String get dailyMixEmpty;
 
+  /// No description provided for @settingsRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendations'**
+  String get settingsRecommendations;
+
+  /// No description provided for @skipAwareRecommendations.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce skipped songs'**
+  String get skipAwareRecommendations;
+
+  /// No description provided for @skipAwareRecommendationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs you skip repeatedly appear less often in the daily mix and random list.'**
+  String get skipAwareRecommendationsDescription;
+
   /// No description provided for @sessionDiary.
   ///
   /// In en, this message translates to:

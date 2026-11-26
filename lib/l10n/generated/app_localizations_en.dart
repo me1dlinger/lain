@@ -2816,6 +2816,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailyMixEmpty => 'No songs to recommend yet';
 
   @override
+  String get settingsRecommendations => 'Recommendations';
+
+  @override
+  String get skipAwareRecommendations => 'Reduce skipped songs';
+
+  @override
+  String get skipAwareRecommendationsDescription =>
+      'Songs you skip repeatedly appear less often in the daily mix and random list.';
+
+  @override
   String get sessionDiary => 'Music memories';
 
   @override

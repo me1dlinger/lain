@@ -2762,6 +2762,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dailyMixEmpty => '曲库中还没有可推荐的歌曲';
 
   @override
+  String get settingsRecommendations => '推荐设置';
+
+  @override
+  String get skipAwareRecommendations => '减少跳过歌曲';
+
+  @override
+  String get skipAwareRecommendationsDescription => '反复跳过的歌曲会较少出现在每日推荐和随机列表中。';
+
+  @override
   String get sessionDiary => '音乐记忆';
 
   @override
