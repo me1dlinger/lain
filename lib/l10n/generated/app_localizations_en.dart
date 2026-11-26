@@ -1162,6 +1162,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fontWeight => 'Font Weight';
 
   @override
+  String get lyricsFont => 'Lyrics font';
+
+  @override
+  String get lyricsAlignment => 'Lyrics alignment';
+
+  @override
+  String get lyricsAlignAuto => 'Match layout';
+
+  @override
+  String get lyricsAlignLeft => 'Left';
+
+  @override
+  String get lyricsAlignCenter => 'Center';
+
+  @override
+  String get lyricsRomaji => 'Romaji lyrics';
+
+  @override
+  String get lyricsRomajiDescription =>
+      'Show a romaji pronunciation line under Japanese lyrics';
+
+  @override
   String get offset => 'Offset';
 
   @override

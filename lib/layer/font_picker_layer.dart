@@ -55,11 +55,9 @@ class _FontPickerLayerState extends State<FontPickerLayer> {
   }
 
   void reloadAllFonts() {
-    allFonts.clear();
-    allFonts.addAll(importedFonts);
-    if (Platform.isWindows || Platform.isMacOS) {
-      allFonts.addAll(JustFontScan.scan().map((e) => e.name).toList());
-    }
+    allFonts
+      ..clear()
+      ..addAll(availableFonts());
     update();
   }
 

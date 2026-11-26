@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:lain/base/audio_handler.dart';
-import 'package:lain/base/data/library.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
@@ -15,7 +14,6 @@ import 'package:lain/base/widgets/ab_loop_sheet.dart';
 import 'package:lain/base/widgets/action_menu.dart';
 import 'package:lain/base/data/playback_effect_settings.dart';
 import 'package:lain/base/data/player_cover_style.dart';
-import 'package:lain/base/data/playback_mode.dart';
 import 'package:lain/base/widgets/playback_options.dart';
 import 'package:lain/base/widgets/my_switch.dart';
 import 'package:lain/base/widgets/buttons.dart';
@@ -28,11 +26,13 @@ import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
-import 'package:lain/base/widgets/my_sheet.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/widgets/lyric_share_dialog.dart';
+import 'package:lain/base/widgets/my_sheet.dart';
+import 'package:lain/base/widgets/lyrics_style_sheet.dart';
 import 'package:lain/base/my_audio_metadata.dart';
+import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/widgets/seekbar.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -696,7 +696,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                             rootNavigator: true,
                           ).context;
                           Navigator.pop(sheetContext);
-                          showAdjustLyrics(pageContext);
+                          showLyricsStyleSheet(pageContext);
                         },
                       ),
                       ActionMenuTile(
@@ -1068,6 +1068,25 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             lyricWidget(currentSong, .zero, true),
             SizedBox(height: 50),
           ],
+        ),
+
+        Positioned(
+          left: 25,
+          bottom: 40,
+          child: ValueListenableBuilder(
+            valueListenable: lyricsPageForegroundColor.valueNotifier,
+            builder: (context, value, child) {
+              return IconButton(
+                color: value,
+                tooltip: AppLocalizations.of(context).adjustLyrics,
+                icon: const Icon(Icons.text_fields_rounded, size: 28),
+                onPressed: () {
+                  tryVibrate();
+                  showLyricsStyleSheet(context);
+                },
+              );
+            },
+          ),
         ),
 
         Positioned(
