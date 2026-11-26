@@ -5438,6 +5438,48 @@ abstract class AppLocalizations {
   /// **'Restore this queue'**
   String get sessionResumeQueue;
 
+  /// No description provided for @continuePlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue playing'**
+  String get continuePlayback;
+
+  /// No description provided for @healthCleanupDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up duplicates'**
+  String get healthCleanupDuplicates;
+
+  /// No description provided for @healthKeepRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended keep'**
+  String get healthKeepRecommended;
+
+  /// No description provided for @healthSelectRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Select recommended'**
+  String get healthSelectRecommended;
+
+  /// No description provided for @healthRemoveSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove selected'**
+  String get healthRemoveSelected;
+
+  /// No description provided for @healthDuplicatesRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the selected duplicate files from the library? Audio files will not be deleted.'**
+  String get healthDuplicatesRemoveConfirm;
+
+  /// No description provided for @healthPlayingNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing now'**
+  String get healthPlayingNow;
+
   /// No description provided for @sessionNoSessions.
   ///
   /// In en, this message translates to:

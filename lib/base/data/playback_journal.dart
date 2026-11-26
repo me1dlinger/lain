@@ -87,8 +87,7 @@ class JournalEvent {
     title: '${json['t'] ?? ''}',
     artist: '${json['a'] ?? ''}',
     album: '${json['b'] ?? ''}',
-    startedAt:
-        DateTime.tryParse('${json['start'] ?? ''}') ?? DateTime.now(),
+    startedAt: DateTime.tryParse('${json['start'] ?? ''}') ?? DateTime.now(),
     endedAt: DateTime.tryParse('${json['end'] ?? ''}') ?? DateTime.now(),
     playedMs: json['p'] is int ? json['p'] as int : 0,
     durationMs: json['d'] is int ? json['d'] as int : 0,
@@ -120,6 +119,7 @@ class JournalSession {
   final List<JournalTrack> queue;
   int queueIndex;
   int playMode;
+  int positionMs;
   final List<JournalEvent> events = [];
   int listenedMs = 0;
 
@@ -132,17 +132,18 @@ class JournalSession {
     required this.queue,
     required this.queueIndex,
     required this.playMode,
+    this.positionMs = 0,
   }) : lastActivityAt = startedAt;
 
   int get trackCount => events.length;
-  int get completedCount => events.where((e) => e.completionRatio >= 0.9).length;
+  int get completedCount =>
+      events.where((e) => e.completionRatio >= 0.9).length;
   int get skippedCount => events.where((e) => e.completionRatio < 0.5).length;
 
   factory JournalSession.fromJson(Map json) {
     final session = JournalSession(
       id: '${json['id'] ?? ''}',
-      startedAt:
-          DateTime.tryParse('${json['start'] ?? ''}') ?? DateTime.now(),
+      startedAt: DateTime.tryParse('${json['start'] ?? ''}') ?? DateTime.now(),
       sourceType: '${json['source'] ?? ''}',
       serverId: json['server']?.toString(),
       sourceKey: '${json['key'] ?? ''}',
@@ -153,6 +154,7 @@ class JournalSession {
       ],
       queueIndex: json['index'] is int ? json['index'] as int : 0,
       playMode: json['mode'] is int ? json['mode'] as int : 0,
+      positionMs: json['pos'] is int ? json['pos'] as int : 0,
     );
     session.lastActivityAt =
         DateTime.tryParse('${json['activity'] ?? ''}') ?? session.startedAt;
@@ -181,6 +183,7 @@ class JournalSession {
     'queue': [for (final item in queue) item.toJson()],
     'index': queueIndex,
     'mode': playMode,
+    'pos': positionMs,
     'listened': listenedMs,
     'events': [for (final event in events) event.toJson()],
   };
@@ -200,8 +203,7 @@ class PlaybackJournal {
   DateTime? _currentSongStartedAt;
   Timer? _flushTimer;
 
-  String get _key =>
-      '${sourceType.name}:${config.activeServerId ?? ''}';
+  String get _key => '${sourceType.name}:${config.activeServerId ?? ''}';
 
   String get sourceKey => _key;
 
@@ -247,8 +249,7 @@ class PlaybackJournal {
     await ensureLoaded();
     final now = DateTime.now();
     final current = _current;
-    if (current != null &&
-        now.difference(current.lastActivityAt) > idleGap) {
+    if (current != null && now.difference(current.lastActivityAt) > idleGap) {
       await end(reason: 'idle');
     }
     if (_current == null) {
@@ -266,6 +267,7 @@ class PlaybackJournal {
     }
     _currentSongStartedAt = now;
     _current!.lastActivityAt = now;
+    _current!.positionMs = 0;
   }
 
   Future<void> captureQueue(
@@ -298,6 +300,17 @@ class PlaybackJournal {
     _scheduleFlush();
   }
 
+  /// Keeps the resume point in memory; [flush] persists it. This is called
+  /// from the position timer, so it must not touch the disk itself.
+  void notePosition(Duration position) {
+    final current = _current;
+    if (current == null) {
+      return;
+    }
+    current.positionMs = position.inMilliseconds;
+    current.lastActivityAt = DateTime.now();
+  }
+
   Future<void> recordTrack(
     MyAudioMetadata song, {
     required Duration played,
@@ -309,8 +322,7 @@ class PlaybackJournal {
     if (current == null) {
       return;
     }
-    final started =
-        _currentSongStartedAt ?? DateTime.now().subtract(played);
+    final started = _currentSongStartedAt ?? DateTime.now().subtract(played);
     current.events.add(
       JournalEvent(
         songId: song.id,

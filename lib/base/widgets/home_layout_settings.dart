@@ -75,6 +75,7 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
                         order: homeShelfOrder,
                         hidden: homeShelfHidden,
                         label: (shelf) => switch (shelf) {
+                          HomeShelf.continuePlayback => l10n.continuePlayback,
                           HomeShelf.albums => l10n.albums,
                           HomeShelf.frequently => l10n.frequently,
                           HomeShelf.rediscovery => l10n.rediscovery,
@@ -199,7 +200,10 @@ class _HomeLayoutSettingsState extends State<HomeLayoutSettings> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(label, style: TextStyle(fontSize: 15, color: textColor)),
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 15, color: textColor),
+            ),
           ),
           SizedBox(
             width: 50,

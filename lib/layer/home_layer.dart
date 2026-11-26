@@ -11,6 +11,7 @@ import 'package:lain/base/data/history.dart';
 import 'package:lain/base/data/home_layout.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/data/random_songs.dart';
+import 'package:lain/base/data/playback_journal.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/server_stats.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -265,6 +266,8 @@ class HomeLayerState extends State<HomeLayer> {
   ) {
     final l10n = AppLocalizations.of(context);
     switch (shelf) {
+      case HomeShelf.continuePlayback:
+        return [_continuePlaybackShelf(context)];
       case HomeShelf.albums:
         return [
           Row(
@@ -662,11 +665,12 @@ class HomeLayerState extends State<HomeLayer> {
                       ? playlistManager.playlists
                       : playlistManager.playlists
                             .where(
-                              (playlist) => (playlist.isFavorite
-                                      ? l10n.favorites
-                                      : playlist.name)
-                                  .toLowerCase()
-                                  .contains(lowerValue),
+                              (playlist) =>
+                                  (playlist.isFavorite
+                                          ? l10n.favorites
+                                          : playlist.name)
+                                      .toLowerCase()
+                                      .contains(lowerValue),
                             )
                             .toList();
                   return ListView.separated(
@@ -711,7 +715,10 @@ class HomeLayerState extends State<HomeLayer> {
                                   playlist.isFavorite
                                       ? l10n.favorites
                                       : playlist.name,
-                                  style: .new(overflow: .ellipsis, fontSize: 15),
+                                  style: .new(
+                                    overflow: .ellipsis,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
                             ],
@@ -739,7 +746,7 @@ class HomeLayerState extends State<HomeLayer> {
             padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
             child:
                 (sourceType == SourceType.navidrome ||
-                    sourceType == SourceType.emby) &&
+                        sourceType == SourceType.emby) &&
                     streamClient != null
                 ? _statsShelf(context, streamClient!)
                 : _localStatsShelf(context),
@@ -747,6 +754,174 @@ class HomeLayerState extends State<HomeLayer> {
           SizedBox(height: 15),
         ];
     }
+  }
+
+  /// The most recent session that belongs to the source currently open.
+  JournalSession? _continueSession() {
+    final current = playbackJournal.current;
+    final candidates = <JournalSession>[
+      if (current != null) current,
+      ...playbackJournal.history,
+    ];
+    for (final session in candidates) {
+      if (session.queue.isEmpty) {
+        continue;
+      }
+      if (session.sourceKey != playbackJournal.sourceKey) {
+        continue;
+      }
+      final songs = _continueSongs(session);
+      if (songs.isNotEmpty) {
+        return session;
+      }
+    }
+    return null;
+  }
+
+  List<MyAudioMetadata> _continueSongs(JournalSession session) => [
+    for (final track in session.queue)
+      if (library.id2Song[track.id] != null) library.id2Song[track.id]!,
+  ];
+
+  Widget _continuePlaybackShelf(BuildContext context) {
+    return FutureBuilder<void>(
+      future: playbackJournal.ensureLoaded(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+        return ListenableBuilder(
+          listenable: Listenable.merge([
+            currentSongNotifier,
+            isPlayingNotifier,
+            library.changeNotifier,
+          ]),
+          builder: (context, child) {
+            final session = _continueSession();
+            if (session == null) {
+              return const SizedBox.shrink();
+            }
+            final songs = _continueSongs(session);
+            if (songs.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final l10n = AppLocalizations.of(context);
+            final textColor = colorManager.getSpecificTextColor();
+            final target = session
+                .queue[session.queueIndex.clamp(0, session.queue.length - 1)];
+            final found = songs.indexWhere((item) => item.id == target.id);
+            final index = found < 0 ? 0 : found;
+            final song = songs[index];
+            final duration = song.duration?.inMilliseconds ?? 0;
+            final progress = duration <= 0
+                ? 0.0
+                : (session.positionMs / duration).clamp(0.0, 1.0);
+            final playing =
+                isPlayingNotifier.value &&
+                currentSongNotifier.value?.id == song.id;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: GestureDetector(
+                onTap: () {
+                  tryVibrate();
+                  if (session == playbackJournal.current &&
+                      currentSongNotifier.value?.id == song.id) {
+                    if (isPlayingNotifier.value) {
+                      audioHandler.pause();
+                    } else {
+                      audioHandler.play();
+                    }
+                  } else {
+                    audioHandler.setPlayQueue(
+                      songs,
+                      session.playMode,
+                      targetIndex: index,
+                      startPosition: Duration(milliseconds: session.positionMs),
+                      preserveOrder: true,
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: textColor.withAlpha(12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: textColor.withAlpha(18)),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CoverArtWidget(
+                          size: 62,
+                          borderRadius: 10,
+                          picture: song.picture,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.continuePlayback,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textColor.withAlpha(150),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              getTitle(song),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              getArtist(song),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textColor.withAlpha(145),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 3,
+                                backgroundColor: textColor.withAlpha(20),
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(
+                        playing
+                            ? Icons.pause_circle_filled_rounded
+                            : Icons.play_circle_fill_rounded,
+                        size: 36,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   /// The library statistics card as the stream source reports it: its values
@@ -1205,11 +1380,8 @@ class HomeLayerState extends State<HomeLayer> {
 }
 
 /// Icon + label tile used by the home hub row.
-Widget homeNavButton(String label, IconData icon, String layer) {  return homeNavAction(
-    label,
-    icon,
-    () => layersManager.switchRootLayer(layer),
-  );
+Widget homeNavButton(String label, IconData icon, String layer) {
+  return homeNavAction(label, icon, () => layersManager.switchRootLayer(layer));
 }
 
 /// [label] under [icon], doing [onTap] - a button of the home hub row, whether

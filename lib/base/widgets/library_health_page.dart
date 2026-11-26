@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/data/library.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/services/color_manager.dart';
@@ -8,6 +9,7 @@ import 'package:lain/base/widgets/apple_form.dart';
 import 'package:lain/base/widgets/cover_art_widget.dart';
 import 'package:lain/base/widgets/local_music_page.dart';
 import 'package:lain/base/widgets/metadata_completion_page.dart';
+import 'package:lain/base/widgets/my_sheet.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 
 /// A read-only report of the local library: songs with incomplete tags, no
@@ -47,10 +49,9 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
   ];
 
   String _duplicateKey(MyAudioMetadata song) {
-    final title = getTitle(song)
-        .toLowerCase()
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+    final title = getTitle(
+      song,
+    ).toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
     final artist = getArtist(song).toLowerCase().trim();
     final seconds = song.duration?.inSeconds ?? 0;
     // A different edit or live version is usually more than a few seconds
@@ -71,9 +72,7 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
       for (final group in groups.values)
         if (group.length > 1) group,
     ];
-    result.sort(
-      (a, b) => getTitle(a.first).compareTo(getTitle(b.first)),
-    );
+    result.sort((a, b) => getTitle(a.first).compareTo(getTitle(b.first)));
     return result;
   }
 
@@ -138,7 +137,11 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
               Expanded(
                 child: switch (_filter) {
                   0 => _songList(l10n, noTags, empty: l10n.healthNoMissingTags),
-                  1 => _songList(l10n, noCover, empty: l10n.healthNoMissingCover),
+                  1 => _songList(
+                    l10n,
+                    noCover,
+                    empty: l10n.healthNoMissingCover,
+                  ),
                   2 => _songList(
                     l10n,
                     noLyrics,
@@ -196,17 +199,32 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
     for (final group in groups) {
       rows.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
-          child: Text(
-            '${getTitle(group.first)} · '
-            '${l10n.healthFileCount(group.length)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colorManager.getSpecificTextColor().withAlpha(180),
-            ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 12, 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${getTitle(group.first)} · '
+                  '${l10n.healthFileCount(group.length)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorManager.getSpecificTextColor().withAlpha(180),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.healthCleanupDuplicates,
+                icon: Icon(
+                  Icons.auto_fix_high_rounded,
+                  size: 19,
+                  color: colorManager.getSpecificTextColor().withAlpha(170),
+                ),
+                onPressed: () => _showDuplicateCleanup(context, l10n, group),
+              ),
+            ],
           ),
         ),
       );
@@ -214,9 +232,20 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
         rows.add(_songRow(context, song, showPath: true));
       }
     }
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 56),
-      children: rows,
+    return ListView(padding: const EdgeInsets.only(bottom: 56), children: rows);
+  }
+
+  Future<void> _showDuplicateCleanup(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<MyAudioMetadata> group,
+  ) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DuplicateCleanupSheet(group: group, l10n: l10n),
     );
   }
 
@@ -229,11 +258,7 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
     final path = song.path ?? '';
     final fileName = path.isEmpty ? '' : path.split('/').last;
     return ListTile(
-      leading: CoverArtWidget(
-        size: 46,
-        borderRadius: 6,
-        picture: song.picture,
-      ),
+      leading: CoverArtWidget(size: 46, borderRadius: 6, picture: song.picture),
       title: Text(
         getTitle(song),
         maxLines: 1,
@@ -241,9 +266,7 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
         style: TextStyle(fontSize: 15, color: textColor),
       ),
       subtitle: Text(
-        showPath
-            ? fileName
-            : '${getArtist(song)} · ${getAlbum(song)}',
+        showPath ? fileName : '${getArtist(song)} · ${getAlbum(song)}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 11, color: textColor.withAlpha(160)),
@@ -259,5 +282,238 @@ class _LibraryHealthPageState extends State<LibraryHealthPage> {
         );
       },
     );
+  }
+}
+
+class _DuplicateCleanupSheet extends StatefulWidget {
+  final List<MyAudioMetadata> group;
+  final AppLocalizations l10n;
+
+  const _DuplicateCleanupSheet({required this.group, required this.l10n});
+
+  @override
+  State<_DuplicateCleanupSheet> createState() => _DuplicateCleanupSheetState();
+}
+
+class _DuplicateCleanupSheetState extends State<_DuplicateCleanupSheet> {
+  final _selected = <String>{};
+
+  static bool _isLossless(MyAudioMetadata song) {
+    final format = (song.format ?? '').toLowerCase();
+    return [
+      'flac',
+      'wav',
+      'aiff',
+      'aif',
+      'ape',
+      'alac',
+      'dsf',
+      'dff',
+    ].any((item) => format.contains(item));
+  }
+
+  int _quality(MyAudioMetadata song) {
+    var score = (song.bitrate ?? 0) * 1000 + (song.samplerate ?? 0);
+    if (_isLossless(song)) {
+      score += 100000000;
+    }
+    return score;
+  }
+
+  String get _recommendedId {
+    var best = widget.group.first;
+    for (final song in widget.group.skip(1)) {
+      if (_quality(song) > _quality(best)) {
+        best = song;
+      } else if (_quality(song) == _quality(best) &&
+          (song.size ?? 0) > (best.size ?? 0)) {
+        best = song;
+      }
+    }
+    return best.id;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectRecommended();
+  }
+
+  void _selectRecommended() {
+    final keep = _recommendedId;
+    final currentId = currentSongNotifier.value?.id;
+    _selected
+      ..clear()
+      ..addAll([
+        for (final song in widget.group)
+          if (song.id != keep && song.id != currentId) song.id,
+      ]);
+  }
+
+  Future<void> _removeSelected() async {
+    if (_selected.isEmpty) {
+      return;
+    }
+    final ok = await showConfirmDialog(
+      context,
+      widget.l10n.healthDuplicatesRemoveConfirm,
+    );
+    if (!ok || !mounted) {
+      return;
+    }
+    final selected = [
+      for (final song in widget.group)
+        if (_selected.contains(song.id)) song,
+    ];
+    for (final song in selected) {
+      await library.removeSongFromLibrary(song);
+    }
+    if (!mounted) {
+      return;
+    }
+    Navigator.pop(context);
+    showCenterMessage(widget.l10n.removedFromLibrary);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final textColor = colorManager.getSpecificTextColor();
+    final recommended = _recommendedId;
+    final currentId = currentSongNotifier.value?.id;
+    return MySheet(
+      height: 560,
+      Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.healthCleanupDuplicates,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close_rounded, color: textColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              itemCount: widget.group.length,
+              itemBuilder: (context, index) {
+                final song = widget.group[index];
+                final isRecommended = song.id == recommended;
+                final isCurrent = song.id == currentId;
+                final checked = _selected.contains(song.id);
+                final path = song.path ?? '';
+                final fileName = path.isEmpty ? '' : path.split('/').last;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: CheckboxListTile(
+                    value: checked,
+                    onChanged: isCurrent
+                        ? null
+                        : (value) {
+                            setState(() {
+                              if (value == true) {
+                                _selected.add(song.id);
+                              } else {
+                                _selected.remove(song.id);
+                              }
+                            });
+                          },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    secondary: CoverArtWidget(
+                      size: 44,
+                      borderRadius: 6,
+                      picture: song.picture,
+                    ),
+                    title: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            fileName.isEmpty ? getTitle(song) : fileName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 14, color: textColor),
+                          ),
+                        ),
+                        if (isRecommended) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.healthKeepRecommended,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                        if (isCurrent) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.healthPlayingNow,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: textColor.withAlpha(140),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    subtitle: Text(
+                      '${song.format?.toUpperCase() ?? '—'}'
+                      ' · ${song.bitrate ?? '—'} kbps'
+                      ' · ${_sizeLabel(song.size)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textColor.withAlpha(130),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(_selectRecommended),
+                  child: Text(l10n.healthSelectRecommended),
+                ),
+                const Spacer(),
+                FilledButton(
+                  onPressed: _selected.isEmpty ? null : _removeSelected,
+                  child: Text(l10n.healthRemoveSelected),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _sizeLabel(int? bytes) {
+    if (bytes == null || bytes <= 0) {
+      return '—';
+    }
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).toStringAsFixed(0)} KB';
   }
 }

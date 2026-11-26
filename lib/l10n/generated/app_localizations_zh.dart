@@ -2771,6 +2771,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sessionResumeQueue => '恢复这段队列';
 
   @override
+  String get continuePlayback => '继续播放';
+
+  @override
+  String get healthCleanupDuplicates => '整理重复';
+
+  @override
+  String get healthKeepRecommended => '推荐保留';
+
+  @override
+  String get healthSelectRecommended => '推荐选择';
+
+  @override
+  String get healthRemoveSelected => '移除所选';
+
+  @override
+  String get healthDuplicatesRemoveConfirm => '从曲库移除所选的重复文件？音频文件不会被删除。';
+
+  @override
+  String get healthPlayingNow => '正在播放';
+
+  @override
   String get sessionNoSessions => '还没有播放记录';
 
   @override

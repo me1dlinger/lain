@@ -1079,6 +1079,8 @@ class MyAudioHandler extends BaseAudioHandler {
     List<MyAudioMetadata> source,
     int playMode, {
     int? targetIndex,
+    Duration? startPosition,
+    bool preserveOrder = false,
   }) async {
     if (source.isEmpty) {
       return;
@@ -1101,7 +1103,7 @@ class MyAudioHandler extends BaseAudioHandler {
     // at all when the page had rebuilt its objects (the favourites case).
     _playQueueTmp = List.from(source);
 
-    if (mode == 1) {
+    if (mode == 1 && !preserveOrder) {
       // Shuffle: the tapped song (if any) plays first, the rest random.
       final others = List.of(source)
         ..removeWhere((song) => song.id == tapped?.id)
@@ -1122,7 +1124,7 @@ class MyAudioHandler extends BaseAudioHandler {
     playModeNotifier.value = mode;
 
     _trackEndReason = 'queueChange';
-    await audioHandler.load();
+    await audioHandler.load(start: startPosition);
     audioHandler.play();
 
     saveAllStates();
@@ -3646,6 +3648,7 @@ class MyAudioHandler extends BaseAudioHandler {
   void _startPositionTimer() {
     _positionTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       _positionState.writeAsString(getPosition().inMilliseconds.toString());
+      playbackJournal.notePosition(getPosition());
       if (isPlayingNotifier.value && !loadingSong) {
         updatePlaybackState();
         _reportServerProgress();
@@ -3671,6 +3674,8 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     _player.pause();
     _restorePlayerVolume();
+    playbackJournal.notePosition(getPosition());
+    unawaited(playbackJournal.flush());
     await activateAudioSession(false);
     await updateIsPlaying(false);
     updatePlaybackState();

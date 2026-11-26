@@ -252,19 +252,15 @@ class Setting {
 
     controlCenterLyricsNotifier.value =
         json['controlCenterLyrics'] as bool? ?? false;
-    broadcastCoverNotifier.value =
-        json['broadcastCover'] as bool? ?? true;
+    broadcastCoverNotifier.value = json['broadcastCover'] as bool? ?? true;
 
     preferFastestAddressNotifier.value =
         json['preferFastestAddress'] as bool? ?? true;
-    autoCacheSongsNotifier.value =
-        json['autoCacheSongs'] as bool? ?? true;
-    prefetchNextSongNotifier.value =
-        json['prefetchNextSong'] as bool? ?? true;
+    autoCacheSongsNotifier.value = json['autoCacheSongs'] as bool? ?? true;
+    prefetchNextSongNotifier.value = json['prefetchNextSong'] as bool? ?? true;
     autoCachePlaylistsNotifier.value =
         json['autoCachePlaylists'] as bool? ?? true;
-    autoCacheArtistsNotifier.value =
-        json['autoCacheArtists'] as bool? ?? true;
+    autoCacheArtistsNotifier.value = json['autoCacheArtists'] as bool? ?? true;
     cacheDirNotifier.value = json['cacheDir'] as String? ?? '';
     downloadDirNotifier.value = json['downloadDir'] as String? ?? '';
     cacheLimitGbNotifier.value = json['cacheLimitGb'] as int? ?? 2;
@@ -273,18 +269,17 @@ class Setting {
     );
     downloadOnMobileDataNotifier.value =
         json['downloadOnMobileData'] as bool? ?? false;
-    songQualityBadgeNotifier.value =
-        json['songQualityBadge'] as bool? ?? false;
+    songQualityBadgeNotifier.value = json['songQualityBadge'] as bool? ?? false;
     replayGainModeNotifier.value =
         ReplayGainMode.values.asNameMap()['${json['replayGainMode']}'] ??
         ReplayGainMode.off;
     playbackSpeedNotifier.value =
         (json['playbackSpeed'] as num?)?.toDouble() ?? 1.0;
     audioFadeNotifier.value = json['audioFade'] as bool? ?? true;
-    gaplessPlaybackNotifier.value =
-        json['gaplessPlayback'] as bool? ?? true;
+    gaplessPlaybackNotifier.value = json['gaplessPlayback'] as bool? ?? true;
     trackTransitionModeNotifier.value =
-        TrackTransitionMode.values.asNameMap()['${json['trackTransitionMode']}'] ??
+        TrackTransitionMode.values
+            .asNameMap()['${json['trackTransitionMode']}'] ??
         TrackTransitionMode.off;
     final transitionSeconds = json['trackTransitionSeconds'] as int? ?? 6;
     trackTransitionSecondsNotifier.value = transitionSeconds.clamp(2, 12);
@@ -296,14 +291,12 @@ class Setting {
     listenBrainzScrobbleModeNotifier.value = personalScrobbleModeFromName(
       json['listenBrainzScrobbleMode'] as String?,
     );
-    useServerRandomNotifier.value =
-        json['useServerRandom'] as bool? ?? true;
+    useServerRandomNotifier.value = json['useServerRandom'] as bool? ?? true;
     playerCoverStyleNotifier.value =
         PlayerCoverStyle.values.asNameMap()['${json['playerCoverStyle']}'] ??
         PlayerCoverStyle.square;
     shareCardTopTextNotifier.value =
-        json['shareCardTopText'] as String? ??
-        shareCardTopTextNotifier.value;
+        json['shareCardTopText'] as String? ?? shareCardTopTextNotifier.value;
     shareCardBackgroundNotifier.value =
         ShareCardBackground.values
             .asNameMap()['${json['shareCardBackground']}'] ??
@@ -317,8 +310,8 @@ class Setting {
     carDisplayConfigNotifier.value = CarDisplayConfig.fromJson(
       json['carDisplay'],
     );
-    final storedClassicCoverMode =
-        ClassicCoverMode.values.asNameMap()['${json['classicCoverMode']}'];
+    final storedClassicCoverMode = ClassicCoverMode.values
+        .asNameMap()['${json['classicCoverMode']}'];
     final classicCoverModeVersion =
         json['classicCoverModeVersion'] as int? ?? 1;
     classicCoverModeNotifier.value =
@@ -331,7 +324,8 @@ class Setting {
         json['classicBluetoothBroadcast'] as bool? ?? false;
     relayAddressNotifier.value = json['relayAddress'] as String? ?? '';
     coverBroadcastModeNotifier.value =
-        CoverBroadcastMode.values.asNameMap()['${json['coverBroadcastMode']}'] ??
+        CoverBroadcastMode.values
+            .asNameMap()['${json['coverBroadcastMode']}'] ??
         CoverBroadcastMode.auto;
 
     streamQualityNotifier.value = StreamQuality.fromName(json['streamQuality']);
@@ -345,10 +339,23 @@ class Setting {
       json['homeButtonsHidden'],
       HomeButton.values,
     );
-    homeShelfOrder.value = restoredHomeOrder(
+    final restoredShelves = restoredHomeOrder(
       json['homeShelves'],
       HomeShelf.values,
     );
+    // New shelves are appended by restoredHomeOrder. Continue-playing is the
+    // one that should greet an existing library at the top, not hide at the
+    // bottom after an update.
+    final storedShelves = json['homeShelves'];
+    if (storedShelves is List &&
+        !storedShelves
+            .map((item) => '$item')
+            .contains(HomeShelf.continuePlayback.name)) {
+      restoredShelves
+        ..remove(HomeShelf.continuePlayback)
+        ..insert(0, HomeShelf.continuePlayback);
+    }
+    homeShelfOrder.value = restoredShelves;
     homeShelfHidden.value = restoredHomeHidden(
       json['homeShelvesHidden'],
       HomeShelf.values,
@@ -367,8 +374,8 @@ class Setting {
     }
 
     playbackModeNotifier.value =
-        AudioPlaybackMode.values
-            .asNameMap()[json['playbackMode']?.toString()] ??
+        AudioPlaybackMode.values.asNameMap()[json['playbackMode']
+            ?.toString()] ??
         defaultPlaybackMode();
 
     final naming = LibraryNamingFormat.fromJson(json['libraryNaming']);
@@ -482,8 +489,7 @@ class Setting {
         'trackTransitionSeconds': trackTransitionSecondsNotifier.value,
         'reportPlaybackProgress': reportPlaybackProgressNotifier.value,
         'lastFmScrobbleMode': lastFmScrobbleModeNotifier.value.name,
-        'listenBrainzScrobbleMode':
-            listenBrainzScrobbleModeNotifier.value.name,
+        'listenBrainzScrobbleMode': listenBrainzScrobbleModeNotifier.value.name,
         'useServerRandom': useServerRandomNotifier.value,
         'playerCoverStyle': playerCoverStyleNotifier.value.name,
         'shareCardTopText': shareCardTopTextNotifier.value,
@@ -520,7 +526,9 @@ class Setting {
         'libraryNaming': LibraryNamingFormat.current.toJson(),
 
         'commentSwitch': commentSwitchNotifier.value,
-        'commentServers': [for (final server in commentServers) server.toJson()],
+        'commentServers': [
+          for (final server in commentServers) server.toJson(),
+        ],
         'commentActiveServerId': commentActiveServerIdNotifier.value,
       }),
     );

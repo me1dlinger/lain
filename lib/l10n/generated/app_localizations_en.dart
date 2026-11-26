@@ -2825,6 +2825,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionResumeQueue => 'Restore this queue';
 
   @override
+  String get continuePlayback => 'Continue playing';
+
+  @override
+  String get healthCleanupDuplicates => 'Clean up duplicates';
+
+  @override
+  String get healthKeepRecommended => 'Recommended keep';
+
+  @override
+  String get healthSelectRecommended => 'Select recommended';
+
+  @override
+  String get healthRemoveSelected => 'Remove selected';
+
+  @override
+  String get healthDuplicatesRemoveConfirm =>
+      'Remove the selected duplicate files from the library? Audio files will not be deleted.';
+
+  @override
+  String get healthPlayingNow => 'Playing now';
+
+  @override
   String get sessionNoSessions => 'No listening sessions yet';
 
   @override

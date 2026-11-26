@@ -23,6 +23,7 @@ enum HomeButton {
 /// its server snapshot; every other source - the local library included -
 /// counts it from the songs already loaded.
 enum HomeShelf {
+  continuePlayback,
   albums,
   frequently,
   rediscovery,
@@ -39,7 +40,9 @@ final homeButtonOrder = ValueNotifier<List<HomeButton>>(
 
 final homeButtonHidden = ValueNotifier<Set<HomeButton>>({});
 
-final homeShelfOrder = ValueNotifier<List<HomeShelf>>(List.of(HomeShelf.values));
+final homeShelfOrder = ValueNotifier<List<HomeShelf>>(
+  List.of(HomeShelf.values),
+);
 
 final homeShelfHidden = ValueNotifier<Set<HomeShelf>>({});
 
