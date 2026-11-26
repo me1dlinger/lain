@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:just_font_scan/just_font_scan.dart';
 import 'package:path/path.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/utils/path.dart';
@@ -69,4 +70,19 @@ class FontManager {
     importedFonts.remove(name);
     await _fontMapFile.writeAsString(json.encode(_fontMap));
   }
+}
+
+/// Every font the app can switch to: fonts imported into the app plus, on
+/// desktop, the system's installed families. Shared by the settings font
+/// picker and the lyrics style sheet.
+List<String> availableFonts() {
+  final fonts = <String>[...importedFonts];
+  if (Platform.isWindows || Platform.isMacOS) {
+    for (final font in JustFontScan.scan()) {
+      if (!fonts.contains(font.name)) {
+        fonts.add(font.name);
+      }
+    }
+  }
+  return fonts;
 }

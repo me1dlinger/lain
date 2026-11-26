@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lain/base/audio_handler.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/interaction.dart';
-import 'package:lain/base/widgets/lyric_list_view.dart';
+import 'package:lain/base/data/lyrics_display_settings.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/data/comment_server.dart';
 import 'package:lain/base/data/comment_setting.dart';
@@ -242,6 +242,14 @@ class Setting {
     lyricsFontSizeOffsetNotifier.value =
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
+    lyricsFontWeightNotifier.value = lyricsFontWeightFromValue(
+      json['lyricsFontWeight'],
+      fallback: lyricsFontWeightNotifier.value,
+    );
+    lyricsTextAlignNotifier.value = lyricsTextAlignFromName(
+      json['lyricsTextAlign'],
+    );
+    lyricsRomajiNotifier.value = json['lyricsRomaji'] as bool? ?? false;
     lyricsCoverMotionNotifier.value =
         json['lyricsCoverMotion'] as bool? ?? true;
 
@@ -459,6 +467,9 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'lyricsFontWeight': lyricsFontWeightNotifier.value.value,
+        'lyricsTextAlign': lyricsTextAlignNotifier.value.name,
+        'lyricsRomaji': lyricsRomajiNotifier.value,
         'lyricsCoverMotion': lyricsCoverMotionNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
 

@@ -2324,6 +2324,48 @@ abstract class AppLocalizations {
   /// **'Font Weight'**
   String get fontWeight;
 
+  /// No description provided for @lyricsFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics font'**
+  String get lyricsFont;
+
+  /// No description provided for @lyricsAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics alignment'**
+  String get lyricsAlignment;
+
+  /// No description provided for @lyricsAlignAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Match layout'**
+  String get lyricsAlignAuto;
+
+  /// No description provided for @lyricsAlignLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get lyricsAlignLeft;
+
+  /// No description provided for @lyricsAlignCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get lyricsAlignCenter;
+
+  /// No description provided for @lyricsRomaji.
+  ///
+  /// In en, this message translates to:
+  /// **'Romaji lyrics'**
+  String get lyricsRomaji;
+
+  /// No description provided for @lyricsRomajiDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a romaji pronunciation line under Japanese lyrics'**
+  String get lyricsRomajiDescription;
+
   /// No description provided for @offset.
   ///
   /// In en, this message translates to:

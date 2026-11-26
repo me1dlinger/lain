@@ -18,6 +18,7 @@ import 'package:lain/landscape_view/speaker.dart';
 import 'package:lain/landscape_view/title_bar.dart';
 import 'package:lain/landscape_view/volume_bar.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
+import 'package:lain/base/widgets/lyrics_style_sheet.dart';
 import 'package:lain/base/widgets/seekbar.dart';
 import 'package:lain/portrait_view/pages/driving_mode_page.dart';
 import 'package:lain/base/my_audio_metadata.dart';
@@ -236,6 +237,14 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   valueListenable: immersiveModeNotifier,
                   builder: (context, value, child) {
                     List<Widget> children = [
+                      IconButton(
+                        color: lyricsPageForegroundColor.value,
+                        onPressed: () {
+                          tryVibrate();
+                          showLyricsStyleSheet(context);
+                        },
+                        icon: const Icon(Icons.text_fields_rounded, size: 20),
+                      ),
                       IconButton(
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {

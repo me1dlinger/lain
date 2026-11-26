@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:lain/base/audio_handler.dart';
-import 'package:lain/base/data/library.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/app.dart';
 import 'package:lain/base/asset_images.dart';
@@ -29,10 +28,10 @@ import 'package:lain/base/data/setting.dart';
 import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
 import 'package:lain/portrait_view/sleep_timer.dart';
-import 'package:lain/base/widgets/my_sheet.dart';
 import 'package:lain/l10n/generated/app_localizations.dart';
 import 'package:lain/base/widgets/lyric_list_view.dart';
 import 'package:lain/base/widgets/lyric_share_dialog.dart';
+import 'package:lain/base/widgets/lyrics_style_sheet.dart';
 import 'package:lain/base/my_audio_metadata.dart';
 import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/widgets/seekbar.dart';
@@ -699,7 +698,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                             rootNavigator: true,
                           ).context;
                           Navigator.pop(sheetContext);
-                          showAdjustLyrics(pageContext);
+                          showLyricsStyleSheet(pageContext);
                         },
                       ),
                       ActionMenuTile(
@@ -987,202 +986,6 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     );
   }
 
-  void showAdjustLyrics(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context);
-
-        return MySheet(
-          height: 200,
-          ValueListenableBuilder(
-            valueListenable: lyricsPageForegroundColor.valueNotifier,
-            builder: (context, value, child) {
-              return Column(
-                children: [
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      SizedBox(width: 20),
-                      Text(
-                        l10n.fontSize,
-                        style: .new(fontWeight: .bold, color: value),
-                      ),
-                      Spacer(),
-
-                      IconButton(
-                        color: value,
-                        onPressed: () {
-                          if (lyricsFontSizeOffsetNotifier.value < -2) {
-                            return;
-                          }
-                          lyricsFontSizeOffsetNotifier.value -= 2;
-                          setting.save();
-                        },
-                        icon: ImageIcon(minimizeImage),
-                      ),
-                      ValueListenableBuilder(
-                        valueListenable: lyricsFontSizeOffsetNotifier,
-                        builder: (context, fontSizeOffset, child) {
-                          return SizedBox(
-                            width: 50,
-                            child: Text(
-                              textAlign: .center,
-                              fontSizeOffset.toString(),
-                              style: .new(fontWeight: .bold, color: value),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        color: value,
-                        onPressed: () {
-                          lyricsFontSizeOffsetNotifier.value += 2;
-                          setting.save();
-                        },
-                        icon: Icon(Icons.add),
-                      ),
-                      SizedBox(width: 20),
-                    ],
-                  ),
-
-                  StatefulBuilder(
-                    builder: (context, thisSetState) {
-                      bool saving = false;
-                      final currentSong = currentSongNotifier.value!;
-                      return Row(
-                        children: [
-                          SizedBox(width: 20),
-                          Text(
-                            l10n.offset,
-                            style: .new(fontWeight: .bold, color: value),
-                          ),
-                          Spacer(),
-
-                          IconButton(
-                            color: value,
-                            onPressed: () async {
-                              if (saving) {
-                                return;
-                              }
-                              currentSong.lyricsTimeOffset -= 100;
-
-                              saving = true;
-                              await library.updateLyricsTimeOffset(currentSong);
-
-                              thisSetState(() {});
-                            },
-                            icon: ImageIcon(minimizeImage),
-                          ),
-                          SizedBox(
-                            width: 50,
-                            child: Text(
-                              textAlign: .center,
-                              '${currentSong.lyricsTimeOffset / 1000} s',
-                              style: .new(fontWeight: .bold, color: value),
-                            ),
-                          ),
-                          IconButton(
-                            color: value,
-                            onPressed: () async {
-                              if (saving) {
-                                return;
-                              }
-                              currentSong.lyricsTimeOffset += 100;
-
-                              saving = true;
-                              await library.updateLyricsTimeOffset(currentSong);
-
-                              thisSetState(() {});
-                            },
-                            icon: Icon(Icons.add),
-                          ),
-
-                          SizedBox(width: 20),
-                        ],
-                      );
-                    },
-                  ),
-
-                  Row(
-                    children: [
-                      SizedBox(width: 20),
-                      Text(
-                        l10n.fontWeight,
-                        style: .new(fontWeight: .bold, color: value),
-                      ),
-                      Expanded(
-                        child: ValueListenableBuilder<FontWeight>(
-                          valueListenable: lyricsFontWeightNotifier,
-                          builder: (context, weight, _) {
-                            final fontWeights = [
-                              FontWeight.w100,
-                              FontWeight.w200,
-                              FontWeight.w300,
-                              FontWeight.w400,
-                              FontWeight.w500,
-                              FontWeight.w600,
-                              FontWeight.w700,
-                              FontWeight.w800,
-                              FontWeight.w900,
-                            ];
-                            final index = fontWeights.indexOf(weight);
-
-                            return SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-
-                                activeTrackColor: value,
-                                inactiveTrackColor: value,
-
-                                thumbColor: value,
-
-                                overlayColor: Colors.transparent,
-
-                                tickMarkShape: const RoundSliderTickMarkShape(
-                                  tickMarkRadius: 1.5,
-                                ),
-                                activeTickMarkColor:
-                                    value.computeLuminance() > 0.5
-                                    ? Colors.black
-                                    : Colors.white,
-                                inactiveTickMarkColor:
-                                    value.computeLuminance() > 0.5
-                                    ? Colors.black
-                                    : Colors.white,
-
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 4,
-                                ),
-                              ),
-                              child: Slider(
-                                value: index.toDouble(),
-                                min: 0,
-                                max: (fontWeights.length - 1).toDouble(),
-                                divisions: fontWeights.length - 1,
-                                onChanged: (value) {
-                                  lyricsFontWeightNotifier.value =
-                                      fontWeights[value.round()];
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      SizedBox(width: 5),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
   Widget playControls() {
     final value = lyricsPageForegroundColor.value;
     return Row(
@@ -1223,6 +1026,25 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             lyricWidget(currentSong, .zero, true),
             SizedBox(height: 50),
           ],
+        ),
+
+        Positioned(
+          left: 25,
+          bottom: 40,
+          child: ValueListenableBuilder(
+            valueListenable: lyricsPageForegroundColor.valueNotifier,
+            builder: (context, value, child) {
+              return IconButton(
+                color: value,
+                tooltip: AppLocalizations.of(context).adjustLyrics,
+                icon: const Icon(Icons.text_fields_rounded, size: 28),
+                onPressed: () {
+                  tryVibrate();
+                  showLyricsStyleSheet(context);
+                },
+              );
+            },
+          ),
         ),
 
         Positioned(

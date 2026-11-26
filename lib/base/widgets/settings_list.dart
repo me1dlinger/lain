@@ -19,6 +19,7 @@ import 'package:lain/base/data/playlist.dart';
 import 'package:lain/base/data/random_songs.dart';
 import 'package:lain/base/data/transition_settings.dart';
 import 'package:lain/base/data/ui_motion_settings.dart';
+import 'package:lain/base/data/lyrics_display_settings.dart';
 import 'package:lain/base/services/color_manager.dart';
 import 'package:lain/base/services/stream_relay.dart';
 import 'package:lain/base/app.dart';
@@ -589,6 +590,8 @@ class _SettingsListState extends State<SettingsList> {
           trackTransitionListTile(context, l10n),
           transitionSecondsListTile(context, l10n),
           playbackModeListTile(context, l10n),
+          lyricsAlignmentListTile(context, l10n),
+          lyricsRomajiListTile(l10n),
           ListTile(
             leading: Icon(
               Icons.speaker_rounded,
@@ -2687,6 +2690,103 @@ class _SettingsListState extends State<SettingsList> {
         child: MySwitch(
           valueNotifier: lyricsCoverMotionNotifier,
           onToggleCallBack: () => setting.save(),
+        ),
+      ),
+    );
+  }
+
+  Widget lyricsAlignmentListTile(BuildContext context, AppLocalizations l10n) {
+    return ValueListenableBuilder(
+      valueListenable: lyricsTextAlignNotifier,
+      builder: (context, align, child) {
+        return ListTile(
+          leading: Icon(
+            Icons.format_align_left_rounded,
+            size: iconSize,
+            color: iconColor.value,
+          ),
+          title: Text(l10n.lyricsAlignment),
+          subtitle: Text(lyricsAlignLabel(l10n, align)),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => showLyricsAlignmentDialog(context, l10n),
+        );
+      },
+    );
+  }
+
+  Widget lyricsRomajiListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: Icon(
+        Icons.translate_rounded,
+        size: iconSize,
+        color: iconColor.value,
+      ),
+      title: Text(l10n.lyricsRomaji),
+      subtitle: Text(l10n.lyricsRomajiDescription),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: lyricsRomajiNotifier,
+          onToggleCallBack: setting.save,
+        ),
+      ),
+    );
+  }
+
+  String lyricsAlignLabel(AppLocalizations l10n, LyricsTextAlign align) {
+    return switch (align) {
+      LyricsTextAlign.auto => l10n.lyricsAlignAuto,
+      LyricsTextAlign.start => l10n.lyricsAlignLeft,
+      LyricsTextAlign.center => l10n.lyricsAlignCenter,
+    };
+  }
+
+  Future<void> showLyricsAlignmentDialog(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return showAnimationDialog<void>(
+      context: context,
+      child: SizedBox(
+        width: 300,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: ListenableBuilder(
+            listenable: lyricsTextAlignNotifier,
+            builder: (context, child) {
+              final selected = lyricsTextAlignNotifier.value;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Text(
+                      l10n.lyricsAlignment,
+                      style: TextStyle(fontSize: 15, color: iconColor.value),
+                    ),
+                  ),
+                  for (final value in LyricsTextAlign.values)
+                    Builder(
+                      builder: (dialogContext) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                        title: Text(lyricsAlignLabel(l10n, value)),
+                        trailing: selected == value
+                            ? Icon(Icons.check_rounded, color: iconColor.value)
+                            : null,
+                        onTap: () {
+                          lyricsTextAlignNotifier.value = value;
+                          setting.save();
+                          Navigator.pop(dialogContext);
+                        },
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

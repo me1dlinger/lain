@@ -180,8 +180,14 @@ void main() {
   group('looksLikeTtml', () {
     test('detects plain, prefixed and declaration-prefixed TTML', () {
       expect(looksLikeTtml('<tt xmlns="http://www.w3.org/ns/ttml">'), isTrue);
-      expect(looksLikeTtml('<tt:tt xmlns:tt="http://www.w3.org/ns/ttml">'), isTrue);
-      expect(looksLikeTtml('<?xml version="1.0" encoding="UTF-8"?><tt>'), isTrue);
+      expect(
+        looksLikeTtml('<tt:tt xmlns:tt="http://www.w3.org/ns/ttml">'),
+        isTrue,
+      );
+      expect(
+        looksLikeTtml('<?xml version="1.0" encoding="UTF-8"?><tt>'),
+        isTrue,
+      );
       expect(looksLikeTtml('  <tt>'), isTrue);
       expect(looksLikeTtml('<html><body></body></html>'), isFalse);
       expect(looksLikeTtml('[00:01.000]plain lrc'), isFalse);
@@ -202,16 +208,11 @@ void main() {
       expect(result.lines.first.text, _parseFailed);
     });
 
-    test(
-      'treats a valid document with no p elements as no lyrics',
-      () {
-        final result = parseTtml(
-          '<tt><body><div>nothing here</div></body></tt>',
-        );
-        expect(result.lines, hasLength(1));
-        expect(result.lines.first.text, _noLyrics);
-      },
-    );
+    test('treats a valid document with no p elements as no lyrics', () {
+      final result = parseTtml('<tt><body><div>nothing here</div></body></tt>');
+      expect(result.lines, hasLength(1));
+      expect(result.lines.first.text, _noLyrics);
+    });
 
     test('treats empty paragraphs as no lyrics', () {
       final result = parseTtml(
@@ -258,7 +259,10 @@ void main() {
       expect(result.lines.first.text, 'Hello world');
       expect(result.lines.first.tokens, hasLength(3));
       expect(result.lines.first.tokens[0].text, 'He');
-      expect(result.lines.first.tokens[0].end, const Duration(milliseconds: 1500));
+      expect(
+        result.lines.first.tokens[0].end,
+        const Duration(milliseconds: 1500),
+      );
       expect(result.lines.first.tokens[1].text, 'llo ');
       expect(result.lines.first.tokens[1].end, const Duration(seconds: 2));
       expect(result.lines.first.tokens[2].text, 'world');
@@ -283,9 +287,15 @@ void main() {
       expect(result.lines.first.tokens[0].text, 'Main ');
       expect(result.lines.first.tokens[0].end, const Duration(seconds: 2));
       expect(result.lines.first.tokens[1].text, '(echo');
-      expect(result.lines.first.tokens[1].end, const Duration(milliseconds: 2500));
+      expect(
+        result.lines.first.tokens[1].end,
+        const Duration(milliseconds: 2500),
+      );
       expect(result.lines.first.tokens[2].text, ' voice)');
-      expect(result.lines.first.tokens[2].end, const Duration(milliseconds: 3500));
+      expect(
+        result.lines.first.tokens[2].end,
+        const Duration(milliseconds: 3500),
+      );
     });
 
     test('supports offset time formats and sorts by begin', () {
@@ -452,6 +462,63 @@ void main() {
       );
 
       expect(result.lines.single.text, 'Hello');
+    });
+  });
+
+  group('word timing fallbacks', () {
+    test('a line with a single timed token stays line-level LRC', () {
+      final result = parse(['[00:01.000]<00:01.000>Hello', '[00:05.000]Next']);
+
+      expect(result.isKaraoke, isFalse);
+      expect(result.lines.first.text, 'Hello');
+      expect(result.lines.first.tokens.single.end, const Duration(seconds: 5));
+    });
+
+    test('leaves the last word end null when the song duration is unknown', () {
+      final result = parse(['[00:01.000]He<00:01.500>llo']);
+
+      expect(result.isKaraoke, isTrue);
+      expect(result.lines.single.tokens, hasLength(2));
+      expect(result.lines.single.tokens.last.end, isNull);
+    });
+
+    test('leaves the last TTML span end null without paragraph end', () {
+      final result = parseTtml('''
+<tt xmlns="http://www.w3.org/ns/ttml">
+  <body>
+    <div>
+      <p begin="00:00:01.000"><span begin="00:00:01.000">He</span><span begin="00:00:01.500">llo</span></p>
+    </div>
+  </body>
+</tt>
+''');
+
+      expect(result.isKaraoke, isTrue);
+      expect(result.lines.single.tokens.last.end, isNull);
+    });
+
+    test('keeps the line text when word timestamps split a word', () {
+      final result = parse([
+        '[00:01.000]<00:01.000>Hel<00:01.300>lo <00:01.800>world',
+      ]);
+
+      expect(result.lines.single.text, 'Hello world');
+      expect(result.lines.single.tokens.map((t) => t.text), [
+        'Hel',
+        'lo ',
+        'world',
+      ]);
+    });
+
+    test('karaoke detection needs more than one timed token somewhere', () {
+      final result = parse([
+        '[00:01.000]Plain',
+        '[00:05.000]<00:05.000>He<00:05.400>llo',
+        '[00:08.000]Plain again',
+      ]);
+
+      expect(result.isKaraoke, isTrue);
+      expect(result.lines, hasLength(3));
     });
   });
 }

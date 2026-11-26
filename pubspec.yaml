@@ -102,6 +102,7 @@ dependencies:
   intl: any
   material_ui: any
   cupertino_ui: any
+  kuroshiro: ^1.0.5
 dependency_overrides:
   media_kit_libs_windows_audio:
     git:

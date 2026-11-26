@@ -1146,6 +1146,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontWeight => '字体粗细';
 
   @override
+  String get lyricsFont => '歌词字体';
+
+  @override
+  String get lyricsAlignment => '歌词对齐';
+
+  @override
+  String get lyricsAlignAuto => '跟随布局';
+
+  @override
+  String get lyricsAlignLeft => '左对齐';
+
+  @override
+  String get lyricsAlignCenter => '居中';
+
+  @override
+  String get lyricsRomaji => '罗马音歌词';
+
+  @override
+  String get lyricsRomajiDescription => '在日文歌词下方显示罗马音';
+
+  @override
   String get offset => '偏移';
 
   @override
