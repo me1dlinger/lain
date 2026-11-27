@@ -15,6 +15,20 @@ void main() {
     });
   });
 
+  group('lyric content filtering', () {
+    test('credits and placeholder lines are not lyrics', () {
+      expect(isLyricContentLine('作词 : 椎名林檎'), isFalse);
+      expect(isLyricContentLine('Composed by: Someone'), isFalse);
+      expect(isLyricContentLine('*************'), isFalse);
+      expect(isLyricContentLine('約束は 要らないわ'), isTrue);
+    });
+
+    test('inline readings replace the annotated kanji', () {
+      expect(normalizeAnnotatedReading('運命(さだめ)'), 'さだめ');
+      expect(normalizeAnnotatedReading('溶(な)くなる'), 'なくなる');
+    });
+  });
+
   group('normalizeRomajiSpacing', () {
     test('collapses runs of spaces and trims', () {
       expect(normalizeRomajiSpacing('  Hello   world  '), 'Hello world');
@@ -49,6 +63,19 @@ void main() {
 
       expect(result.single, isNotNull);
       expect(result.single, contains('namae'));
+    }, timeout: const Timeout(Duration(minutes: 2)));
+
+    test('uses the title/artist hint for a kanji-only song', () async {
+      final service = RomajiService();
+      addTearDown(service.dispose);
+
+      final result = await service.convertLines([
+        '夜空',
+        '永遠',
+      ], preferJapanese: true);
+
+      expect(result[0], isNotNull);
+      expect(result[1], isNotNull);
     }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('short-circuits when there is nothing Japanese', () async {

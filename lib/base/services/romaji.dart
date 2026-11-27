@@ -17,6 +17,36 @@ bool hasJapaneseKana(String text) => _kanaPattern.hasMatch(text);
 /// Japanese line and should be romanised too.
 bool hasCjkIdeographs(String text) => RegExp(r'[㐀-鿿]').hasMatch(text);
 
+final _creditPattern = RegExp(
+  r'^(作词|作詞|作曲|编曲|編曲|制作|製作|混音|母带|母帶|翻译|翻譯|演唱|和声|和聲|录音|錄音|lyrics?|composed|arranged|produced|mixed|mastered|translated)(\s+by)?\s*[:：]',
+  caseSensitive: false,
+);
+
+final _placeholderPattern = RegExp(
+  r'^(纯音乐|純音樂|暂无歌词|暫無歌詞|无歌词|無歌詞|instrumental|no lyrics|//|[\s\*＊・.。…\-—_=~]+)$',
+  caseSensitive: false,
+);
+
+/// Credits and placeholder lines are metadata, not lyrics. Leaving them in
+/// the Japanese signal makes a Chinese credit line with a Japanese name look
+/// like a Japanese lyric and can make the whole song's decision unstable.
+bool isLyricContentLine(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) {
+    return false;
+  }
+  return !_creditPattern.hasMatch(trimmed) &&
+      !_placeholderPattern.hasMatch(trimmed);
+}
+
+/// Lyrics sometimes carry inline readings such as `運命(さだめ)`. Use the
+/// reading for romaji instead of asking the tokeniser to guess an unusual
+/// kanji compound; this also avoids parser failures on the parentheses.
+String normalizeAnnotatedReading(String text) {
+  final pattern = RegExp(r'([㐀-鿿々]+)[（(]([぀-ヿー]+)[）)]');
+  return text.replaceAllMapped(pattern, (match) => match.group(2)!);
+}
+
 /// Kuroshiro's spaced mode separates tokens with several spaces around
 /// non-Japanese words; a lyric line reads better with single spaces.
 String normalizeRomajiSpacing(String text) {
@@ -45,13 +75,19 @@ class RomajiService {
   static const _cacheLimit = 8;
   static const _requestTimeout = Duration(seconds: 20);
 
-  Future<List<String?>> convertLines(List<String> lines) async {
+  Future<List<String?>> convertLines(
+    List<String> lines, {
+    bool preferJapanese = false,
+  }) async {
     final empty = List<String?>.filled(lines.length, null);
-    if (!lines.any(hasJapaneseKana)) {
+    if (!preferJapanese &&
+        !lines.where(isLyricContentLine).any(hasJapaneseKana)) {
       return empty;
     }
 
-    final key = md5.convert(utf8.encode(lines.join('\u0000'))).toString();
+    final key = md5
+        .convert(utf8.encode('${lines.join('\u0000')}|$preferJapanese'))
+        .toString();
     final cached = _cache[key];
     if (cached != null) {
       return cached;
@@ -62,7 +98,7 @@ class RomajiService {
       return await running ?? empty;
     }
 
-    final request = _request(lines);
+    final request = _request(lines, preferJapanese);
     _inFlight[key] = request;
     try {
       final result = await request;
@@ -79,13 +115,16 @@ class RomajiService {
     }
   }
 
-  Future<List<String?>?> _request(List<String> lines) async {
+  Future<List<String?>?> _request(
+    List<String> lines,
+    bool preferJapanese,
+  ) async {
     try {
       await _ensureWorker();
       final id = _nextId++;
       final completer = Completer<List<String?>?>();
       _pending[id] = completer;
-      _requests!.send([id, lines]);
+      _requests!.send([id, lines, preferJapanese]);
       return await completer.future.timeout(_requestTimeout);
     } catch (_) {
       _shutdown();
@@ -168,6 +207,46 @@ class RomajiService {
   void dispose() => _shutdown();
 }
 
+/// Converts one line with a per-token fallback. Kuroshiro occasionally
+/// throws on one rare kanji; splitting the line keeps the rest readable
+/// instead of losing the whole song to that one character.
+Future<String?> _convertLine(Kuroshiro kuroshiro, String raw) async {
+  final text = normalizeAnnotatedReading(raw);
+
+  Future<String?> convert(String value) async {
+    try {
+      final converted = await kuroshiro.convert(
+        value,
+        to: ConvertTo.romaji,
+        mode: ConvertMode.spaced,
+      );
+      final normalized = normalizeRomajiSpacing(converted);
+      return normalized.isEmpty ? null : normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  final whole = await convert(text);
+  if (whole != null) {
+    return whole;
+  }
+
+  final parts = text.split(RegExp(r'\s+')).where((part) => part.isNotEmpty);
+  final converted = <String>[];
+  var any = false;
+  for (final part in parts) {
+    final value = await convert(part);
+    if (value == null) {
+      converted.add(part);
+    } else {
+      any = true;
+      converted.add(value);
+    }
+  }
+  return any ? normalizeRomajiSpacing(converted.join(' ')) : null;
+}
+
 /// Worker entry point. It receives `[id, lines]`, keeps its own Kuroshiro
 /// instance alive between requests and answers on [reply] with
 /// `[id, result, error]`.
@@ -177,11 +256,12 @@ Future<void> _romajiWorkerMain(SendPort reply) async {
 
   Kuroshiro? kuroshiro;
   await for (final message in inbound) {
-    if (message is! List || message.length != 2) {
+    if (message is! List || (message.length != 2 && message.length != 3)) {
       continue;
     }
     final id = message[0];
     final rawLines = message[1];
+    final preferJapanese = message.length == 3 && message[2] == true;
     if (id is! int || rawLines is! List) {
       continue;
     }
@@ -192,21 +272,18 @@ Future<void> _romajiWorkerMain(SendPort reply) async {
       // Detect the song once, not each line: a Japanese lyric often has
       // kanji-only lines between kana lines. Per-line detection dropped those
       // lines and made romaji look intermittent.
-      final songIsJapanese = texts.any(hasJapaneseKana);
+      final songIsJapanese =
+          preferJapanese ||
+          texts.where(isLyricContentLine).any(hasJapaneseKana);
       final result = <String?>[];
       for (final raw in texts) {
-        if (!hasJapaneseKana(raw) &&
-            !(songIsJapanese && hasCjkIdeographs(raw))) {
+        if (!isLyricContentLine(raw) ||
+            (!hasJapaneseKana(raw) &&
+                !(songIsJapanese && hasCjkIdeographs(raw)))) {
           result.add(null);
           continue;
         }
-        final converted = await kuroshiro.convert(
-          raw,
-          to: ConvertTo.romaji,
-          mode: ConvertMode.spaced,
-        );
-        final normalized = normalizeRomajiSpacing(converted);
-        result.add(normalized.isEmpty ? null : normalized);
+        result.add(await _convertLine(kuroshiro, raw));
       }
       reply.send([id, result, null]);
     } catch (error) {

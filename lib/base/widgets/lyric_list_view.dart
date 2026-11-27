@@ -95,22 +95,30 @@ class LyricsListViewState extends State<LyricsListView>
     }
 
     final texts = [for (final line in lines) line.text];
+    final song = currentSongNotifier.value;
+    final hintText = [
+      song?.title ?? '',
+      song?.artist ?? '',
+      song?.album ?? '',
+    ].join(' ');
     unawaited(
-      romajiService.convertLines(texts).then((result) {
-        if (!mounted || generation != _romajiGeneration) {
-          return;
-        }
-        final converted = <int, String>{};
-        for (var i = 0; i < result.length; i++) {
-          final value = result[i];
-          if (value != null && value.trim().isNotEmpty) {
-            converted[i] = value.trim();
-          }
-        }
-        setState(() {
-          _romajiLines = converted.isEmpty ? null : converted;
-        });
-      }),
+      romajiService
+          .convertLines(texts, preferJapanese: hasJapaneseKana(hintText))
+          .then((result) {
+            if (!mounted || generation != _romajiGeneration) {
+              return;
+            }
+            final converted = <int, String>{};
+            for (var i = 0; i < result.length; i++) {
+              final value = result[i];
+              if (value != null && value.trim().isNotEmpty) {
+                converted[i] = value.trim();
+              }
+            }
+            setState(() {
+              _romajiLines = converted.isEmpty ? null : converted;
+            });
+          }),
     );
   }
 
