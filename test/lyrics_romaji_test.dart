@@ -65,6 +65,20 @@ void main() {
       expect(result.single, contains('namae'));
     }, timeout: const Timeout(Duration(minutes: 2)));
 
+    test('strips invisible padding and never mixes scripts', () async {
+      final service = RomajiService();
+      addTearDown(service.dispose);
+
+      final result = await service.convertLines([
+        '​蒼い風がいま 胸のドアを叩いても',
+      ], preferJapanese: true);
+
+      expect(result.single, isNotNull);
+      expect(result.single, contains('aoi'));
+      expect(hasJapaneseKana(result.single!), isFalse);
+      expect(hasCjkIdeographs(result.single!), isFalse);
+    }, timeout: const Timeout(Duration(minutes: 2)));
+
     test('uses the title/artist hint for a kanji-only song', () async {
       final service = RomajiService();
       addTearDown(service.dispose);

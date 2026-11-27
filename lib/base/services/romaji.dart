@@ -39,6 +39,32 @@ bool isLyricContentLine(String text) {
       !_placeholderPattern.hasMatch(trimmed);
 }
 
+final _japaneseScriptPattern = RegExp(r'[぀-ヿ㐀-鿿々]');
+
+/// Normalises invisible padding that lyric providers sometimes inject around
+/// a line. A zero-width or non-breaking space can make Kuroshiro reject an
+/// otherwise ordinary line, which used to leave the original Japanese text
+/// mixed into the romaji output.
+String sanitizeRomajiText(String text) {
+  final buffer = StringBuffer();
+  for (final rune in text.runes) {
+    final invisible =
+        rune < 0x20 ||
+        rune == 0x7f ||
+        (rune >= 0x200b && rune <= 0x200f) ||
+        (rune >= 0x202a && rune <= 0x202e) ||
+        rune == 0x2060 ||
+        rune == 0xfeff ||
+        rune == 0x00a0 ||
+        rune == 0x3000;
+    buffer.write(invisible ? ' ' : String.fromCharCode(rune));
+  }
+  return buffer.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+}
+
+bool _containsJapaneseScript(String text) =>
+    _japaneseScriptPattern.hasMatch(text);
+
 /// Lyrics sometimes carry inline readings such as `運命(さだめ)`. Use the
 /// reading for romaji instead of asking the tokeniser to guess an unusual
 /// kanji compound; this also avoids parser failures on the parentheses.
@@ -211,7 +237,7 @@ class RomajiService {
 /// throws on one rare kanji; splitting the line keeps the rest readable
 /// instead of losing the whole song to that one character.
 Future<String?> _convertLine(Kuroshiro kuroshiro, String raw) async {
-  final text = normalizeAnnotatedReading(raw);
+  final text = normalizeAnnotatedReading(sanitizeRomajiText(raw));
 
   Future<String?> convert(String value) async {
     try {
@@ -221,7 +247,13 @@ Future<String?> _convertLine(Kuroshiro kuroshiro, String raw) async {
         mode: ConvertMode.spaced,
       );
       final normalized = normalizeRomajiSpacing(converted);
-      return normalized.isEmpty ? null : normalized;
+      // Never publish a half-converted line. Some tokenisers leave rare kanji
+      // untouched; mixing Japanese and romaji in one line is worse than
+      // showing no pronunciation for that line.
+      if (normalized.isEmpty || _containsJapaneseScript(normalized)) {
+        return null;
+      }
+      return normalized;
     } catch (_) {
       return null;
     }
@@ -234,17 +266,14 @@ Future<String?> _convertLine(Kuroshiro kuroshiro, String raw) async {
 
   final parts = text.split(RegExp(r'\s+')).where((part) => part.isNotEmpty);
   final converted = <String>[];
-  var any = false;
   for (final part in parts) {
     final value = await convert(part);
     if (value == null) {
-      converted.add(part);
-    } else {
-      any = true;
-      converted.add(value);
+      return null;
     }
+    converted.add(value);
   }
-  return any ? normalizeRomajiSpacing(converted.join(' ')) : null;
+  return converted.isEmpty ? null : normalizeRomajiSpacing(converted.join(' '));
 }
 
 /// Worker entry point. It receives `[id, lines]`, keeps its own Kuroshiro
